@@ -3,9 +3,9 @@
 import pytest
 import torch
 
-from calmodel.env.body import BodyConfig
-from calmodel.env.world import WorldConfig
-from calmodel.learning.dataset import (
+from cal.env.body import BodyConfig
+from cal.env.world import WorldConfig
+from cal.learning.dataset import (
     CounterfactualTrajectorySequenceDataset,
     CompressedTrajectorySequenceIterableDataset,
     PairedTrajectorySequenceDataset,
@@ -17,7 +17,7 @@ from calmodel.learning.dataset import (
     collect_trajectories,
     collect_paired_trajectories,
 )
-from calmodel.learning.replay import save_trajectory
+from cal.learning.replay import save_trajectory
 
 
 def test_sequence_dataset_has_expected_tensor_shapes() -> None:

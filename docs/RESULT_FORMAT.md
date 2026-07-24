@@ -20,7 +20,7 @@
 结果索引可通过以下命令重建：
 
 ```bash
-uv run calmodel-index --results results
+uv run cal-index --results results
 ```
 
 索引写入 `results/INDEX.json`，只引用机器可读摘要，不复制大型检查点。`results/`

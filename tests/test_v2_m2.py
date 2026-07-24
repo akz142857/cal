@@ -4,12 +4,12 @@ import json
 
 import numpy as np
 
-from calmodel.evaluation.v2_m2 import (
+from cal.evaluation.v2_m2 import (
     _load_frozen_protocol,
     scenario_from_seed,
     run_v2_m2,
 )
-from calmodel.model.entity_graph import OnlineEntityGraph
+from cal.model.entity_graph import OnlineEntityGraph
 
 
 def test_entity_graph_consumes_unordered_detections() -> None:

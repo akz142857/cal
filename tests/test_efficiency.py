@@ -1,11 +1,11 @@
 """Tests for deterministic architecture cost proxies."""
 
-from calmodel.evaluation.efficiency import (
+from cal.evaluation.efficiency import (
     active_parameter_proxy,
     estimate_macs_per_step,
     persistent_state_io_bytes_per_step,
 )
-from calmodel.model.predictors import PredictorConfig, SensorimotorPredictor
+from cal.model.predictors import PredictorConfig, SensorimotorPredictor
 
 
 def test_gru_cost_and_state_exceed_feedforward() -> None:

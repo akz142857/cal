@@ -4,8 +4,8 @@ import json
 
 import numpy as np
 
-from calmodel.evaluation.v2_m4 import run_v2_m4
-from calmodel.model.occupancy import OccupancyMemory
+from cal.evaluation.v2_m4 import run_v2_m4
+from cal.model.occupancy import OccupancyMemory
 
 
 def test_occupancy_memory_updates_only_visible_local_cells() -> None:

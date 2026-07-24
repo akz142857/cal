@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 
-from calmodel.evaluation.v2_m3_hypotheses import (
+from cal.evaluation.v2_m3_hypotheses import (
     _load_protocol,
     _shared_observation,
 )

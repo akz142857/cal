@@ -1,0 +1,48 @@
+{
+  "migration_version": 1,
+  "migrated_at": "2026-07-24",
+  "migration_kind": "python_namespace_only",
+  "from_namespace": "calmodel",
+  "to_namespace": "cal",
+  "historical_protocols_immutable": true,
+  "historical_results_immutable": true,
+  "legacy_source_commit": "b500463",
+  "legacy_confirmation_protocol_sha256": "d9ca5a58009e6f92dcb14f46403b2f579fa50945f72d042aabc29565b958519b",
+  "source_map": {
+    "calmodel/model/online_control.py": {
+      "legacy_sha256": "5f216356fa26d61d22f9b76698dd2ba563e722ed0ffad3996c218a81e0318bca",
+      "current_path": "cal/model/online_control.py",
+      "current_sha256": "9ed3ea5d79f5e28f9b25f92e9aa12e239a46ba294a3cdf81d4b52ace2c31250e"
+    },
+    "calmodel/model/entity_graph.py": {
+      "legacy_sha256": "3bebfac2017db4277a5647446ba2a496bd68e95e1abfee636054207c26bc2794",
+      "current_path": "cal/model/entity_graph.py",
+      "current_sha256": "3bebfac2017db4277a5647446ba2a496bd68e95e1abfee636054207c26bc2794"
+    },
+    "calmodel/model/body_hypotheses.py": {
+      "legacy_sha256": "e4e3fd482437a50daef34b49a0ec0e0fa29de7f36ca67e01aaa60e1be65de5e2",
+      "current_path": "cal/model/body_hypotheses.py",
+      "current_sha256": "215d3cee0f3c23397f8d678b20c707c5d5d3c24193c591531da551e25d07e44c"
+    },
+    "calmodel/evaluation/v2_m1.py": {
+      "legacy_sha256": "39c7672fa27dbbeb94d39fd854507ef43c26bab72bf5e08c1e8d84a53b1a4f00",
+      "current_path": "cal/evaluation/v2_m1.py",
+      "current_sha256": "99bac52b289e6d6f011c5846cfb2d6edc2bed45426797d7bc7f6f5f41a170328"
+    },
+    "calmodel/evaluation/v2_m2.py": {
+      "legacy_sha256": "36b29c0e6f2c90ff27af3f5ac8c9f7e5d2150a9ae39e76b00078341ae59a03a9",
+      "current_path": "cal/evaluation/v2_m2.py",
+      "current_sha256": "ce8a5eba449c46e24bca36e2ed1b4a25e11902b2b32e60d176805f635b446d1f"
+    },
+    "calmodel/evaluation/v2_m3_hypotheses.py": {
+      "legacy_sha256": "907b202c04fbb7c10d3bd018b472b2002c2faa81308f2c36d5b2d6f6679d6b14",
+      "current_path": "cal/evaluation/v2_m3_hypotheses.py",
+      "current_sha256": "21766676c369b68642cda112db2cf280d665bb52c225309498b6ff34dbeebdc3"
+    },
+    "calmodel/evaluation/v2_m1_m3_confirmation.py": {
+      "legacy_sha256": "f1bdff2325aaa6add64412ff06537dfcdc05c6ccf4ce61a42fba81aa7f8e8c14",
+      "current_path": "cal/evaluation/v2_m1_m3_confirmation.py",
+      "current_sha256": "8f3a49aeec66c43c904a87d02a3e81dc38afb5669869191ff1cff062f4bc1efc"
+    }
+  }
+}

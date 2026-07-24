@@ -73,7 +73,7 @@
 运行示例：
 
 ```bash
-uv run calmodel-cause-probe \
+uv run cal-cause-probe \
   results/M1-gru-full-seed000/checkpoint.pt \
   experiments/baseline.yaml \
   --output results/M1-cause-full-seed000

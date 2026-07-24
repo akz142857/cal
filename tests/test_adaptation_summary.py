@@ -2,7 +2,7 @@
 
 import json
 
-from calmodel.evaluation.adaptation_summary import (
+from cal.evaluation.adaptation_summary import (
     aggregate_adaptation_results,
 )
 

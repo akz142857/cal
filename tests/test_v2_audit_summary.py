@@ -2,7 +2,7 @@
 
 import json
 
-from calmodel.evaluation.v2_audit_summary import build_v2_audit_summary
+from cal.evaluation.v2_audit_summary import build_v2_audit_summary
 
 
 def test_real_v2_audits_build_a_report_when_available(

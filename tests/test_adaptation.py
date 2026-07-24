@@ -1,12 +1,12 @@
 """Tests for changed-body evaluation and finite-experience adaptation."""
 
-from calmodel.env.world import WorldConfig
-from calmodel.evaluation.adaptation import (
+from cal.env.world import WorldConfig
+from cal.evaluation.adaptation import (
     AdaptationConfig,
     evaluate_variant_adaptation,
     standard_variants,
 )
-from calmodel.model.predictors import PredictorConfig, SensorimotorPredictor
+from cal.model.predictors import PredictorConfig, SensorimotorPredictor
 
 
 def test_standard_variants_cover_required_body_and_sensor_changes() -> None:

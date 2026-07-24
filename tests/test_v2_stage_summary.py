@@ -1,6 +1,6 @@
 """Tests for the final V2 chain validation."""
 
-from calmodel.evaluation.v2_stage_summary import build_v2_stage_summary
+from cal.evaluation.v2_stage_summary import build_v2_stage_summary
 
 
 def test_v2_stage_summary_validates_complete_chain(tmp_path: object) -> None:

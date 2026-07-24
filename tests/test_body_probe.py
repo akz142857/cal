@@ -2,9 +2,9 @@
 
 import torch
 
-from calmodel.env.body import BodyConfig
-from calmodel.env.world import WorldConfig
-from calmodel.evaluation.body_probe import (
+from cal.env.body import BodyConfig
+from cal.env.world import WorldConfig
+from cal.evaluation.body_probe import (
     ProbeConfig,
     ProbeData,
     apply_probe_projection,
@@ -19,8 +19,8 @@ from calmodel.evaluation.body_probe import (
     unseen_pose_subset,
     write_probe_visualization,
 )
-from calmodel.learning.dataset import collect_trajectories
-from calmodel.model.predictors import PredictorConfig, SensorimotorPredictor
+from cal.learning.dataset import collect_trajectories
+from cal.model.predictors import PredictorConfig, SensorimotorPredictor
 
 
 def test_probe_extraction_is_detached_and_matches_trajectory_steps() -> None:

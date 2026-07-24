@@ -2,8 +2,8 @@
 
 import json
 
-from calmodel.infra.provenance import capture_provenance
-from calmodel.infra.results import build_result_index
+from cal.infra.provenance import capture_provenance
+from cal.infra.results import build_result_index
 
 
 def test_provenance_contains_stable_source_digest() -> None:

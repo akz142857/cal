@@ -2,9 +2,9 @@
 
 from dataclasses import fields
 
-from calmodel.env.body import ArticulatedBody, BodyAction
-from calmodel.env.sensors import SensorObservation, SensorSuite, VisionConfig
-from calmodel.env.world import CircleObject
+from cal.env.body import ArticulatedBody, BodyAction
+from cal.env.sensors import SensorObservation, SensorSuite, VisionConfig
+from cal.env.world import CircleObject
 
 
 def test_observation_does_not_contain_segmentation_labels() -> None:

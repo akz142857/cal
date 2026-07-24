@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import numpy as np
 
-from calmodel.model.body_hypotheses import (
+from cal.model.body_hypotheses import (
     BodyGraphCandidate,
     BodyGraphHypothesisFilter,
 )
-from calmodel.model.entity_graph import OnlineEntityGraph
+from cal.model.entity_graph import OnlineEntityGraph
 
 
 def test_complete_hypothesis_has_three_nodes_and_two_edges() -> None:

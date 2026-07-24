@@ -1,6 +1,6 @@
 """Tests for deterministic articulated-body kinematics."""
 
-from calmodel.env.body import ArticulatedBody, BodyAction, BodyConfig, BodyState
+from cal.env.body import ArticulatedBody, BodyAction, BodyConfig, BodyState
 
 
 def test_shoulder_action_moves_tip_and_preserves_elbow_angle() -> None:

@@ -2,9 +2,9 @@
 
 import torch
 
-from calmodel.env.body import BodyConfig
-from calmodel.env.world import WorldConfig
-from calmodel.evaluation.causal_sufficiency import (
+from cal.env.body import BodyConfig
+from cal.env.world import WorldConfig
+from cal.evaluation.causal_sufficiency import (
     collect_pose_grid_steps,
     effect_envelope,
     geodesic_propagation,

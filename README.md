@@ -5,6 +5,8 @@ self–environment boundary from unlabeled sensorimotor experience.
 
 The complete milestones, hypotheses, controls, and acceptance criteria are in
 [the research plan](docs/RESEARCH_PLAN.md).
+The Python namespace is `cal`; the historical rename and frozen-protocol
+handling are documented in [the package migration note](docs/PACKAGE_RENAME.md).
 
 ## First experiment: body discovery
 
@@ -31,7 +33,7 @@ The first comparison contains four conditions:
 ## Repository layout
 
 ```text
-calmodel/
+cal/
   env/          2D world, body, and sensors
   model/        modality encoders, recurrent state, and predictors
   learning/     training loop and experience replay
@@ -53,7 +55,7 @@ tests/          unit and integration tests
 Generate 100 learner-facing transitions:
 
 ```bash
-python -m calmodel.learning.replay artifacts/trajectory-000.json \
+python -m cal.learning.replay artifacts/trajectory-000.json \
   --steps 100 \
   --seed 0
 ```
@@ -71,7 +73,7 @@ body masks, object masks, and all other evaluation-only state.
 Use a `.jsonl.gz` suffix for the versioned compressed stream format:
 
 ```bash
-python -m calmodel.learning.replay artifacts/trajectory-000.jsonl.gz \
+python -m cal.learning.replay artifacts/trajectory-000.jsonl.gz \
   --steps 100 \
   --seed 0
 ```
@@ -87,7 +89,7 @@ Create the project environment and run the GRU baseline:
 
 ```bash
 uv sync --extra dev
-uv run calmodel-train experiments/baseline.yaml \
+uv run cal-train experiments/baseline.yaml \
   --output results/M1-gru-full-seed000
 ```
 
@@ -101,7 +103,7 @@ The first measured baseline and its limitations are documented in
 Evaluate whether the frozen state linearly exposes the body mask:
 
 ```bash
-uv run calmodel-probe \
+uv run cal-probe \
   results/M1-gru-full-seed000/checkpoint.pt \
   experiments/baseline.yaml \
   --output results/M1-gru-body-probe-seed000
@@ -120,7 +122,7 @@ Evaluate zero-shot prediction and finite-experience adaptation after body or
 sensor changes:
 
 ```bash
-uv run calmodel-adapt \
+uv run cal-adapt \
   results/M1-gru-full-seed000/checkpoint.pt \
   experiments/baseline.yaml \
   --output results/M1-body-adaptation-seed000
@@ -133,7 +135,7 @@ Probe whether frozen state distinguishes self-commanded change from additional
 exogenous object motion:
 
 ```bash
-uv run calmodel-cause-probe \
+uv run cal-cause-probe \
   results/M1-gru-full-seed000/checkpoint.pt \
   experiments/baseline.yaml \
   --output results/M1-cause-full-seed000
@@ -146,9 +148,9 @@ is documented in
 Run the recoverable five-seed M1 suite and rebuild its aggregate:
 
 ```bash
-uv run calmodel-multiseed --output results/M1-multiseed
-uv run calmodel-m1-summary --output results/M1-stage-summary.json
-uv run calmodel-index --results results
+uv run cal-multiseed --output results/M1-multiseed
+uv run cal-m1-summary --output results/M1-stage-summary.json
+uv run cal-index --results results
 ```
 
 The complete acceptance decision is in
@@ -187,20 +189,20 @@ a privileged simulator visibility mask, so the formal chain now stops at M4.
 Rebuild development artifacts with:
 
 ```bash
-uv run calmodel-v2-identifiability
-uv run calmodel-v2-diagnostic-ceiling
-uv run calmodel-v2-causal-sufficiency
-uv run calmodel-v2-audit-summary
-uv run calmodel-v2-m1
-uv run calmodel-v2-m2
-uv run calmodel-v2-m2-review
-uv run calmodel-v2-m3-hypotheses --split development
-uv run calmodel-v2-m3-review
-uv run calmodel-v2-m1-m3-confirm --split development
-uv run calmodel-v2-m1-m3-confirm-review
-uv run calmodel-v2-m4 --exploratory
-uv run calmodel-v2-stage-summary
-uv run calmodel-index --results results
+uv run cal-v2-identifiability
+uv run cal-v2-diagnostic-ceiling
+uv run cal-v2-causal-sufficiency
+uv run cal-v2-audit-summary
+uv run cal-v2-m1
+uv run cal-v2-m2
+uv run cal-v2-m2-review
+uv run cal-v2-m3-hypotheses --split development
+uv run cal-v2-m3-review
+uv run cal-v2-m1-m3-confirm --split development
+uv run cal-v2-m1-m3-confirm-review
+uv run cal-v2-m4 --exploratory
+uv run cal-v2-stage-summary
+uv run cal-index --results results
 ```
 
 Launch the read-only project dashboard with:

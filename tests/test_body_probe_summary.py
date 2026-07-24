@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from calmodel.evaluation.body_probe_summary import (
+from cal.evaluation.body_probe_summary import (
     aggregate_body_probe_results,
 )
 

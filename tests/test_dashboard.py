@@ -1,6 +1,6 @@
 """Tests for the read-only Cal dashboard data contract."""
 
-from calmodel.dashboard.data import load_dashboard_snapshot
+from cal.dashboard.data import load_dashboard_snapshot
 
 
 def test_dashboard_snapshot_reflects_current_stage_and_confirmation() -> None:

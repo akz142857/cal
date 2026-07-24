@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from calmodel.evaluation.temporal_summary import (
+from cal.evaluation.temporal_summary import (
     aggregate_temporal_length_curve,
     aggregate_temporal_probe_results,
 )

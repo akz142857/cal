@@ -1,7 +1,7 @@
 """Tests for frozen V2-M3 review aggregation."""
 
-from calmodel.evaluation.v2_m3_hypotheses import run_v2_m3_hypothesis_review
-from calmodel.evaluation.v2_m3_review import build_v2_m3_review
+from cal.evaluation.v2_m3_hypotheses import run_v2_m3_hypothesis_review
+from cal.evaluation.v2_m3_review import build_v2_m3_review
 
 
 def test_frozen_m3_review_passes_and_records_scope(tmp_path: object) -> None:

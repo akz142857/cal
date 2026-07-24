@@ -2,7 +2,7 @@
 
 import pytest
 
-from calmodel.evaluation.multiseed import summarize_values
+from cal.evaluation.multiseed import summarize_values
 
 
 def test_summarize_values_uses_sample_statistics() -> None:

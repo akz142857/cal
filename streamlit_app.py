@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from calmodel.dashboard.data import DashboardDataError, load_dashboard_snapshot
+from cal.dashboard.data import DashboardDataError, load_dashboard_snapshot
 
 
 st.set_page_config(

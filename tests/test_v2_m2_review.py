@@ -1,7 +1,7 @@
 """Tests for the frozen V2-M2 review aggregation."""
 
-from calmodel.evaluation.v2_m2 import run_v2_m2
-from calmodel.evaluation.v2_m2_review import build_v2_m2_review
+from cal.evaluation.v2_m2 import run_v2_m2
+from cal.evaluation.v2_m2_review import build_v2_m2_review
 
 
 def test_frozen_review_passes_and_records_source_hashes(tmp_path: object) -> None:

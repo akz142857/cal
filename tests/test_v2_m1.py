@@ -2,9 +2,9 @@
 
 import numpy as np
 
-from calmodel.env.point_world import AnonymousPointWorld, PointAction
-from calmodel.evaluation.v2_m1 import run_v2_m1
-from calmodel.model.online_control import OnlineControlAgent
+from cal.env.point_world import AnonymousPointWorld, PointAction
+from cal.evaluation.v2_m1 import run_v2_m1
+from cal.model.online_control import OnlineControlAgent
 
 
 def test_point_world_observation_contains_no_identity_channel() -> None:

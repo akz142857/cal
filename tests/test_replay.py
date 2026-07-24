@@ -5,9 +5,9 @@ from dataclasses import replace
 
 import pytest
 
-from calmodel.env.body import BodyAction
-from calmodel.env.world import BodyDiscoveryWorld, WorldConfig
-from calmodel.learning.replay import (
+from cal.env.body import BodyAction
+from cal.env.world import BodyDiscoveryWorld, WorldConfig
+from cal.learning.replay import (
     ReplayMismatchError,
     Trajectory,
     iter_compressed_experiences,

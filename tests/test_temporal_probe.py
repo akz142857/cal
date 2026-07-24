@@ -2,16 +2,16 @@
 
 import torch
 
-from calmodel.env.body import BodyConfig
-from calmodel.env.world import WorldConfig
-from calmodel.evaluation.temporal_probe import (
+from cal.env.body import BodyConfig
+from cal.env.world import WorldConfig
+from cal.evaluation.temporal_probe import (
     BlackoutConfig,
     _blackout_mask,
     _collect_probe_trajectories,
     extract_blackout_probe_data,
 )
-from calmodel.learning.dataset import collect_trajectories
-from calmodel.model.predictors import PredictorConfig, SensorimotorPredictor
+from cal.learning.dataset import collect_trajectories
+from cal.model.predictors import PredictorConfig, SensorimotorPredictor
 
 
 def test_blackout_mask_selects_contiguous_periodic_steps() -> None:

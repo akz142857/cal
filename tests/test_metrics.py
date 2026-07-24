@@ -2,7 +2,7 @@
 
 import torch
 
-from calmodel.evaluation.metrics import segmentation_metrics
+from cal.evaluation.metrics import segmentation_metrics
 
 
 def test_perfect_segmentation_has_unit_scores() -> None:

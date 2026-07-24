@@ -1,8 +1,8 @@
 """Tests for isolated V2 supervised information diagnostics."""
 
-from calmodel.env.body import BodyConfig
-from calmodel.env.world import WorldConfig
-from calmodel.evaluation.diagnostic_ceiling import (
+from cal.env.body import BodyConfig
+from cal.env.world import WorldConfig
+from cal.evaluation.diagnostic_ceiling import (
     DIAGNOSTIC_MODES,
     DiagnosticHistoryDataset,
     SmallMaskDiagnostic,

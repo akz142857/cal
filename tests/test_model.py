@@ -2,7 +2,7 @@
 
 import torch
 
-from calmodel.model.predictors import PredictorConfig, SensorimotorPredictor
+from cal.model.predictors import PredictorConfig, SensorimotorPredictor
 
 
 def _inputs() -> dict[str, torch.Tensor]:

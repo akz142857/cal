@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from calmodel.evaluation.v2_m1_m3_confirmation import (
+from cal.evaluation.v2_m1_m3_confirmation import (
     _load_protocol,
     _verify_locked_sources,
     run_v2_m1_m3_confirmation,

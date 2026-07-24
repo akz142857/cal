@@ -26,7 +26,7 @@
 运行命令：
 
 ```bash
-uv run calmodel-adapt \
+uv run cal-adapt \
   results/M1-gru-full-seed000/checkpoint.pt \
   experiments/baseline.yaml \
   --output results/M1-body-adaptation-seed000

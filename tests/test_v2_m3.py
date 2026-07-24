@@ -2,7 +2,7 @@
 
 import json
 
-from calmodel.evaluation.v2_m3 import _arm, run_v2_m3
+from cal.evaluation.v2_m3 import _arm, run_v2_m3
 
 import numpy as np
 

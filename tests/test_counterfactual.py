@@ -1,10 +1,10 @@
 """Tests for action-swap future prediction evaluation."""
 
-from calmodel.env.body import BodyConfig
-from calmodel.env.world import WorldConfig
-from calmodel.evaluation.counterfactual import evaluate_counterfactual
-from calmodel.learning.dataset import TrajectorySequenceDataset, collect_trajectories
-from calmodel.model.predictors import PredictorConfig, SensorimotorPredictor
+from cal.env.body import BodyConfig
+from cal.env.world import WorldConfig
+from cal.evaluation.counterfactual import evaluate_counterfactual
+from cal.learning.dataset import TrajectorySequenceDataset, collect_trajectories
+from cal.model.predictors import PredictorConfig, SensorimotorPredictor
 
 
 def test_counterfactual_evaluation_returns_finite_metrics() -> None:

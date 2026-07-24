@@ -2,8 +2,8 @@
 
 from math import cos, sin
 
-from calmodel.env.body import BodyAction
-from calmodel.env.world import BodyDiscoveryWorld, CircleObject, WorldConfig
+from cal.env.body import BodyAction
+from cal.env.world import BodyDiscoveryWorld, CircleObject, WorldConfig
 
 
 def test_reset_and_seeded_actions_are_reproducible() -> None:

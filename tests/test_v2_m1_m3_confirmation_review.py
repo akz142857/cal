@@ -1,6 +1,6 @@
 """Tests for the audited M1-M3 fresh confirmation report."""
 
-from calmodel.evaluation.v2_m1_m3_confirmation_review import (
+from cal.evaluation.v2_m1_m3_confirmation_review import (
     build_v2_m1_m3_confirmation_review,
 )
 

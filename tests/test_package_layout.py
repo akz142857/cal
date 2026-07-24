@@ -5,17 +5,21 @@ import importlib
 
 def test_expected_modules_are_importable() -> None:
     modules = [
-        "calmodel.env.world",
-        "calmodel.env.body",
-        "calmodel.env.sensors",
-        "calmodel.model.encoders",
-        "calmodel.model.recurrent_core",
-        "calmodel.model.predictors",
-        "calmodel.learning.trainer",
-        "calmodel.learning.replay",
-        "calmodel.evaluation.body_probe",
-        "calmodel.evaluation.metrics",
+        "cal.env.world",
+        "cal.env.body",
+        "cal.env.sensors",
+        "cal.model.encoders",
+        "cal.model.recurrent_core",
+        "cal.model.predictors",
+        "cal.learning.trainer",
+        "cal.learning.replay",
+        "cal.evaluation.body_probe",
+        "cal.evaluation.metrics",
     ]
 
     for module in modules:
         importlib.import_module(module)
+
+
+def test_legacy_package_name_is_not_importable() -> None:
+    assert importlib.util.find_spec("calmodel") is None

@@ -4,16 +4,16 @@ from math import isfinite
 
 import torch
 
-from calmodel.env.body import BodyConfig
-from calmodel.env.world import WorldConfig
-from calmodel.learning.dataset import (
+from cal.env.body import BodyConfig
+from cal.env.world import WorldConfig
+from cal.learning.dataset import (
     CounterfactualTrajectorySequenceDataset,
     PairedTrajectorySequenceDataset,
     TrajectorySequenceDataset,
     collect_trajectories,
     collect_paired_trajectories,
 )
-from calmodel.learning.trainer import (
+from cal.learning.trainer import (
     LossConfig,
     TrainingConfig,
     control_vision_delta_loss,
@@ -24,7 +24,7 @@ from calmodel.learning.trainer import (
     load_checkpoint,
     make_data_loader,
 )
-from calmodel.model.predictors import PredictorConfig, SensorimotorPredictor
+from cal.model.predictors import PredictorConfig, SensorimotorPredictor
 
 
 def _dataset(seed: int) -> TrajectorySequenceDataset:

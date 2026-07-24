@@ -1,9 +1,9 @@
 """Tests for exact visual-action identifiability audits."""
 
-from calmodel.env.body import BodyAction, BodyConfig, BodyState
-from calmodel.env.sensors import BinaryMask
-from calmodel.env.world import WorldConfig
-from calmodel.evaluation.identifiability import (
+from cal.env.body import BodyAction, BodyConfig, BodyState
+from cal.env.sensors import BinaryMask
+from cal.env.world import WorldConfig
+from cal.evaluation.identifiability import (
     AuditSample,
     analyze_equivalence_classes,
     collect_audit_sequences,

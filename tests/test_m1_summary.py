@@ -2,7 +2,7 @@
 
 import pytest
 
-from calmodel.evaluation.m1_summary import _aggregate_adaptation
+from cal.evaluation.m1_summary import _aggregate_adaptation
 
 
 def test_aggregate_adaptation_counts_final_success() -> None:

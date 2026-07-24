@@ -2,16 +2,16 @@
 
 import torch
 
-from calmodel.env.body import BodyConfig
-from calmodel.env.world import WorldConfig
-from calmodel.evaluation.cause_probe import (
+from cal.env.body import BodyConfig
+from cal.env.world import WorldConfig
+from cal.evaluation.cause_probe import (
     balance_cause_data,
     classification_metrics,
     extract_cause_data,
     train_linear_classifier,
 )
-from calmodel.learning.dataset import collect_trajectories
-from calmodel.model.predictors import PredictorConfig, SensorimotorPredictor
+from cal.learning.dataset import collect_trajectories
+from cal.model.predictors import PredictorConfig, SensorimotorPredictor
 
 
 def test_extract_cause_data_aligns_balanced_event_labels() -> None:
