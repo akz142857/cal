@@ -1,0 +1,60 @@
+name: m1b_temporal_gru
+seed: 0
+environment:
+  image_size: [16, 16]
+  object_count: 3
+  object_radius: 0.045
+  include_vision: true
+  include_proprioception: true
+  include_touch: true
+  include_action: true
+  external_object_motion_probability: 0.25
+  external_object_motion_distance: 0.08
+  input_blackout_probability: 0.25
+model:
+  recurrent_core: gru
+  hidden_size: 128
+  use_motion: true
+  motion_size: 8
+  motion_passthrough: true
+  use_inverse_dynamics: true
+data:
+  train_seeds: [0, 1, 2, 3, 4, 5, 6, 7]
+  validation_seeds: [100, 101]
+  test_seeds: [200, 201]
+  steps_per_seed: 128
+  sequence_length: 16
+  stride: 8
+training:
+  epochs: 20
+  batch_size: 16
+  learning_rate: 0.001
+  gradient_clip: 1.0
+  action_swap_weight: 0.05
+  action_swap_margin: 0.02
+  inverse_dynamics_weight: 0.02
+  device: cpu
+probe:
+  evaluation_external_motion_probability: 0.0
+  train_seeds: [400, 401, 402, 403]
+  validation_seeds: [450, 451]
+  test_seeds: [500, 501, 502, 503]
+  steps_per_seed: 128
+  epochs: 100
+  batch_size: 64
+  learning_rate: 0.01
+  device: cpu
+temporal_probe:
+  period: 16
+  start: 8
+  length: 4
+cause_probe:
+  train_seeds: [700, 701, 702, 703, 704, 705, 706, 707]
+  validation_seeds: [750, 751]
+  test_seeds: [800, 801, 802, 803]
+  steps_per_seed: 256
+  external_motion_probability: 0.5
+  external_motion_distance: 0.08
+  epochs: 100
+  learning_rate: 0.01
+  device: cpu

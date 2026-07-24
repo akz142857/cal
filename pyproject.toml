@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "calmodel"
+version = "0.1.0"
+description = "Experiments in developmental embodied learning"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "numpy>=1.26,<3",
+  "PyYAML>=6,<7",
+  "streamlit>=1.59,<2",
+  "torch>=2.5,<3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+calmodel-record = "calmodel.learning.replay:main"
+calmodel-train = "calmodel.learning.trainer:main"
+calmodel-probe = "calmodel.evaluation.body_probe:main"
+calmodel-adapt = "calmodel.evaluation.adaptation:main"
+calmodel-cause-probe = "calmodel.evaluation.cause_probe:main"
+calmodel-multiseed = "calmodel.evaluation.multiseed:main"
+calmodel-efficiency = "calmodel.evaluation.efficiency:main"
+calmodel-m1-summary = "calmodel.evaluation.m1_summary:main"
+calmodel-index = "calmodel.infra.results:main"
+calmodel-m1b-summary = "calmodel.evaluation.m1b_summary:main"
+calmodel-counterfactual = "calmodel.evaluation.counterfactual:main"
+calmodel-temporal-probe = "calmodel.evaluation.temporal_probe:main"
+calmodel-temporal-summary = "calmodel.evaluation.temporal_summary:main"
+calmodel-body-probe-summary = "calmodel.evaluation.body_probe_summary:main"
+calmodel-adaptation-summary = "calmodel.evaluation.adaptation_summary:main"
+calmodel-m1c-summary = "calmodel.evaluation.m1c_summary:main"
+calmodel-v2-identifiability = "calmodel.evaluation.identifiability:main"
+calmodel-v2-diagnostic-ceiling = "calmodel.evaluation.diagnostic_ceiling:main"
+calmodel-v2-causal-sufficiency = "calmodel.evaluation.causal_sufficiency:main"
+calmodel-v2-audit-summary = "calmodel.evaluation.v2_audit_summary:main"
+calmodel-v2-m1 = "calmodel.evaluation.v2_m1:main"
+calmodel-v2-m2 = "calmodel.evaluation.v2_m2:main"
+calmodel-v2-m2-review = "calmodel.evaluation.v2_m2_review:main"
+calmodel-v2-m3 = "calmodel.evaluation.v2_m3:main"
+calmodel-v2-m3-hypotheses = "calmodel.evaluation.v2_m3_hypotheses:main"
+calmodel-v2-m3-review = "calmodel.evaluation.v2_m3_review:main"
+calmodel-v2-m1-m3-confirm = "calmodel.evaluation.v2_m1_m3_confirmation:main"
+calmodel-v2-m1-m3-confirm-review = "calmodel.evaluation.v2_m1_m3_confirmation_review:main"
+calmodel-v2-m4 = "calmodel.evaluation.v2_m4:main"
+calmodel-v2-stage-summary = "calmodel.evaluation.v2_stage_summary:main"
+
+[tool.setuptools.packages.find]
+include = ["calmodel*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

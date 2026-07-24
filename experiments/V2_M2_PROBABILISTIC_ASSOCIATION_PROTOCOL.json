@@ -1,0 +1,55 @@
+{
+  "protocol_version": 1,
+  "frozen_at": "2026-07-24",
+  "status": "frozen_before_probabilistic_association_implementation",
+  "purpose": "One-shot V2-M2 review after replacing greedy nearest-neighbour association",
+  "development": {
+    "seeds": [600, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615],
+    "may_be_run_repeatedly": true
+  },
+  "holdout": {
+    "seeds": [9101, 9102, 9103, 9104, 9105, 9106, 9107, 9108, 9109, 9110, 9111, 9112, 9113, 9114, 9115, 9116],
+    "may_be_run": "once_after_code_and_tests_are_frozen",
+    "result_path": "results/V2-M2-probabilistic-holdout-summary.json"
+  },
+  "scenario_generator": {
+    "version": 1,
+    "families_by_seed_modulo_4": [
+      "horizontal_left_to_right",
+      "horizontal_right_to_left",
+      "diagonal_upper_left_to_lower_right",
+      "diagonal_lower_left_to_upper_right"
+    ],
+    "crossing_duration_steps": [120, 144, 168, 192],
+    "external_rotation_rate_radians": [-0.025, -0.0125, 0.0125, 0.025],
+    "controlled_rotation_pulse_period": [27, 31, 37],
+    "occlusion_phase": [0, 5, 11, 17],
+    "visual_coordinate_noise_std": [0.0, 0.015, 0.03],
+    "identical_rigid_structures": true,
+    "minimum_required_center_approach": 1.0,
+    "order_must_flip": true
+  },
+  "fixed_gates": {
+    "normal_node_f1_minimum": 0.90,
+    "normal_rigid_edge_f1_minimum": 0.85,
+    "occlusion_identity_retention_minimum": 0.90,
+    "crossing_node_f1_minimum": 0.85,
+    "crossing_identity_retention_mean_minimum": 0.90,
+    "crossing_identity_retention_worst_family_minimum": 0.75,
+    "crossing_identity_switch_rate_maximum": 0.10,
+    "ambiguous_association_brier_maximum": 0.20,
+    "all_crossings_must_be_verified": true,
+    "resource_budget_must_pass": true,
+    "evaluation_labels_must_be_absent_from_learner": true
+  },
+  "resource_limits": {
+    "learnable_parameters": 100000,
+    "active_state_bytes": 65536,
+    "mac_per_step": 5000000,
+    "steps_per_seed": 100000,
+    "maximum_replays_per_experience": 4,
+    "hardware": "CPU",
+    "wall_seconds": 7200
+  },
+  "decision_rule": "Authorize V2-M3 only if every fixed gate passes on the one-shot holdout. Development results cannot authorize progression."
+}

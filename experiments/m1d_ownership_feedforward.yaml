@@ -1,0 +1,67 @@
+name: m1d_ownership_feedforward
+seed: 0
+environment:
+  image_size: [16, 16]
+  object_count: 3
+  object_radius: 0.045
+  include_vision: true
+  include_proprioception: false
+  include_touch: true
+  include_action: true
+  external_object_motion_probability: 0.25
+  external_object_motion_distance: 0.08
+  distractor_body_count: 2
+  distractor_body_motion_probability: 1.0
+  input_blackout_probability: 0.25
+  input_blackout_span: 4
+model:
+  recurrent_core: feedforward
+  hidden_size: 176
+  residual_prediction: false
+  use_motion: true
+  motion_size: 8
+  motion_passthrough: false
+  use_inverse_dynamics: true
+  action_effect_size: 16
+  ownership_state_size: 32
+  ownership_recurrent: false
+data:
+  train_seeds: [0, 1, 2, 3, 4, 5, 6, 7]
+  validation_seeds: [100, 101]
+  test_seeds: [200, 201]
+  steps_per_seed: 128
+  sequence_length: 16
+  stride: 8
+  action_repeat_probability: 0.75
+  counterfactual_action_effect: true
+training:
+  epochs: 20
+  batch_size: 16
+  learning_rate: 0.001
+  gradient_clip: 1.0
+  action_swap_weight: 0.05
+  action_swap_margin: 0.02
+  inverse_dynamics_weight: 0.02
+  action_effect_weight: 1.0
+  action_effect_positive_weight: 8.0
+  ownership_weight: 1.0
+  ownership_positive_weight: 8.0
+  device: cpu
+probe:
+  evaluation_external_motion_probability: 0.0
+  train_seeds: [400, 401, 402, 403]
+  validation_seeds: [450, 451]
+  test_seeds: [500, 501, 502, 503]
+  steps_per_seed: 128
+  epochs: 100
+  batch_size: 64
+  learning_rate: 0.01
+  projection_size: 32
+  representation_source: ownership_state
+  device: cpu
+temporal_probe:
+  period: 16
+  start: 4
+  length: 12
+  policy: intervention
+  representation_source: ownership_state

@@ -1,0 +1,13 @@
+.venv/
+*.egg-info/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+artifacts/
+checkpoints/
+results/*
+!results/INDEX.json
+!results/V2-stage-summary.json
+!results/V2-M1-M3-integrated-v2-confirmation-summary.json
+!results/V2-M1-M3-integrated-confirmation-review-summary.json

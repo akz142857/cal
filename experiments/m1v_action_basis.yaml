@@ -1,0 +1,56 @@
+name: m1v_action_basis
+seed: 0
+environment:
+  image_size: [16, 16]
+  include_proprioception: false
+  external_object_motion_probability: 1.0
+  distractor_body_count: 2
+  distractor_body_motion_probability: 1.0
+  input_blackout_probability: 0.25
+  input_blackout_span: 4
+model:
+  recurrent_core: gru
+  hidden_size: 128
+  residual_prediction: false
+  use_motion: true
+  use_inverse_dynamics: true
+  causal_effect_channels: 8
+  causal_effect_action_size: 4
+  causal_effect_recurrent: true
+  causal_effect_hard_support: true
+data:
+  train_seeds: [0, 1, 2, 3, 4, 5, 6, 7]
+  validation_seeds: [100, 101]
+  test_seeds: [200, 201]
+  steps_per_seed: 128
+  sequence_length: 16
+  stride: 8
+  action_repeat_probability: 0.75
+  counterfactual_action_effect: true
+training:
+  epochs: 20
+  batch_size: 16
+  checkpoint_selection: final
+  action_swap_weight: 0.05
+  action_swap_margin: 0.02
+  inverse_dynamics_weight: 0.02
+  causal_effect_weight: 1.0
+  causal_effect_positive_weight: 1.0
+  causal_effect_dice_weight: 1.0
+  causal_envelope_weight: 1.0
+  causal_envelope_positive_weight: 1.0
+  causal_envelope_dice_weight: 1.0
+  device: cpu
+probe:
+  evaluation_external_motion_probability: 0.0
+  train_seeds: [400, 401, 402, 403]
+  validation_seeds: [450, 451]
+  test_seeds: [500, 501, 502, 503]
+  steps_per_seed: 128
+  epochs: 100
+  batch_size: 64
+  learning_rate: 0.01
+  projection_size: 128
+  representation_source: causal_envelope_mask
+  target_offset: current
+  device: cpu

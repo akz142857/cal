@@ -1,0 +1,111 @@
+{
+  "protocol_version": 1,
+  "frozen_at": "2026-07-24",
+  "status": "frozen_before_integrated_confirmation_evaluator_implementation",
+  "purpose": "Independent behavioral confirmation of the complete V2-M1 through V2-M3 authorization chain on fresh data",
+  "scope_statement": {
+    "claim": "Fresh-data behavioral confirmation of control discovery, probabilistic identity retention, and calibrated complete-body graph selection",
+    "not_claimed": [
+      "Direct serialization or state handoff from the historical M1 implementation into M2",
+      "Raw-pixel perception",
+      "Learned kinematic rendering",
+      "More than two complete body hypotheses",
+      "V2-M4 occupancy or object permanence"
+    ],
+    "composition_fact": "M2 relearns control relations and M3 extends the M2 entity graph; the historical M1 agent is a stage-specific mechanism check, not a serialized upstream state provider"
+  },
+  "historical_holdout_policy": {
+    "old_holdout_results_are_archival_only": true,
+    "runner_must_not_read_old_holdout_artifacts": true,
+    "old_holdout_seeds_must_not_be_used": true,
+    "old_m2_holdout_seeds": [9101, 9102, 9103, 9104, 9105, 9106, 9107, 9108, 9109, 9110, 9111, 9112, 9113, 9114, 9115, 9116],
+    "old_m3_holdout_seeds": [9201, 9202, 9203, 9204, 9205, 9206, 9207, 9208, 9209, 9210, 9211, 9212, 9213, 9214, 9215, 9216]
+  },
+  "locked_source_sha256": {
+    "calmodel/model/online_control.py": "5f216356fa26d61d22f9b76698dd2ba563e722ed0ffad3996c218a81e0318bca",
+    "calmodel/model/entity_graph.py": "3bebfac2017db4277a5647446ba2a496bd68e95e1abfee636054207c26bc2794",
+    "calmodel/model/body_hypotheses.py": "e4e3fd482437a50daef34b49a0ec0e0fa29de7f36ca67e01aaa60e1be65de5e2",
+    "calmodel/evaluation/v2_m1.py": "39c7672fa27dbbeb94d39fd854507ef43c26bab72bf5e08c1e8d84a53b1a4f00",
+    "calmodel/evaluation/v2_m2.py": "36b29c0e6f2c90ff27af3f5ac8c9f7e5d2150a9ae39e76b00078341ae59a03a9",
+    "calmodel/evaluation/v2_m3_hypotheses.py": "907b202c04fbb7c10d3bd018b472b2002c2faa81308f2c36d5b2d6f6679d6b14"
+  },
+  "development": {
+    "m1_seeds": [1200, 1201, 1202, 1203, 1204, 1205, 1206, 1207],
+    "m2_seeds": [1300, 1301, 1302, 1303, 1304, 1305, 1306, 1307],
+    "m3_seeds": [1400, 1401, 1402, 1403, 1404, 1405, 1406, 1407],
+    "may_be_run_repeatedly": true,
+    "result_path": "results/V2-M1-M3-integrated-development-summary.json"
+  },
+  "confirmation": {
+    "m1_seeds": [16001, 16002, 16003, 16004, 16005, 16006, 16007, 16008, 16009, 16010, 16011, 16012, 16013, 16014, 16015, 16016],
+    "m2_seeds": [16101, 16102, 16103, 16104, 16105, 16106, 16107, 16108, 16109, 16110, 16111, 16112, 16113, 16114, 16115, 16116],
+    "m3_seeds": [16201, 16202, 16203, 16204, 16205, 16206, 16207, 16208, 16209, 16210, 16211, 16212, 16213, 16214, 16215, 16216],
+    "may_be_run": "once_after_evaluator_tests_and_source-lock_audit_pass",
+    "result_path": "results/V2-M1-M3-integrated-confirmation-summary.json"
+  },
+  "fixed_runtime": {
+    "m1_steps": 160,
+    "m2_steps": 260,
+    "m3_broken_steps": 72,
+    "hardware": "CPU",
+    "maximum_replays_per_experience": 0
+  },
+  "required_mechanism_controls": {
+    "m1": [
+      "random_action",
+      "no_action_input",
+      "no_failure_update",
+      "time_shuffled_action"
+    ],
+    "m2": [
+      "nearest_association"
+    ],
+    "m3": [
+      "no_causal_prediction_likelihood"
+    ]
+  },
+  "fixed_gates": {
+    "m1_formal_mean_f1_minimum": 0.90,
+    "m1_active_confidence_step_reduction_minimum": 0.30,
+    "m1_no_action_f1_drop_minimum": 0.15,
+    "m1_no_failure_update_f1_drop_minimum": 0.15,
+    "m1_time_shuffled_action_f1_drop_minimum": 0.15,
+    "m1_occlusion_brier_maximum": 0.05,
+    "m1_occlusion_nll_maximum": 0.20,
+    "m2_normal_node_f1_minimum": 0.90,
+    "m2_normal_rigid_edge_f1_minimum": 0.85,
+    "m2_occlusion_identity_retention_minimum": 0.90,
+    "m2_crossing_node_f1_minimum": 0.80,
+    "m2_crossing_identity_retention_mean_minimum": 0.90,
+    "m2_crossing_identity_retention_worst_family_minimum": 0.75,
+    "m2_crossing_identity_switch_rate_maximum": 0.10,
+    "m2_ambiguous_association_brier_maximum": 0.20,
+    "m2_nearest_crossing_identity_retention_maximum": 0.85,
+    "m3_exactly_two_complete_symmetric_hypotheses": true,
+    "m3_posterior_sum_error_maximum": 0.000001,
+    "m3_symmetric_each_probability_deviation_from_half_maximum": 0.05,
+    "m3_symmetric_multiclass_brier_maximum": 0.55,
+    "m3_symmetric_nll_minimum": 0.64,
+    "m3_symmetric_nll_maximum": 0.75,
+    "m3_broken_true_hypothesis_probability_mean_minimum": 0.90,
+    "m3_broken_true_hypothesis_probability_minimum": 0.75,
+    "m3_broken_multiclass_brier_maximum": 0.05,
+    "m3_broken_nll_maximum": 0.15,
+    "m3_broken_convergence_steps_maximum": 24,
+    "m3_complete_graph_topology_f1_minimum": 0.90,
+    "m3_pose_identity_retention_minimum": 0.90,
+    "m3_no_likelihood_true_probability_deviation_from_half_maximum": 0.05,
+    "m3_no_likelihood_topology_f1_maximum": 0.60,
+    "all_formal_learners_must_be_label_free": true,
+    "all_required_controls_must_show_expected_failure": true
+  },
+  "resource_limits": {
+    "learnable_parameters": 100000,
+    "active_state_bytes": 65536,
+    "mac_per_step": 5000000,
+    "steps_per_seed": 100000,
+    "maximum_replays_per_experience": 4,
+    "wall_seconds": 7200
+  },
+  "decision_rule": "Authorize design of unprivileged V2-M4 only if every fixed gate passes on the one-shot fresh confirmation. Development results cannot authorize progression, and confirmation failure cannot be repaired by changing this protocol or rerunning its confirmation seeds."
+}

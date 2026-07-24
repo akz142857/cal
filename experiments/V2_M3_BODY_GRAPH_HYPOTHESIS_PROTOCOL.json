@@ -1,0 +1,75 @@
+{
+  "protocol_version": 1,
+  "frozen_at": "2026-07-24",
+  "status": "frozen_before_body_graph_hypothesis_implementation",
+  "purpose": "One-shot V2-M3 review of mutually exclusive calibrated complete-body hypotheses",
+  "prerequisite": "results/V2-M2-probabilistic-holdout-summary.json",
+  "development": {
+    "seeds": [700, 701, 702, 703, 704, 705, 706, 707, 708, 709, 710, 711, 712, 713, 714, 715],
+    "may_be_run_repeatedly": true
+  },
+  "holdout": {
+    "seeds": [9201, 9202, 9203, 9204, 9205, 9206, 9207, 9208, 9209, 9210, 9211, 9212, 9213, 9214, 9215, 9216],
+    "may_be_run": "once_after_code_and_tests_are_frozen",
+    "result_path": "results/V2-M3-body-graph-holdout-summary.json"
+  },
+  "scenario_generator": {
+    "version": 1,
+    "symmetric_evidence_steps": [80, 96, 112, 128],
+    "symmetry_break_modes_by_seed_modulo_4": [
+      "external_noop",
+      "external_autonomous",
+      "external_opposite_elbow",
+      "external_quarter_gain"
+    ],
+    "hidden_self_branch_by_seed_parity": ["left", "right"],
+    "shoulder_start_radians": [-0.9, -0.7, -0.5, -0.3],
+    "elbow_start_radians": [0.7, 0.9, 1.1, 1.3],
+    "occlusion_phase": [0, 7, 13, 19],
+    "visual_coordinate_noise_std": [0.0, 0.01, 0.02],
+    "pose_grid_shoulder_count": 7,
+    "pose_grid_elbow_count": 7,
+    "shared_base_is_single_visual_detection": true
+  },
+  "fixed_candidate_rules": {
+    "link_length": 3.0,
+    "link_length_tolerance": 0.35,
+    "base_control_strength_maximum": 0.20,
+    "joint_shoulder_strength_minimum": 0.20,
+    "joint_elbow_strength_maximum": 0.20,
+    "endpoint_elbow_strength_minimum": 0.20,
+    "minimum_rigid_edge_samples": 12,
+    "maximum_rigid_edge_variance": 0.03,
+    "maximum_hypotheses": 8
+  },
+  "fixed_gates": {
+    "exactly_two_complete_symmetric_hypotheses": true,
+    "posterior_sum_error_maximum": 0.000001,
+    "symmetric_each_probability_deviation_from_half_maximum": 0.05,
+    "symmetric_multiclass_brier_maximum": 0.55,
+    "symmetric_nll_minimum": 0.64,
+    "symmetric_nll_maximum": 0.75,
+    "broken_true_hypothesis_probability_mean_minimum": 0.90,
+    "broken_true_hypothesis_probability_minimum": 0.75,
+    "broken_multiclass_brier_maximum": 0.05,
+    "broken_nll_maximum": 0.15,
+    "broken_convergence_steps_maximum": 24,
+    "complete_graph_topology_f1_minimum": 0.90,
+    "pose_grid_projection_iou_mean_minimum": 0.85,
+    "pose_grid_projection_iou_worst_minimum": 0.65,
+    "pose_identity_retention_minimum": 0.90,
+    "all_hypotheses_must_have_three_nodes_and_two_edges": true,
+    "resource_budget_must_pass": true,
+    "evaluation_labels_must_be_absent_from_learner": true
+  },
+  "resource_limits": {
+    "learnable_parameters": 100000,
+    "active_state_bytes": 65536,
+    "mac_per_step": 5000000,
+    "steps_per_seed": 100000,
+    "maximum_replays_per_experience": 4,
+    "hardware": "CPU",
+    "wall_seconds": 7200
+  },
+  "decision_rule": "Authorize V2-M4 only if every fixed gate passes on the one-shot holdout. Development results cannot authorize progression."
+}
