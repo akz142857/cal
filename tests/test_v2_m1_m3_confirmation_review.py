@@ -24,3 +24,5 @@ def test_confirmation_review_passes_and_preserves_amendment(
     rendered = report.read_text(encoding="utf-8")
     assert "旧留出种子使用列表均为空" in rendered
     assert "行为组合确认" in rendered
+    assert "reacquisition_window" in rendered
+    assert result["protocol_v4_sha256"] in rendered

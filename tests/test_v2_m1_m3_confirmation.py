@@ -17,8 +17,11 @@ PROTOCOL_V1 = (
 PROTOCOL_V2 = (
     ROOT / "experiments/V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL_V2.json"
 )
-PROTOCOL = (
+PROTOCOL_V3 = (
     ROOT / "experiments/V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL_V3.json"
+)
+PROTOCOL = (
+    ROOT / "experiments/V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL_V4.json"
 )
 DEVELOPMENT_RESULT = (
     ROOT / "results/V2-M1-M3-integrated-v2-development-summary.json"
@@ -56,7 +59,7 @@ def test_v1_failure_is_preserved_in_v2_amendment_record() -> None:
 
 def test_v2_bugfix_is_preserved_in_v3_amendment_record() -> None:
     v2, v2_digest = _load_protocol(PROTOCOL_V2)
-    v3, _ = _load_protocol(PROTOCOL)
+    v3, _ = _load_protocol(PROTOCOL_V3)
 
     assert v2["protocol_version"] == 2
     assert v3["protocol_version"] == 3
@@ -66,6 +69,33 @@ def test_v2_bugfix_is_preserved_in_v3_amendment_record() -> None:
     assert v3["amendment_record"]["gate_computation_changed"]
     assert v3["fixed_gates"] == v2["fixed_gates"]
     assert v3["confirmation"]["result_path"] == v2["confirmation"]["result_path"]
+
+
+def test_v3_entity_graph_extension_is_preserved_in_v4_amendment_record() -> None:
+    v3, v3_digest = _load_protocol(PROTOCOL_V3)
+    v4, _ = _load_protocol(PROTOCOL)
+
+    assert v3["protocol_version"] == 3
+    assert v4["protocol_version"] == 4
+    record = v4["amendment_record"]
+    assert record["prior_protocol_sha256"] == v3_digest
+    assert record["confirmation_runs_before_amendment"] == 1
+    assert record["model_or_stage_algorithm_changed"] is False
+    assert record["default_parameter_equivalence_verified"] is True
+    assert record["algorithm_extended_for_new_callers_only"] is True
+    assert v4["fixed_gates"] == v3["fixed_gates"]
+    assert v4["confirmation"]["result_path"] == v3["confirmation"]["result_path"]
+    # Only entity_graph.py and this confirmation script's own hashes moved;
+    # every other locked dependency is untouched by the extension.
+    unchanged = {"cal/model/online_control.py", "cal/model/body_hypotheses.py",
+                 "cal/evaluation/v2_m1.py", "cal/evaluation/v2_m2.py",
+                 "cal/evaluation/v2_m3_hypotheses.py"}
+    for path in unchanged:
+        assert v4["locked_source_sha256"][path] == v3["locked_source_sha256"][path]
+    assert (
+        v4["locked_source_sha256"]["cal/model/entity_graph.py"]
+        != v3["locked_source_sha256"]["cal/model/entity_graph.py"]
+    )
 
 
 def test_integrated_protocol_uses_only_fresh_seeds() -> None:

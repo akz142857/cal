@@ -52,6 +52,7 @@ class OnlineEntityGraph:
         association_commitment: float = 0.58,
         association_miss_cost: float = 7.0,
         association_mode: str = "probabilistic",
+        reacquisition_window: int = 6,
     ) -> None:
         self.action_dimensions = action_dimensions
         self.maximum_tracks = maximum_tracks
@@ -60,6 +61,9 @@ class OnlineEntityGraph:
         self.association_beam_width = association_beam_width
         self.association_commitment = association_commitment
         self.association_miss_cost = association_miss_cost
+        if reacquisition_window < 1:
+            raise ValueError("reacquisition_window must be positive")
+        self.reacquisition_window = reacquisition_window
         if association_mode not in {"probabilistic", "hard_map", "nearest"}:
             raise ValueError("invalid association mode")
         self.association_mode = association_mode
@@ -350,8 +354,15 @@ class OnlineEntityGraph:
         detections: list[np.ndarray],
         action: np.ndarray,
     ) -> tuple[list[tuple[GraphTrack, int]], set[int]]:
+        # How long an unseen track may still compete for a new detection.
+        # The default of 6 matches this class's native V2-M2/M3 worlds,
+        # whose occlusions are brief (about 2 of every 23 steps); callers
+        # composing this mechanism with longer-occlusion environments (see
+        # V2-I1) may pass a wider window at construction time.
         active_tracks = [
-            track for track in self._tracks if self._step - track.last_seen <= 6
+            track
+            for track in self._tracks
+            if self._step - track.last_seen <= self.reacquisition_window
         ]
         beams: list[
             tuple[float, tuple[tuple[int, int], ...], frozenset[int]]

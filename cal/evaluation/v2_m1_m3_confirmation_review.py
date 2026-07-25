@@ -25,6 +25,9 @@ def build_v2_m1_m3_confirmation_review(
     v3_protocol_path: str | Path = (
         "experiments/V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL_V3.json"
     ),
+    v4_protocol_path: str | Path = (
+        "experiments/V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL_V4.json"
+    ),
     v2_development_path: str | Path = (
         "results/V2-M1-M3-integrated-v2-development-summary.json"
     ),
@@ -43,6 +46,7 @@ def build_v2_m1_m3_confirmation_review(
         "v1_development": Path(v1_development_path),
         "v2_protocol": Path(v2_protocol_path),
         "v3_protocol": Path(v3_protocol_path),
+        "v4_protocol": Path(v4_protocol_path),
         "v2_development": Path(v2_development_path),
         "v2_confirmation": Path(confirmation_path),
     }
@@ -58,6 +62,7 @@ def build_v2_m1_m3_confirmation_review(
     v1_development = payloads["v1_development"]
     v2_protocol = payloads["v2_protocol"]
     v3_protocol = payloads["v3_protocol"]
+    v4_protocol = payloads["v4_protocol"]
     development = payloads["v2_development"]
     confirmation = payloads["v2_confirmation"]
     v1_failed_gates = sorted(
@@ -113,8 +118,29 @@ def build_v2_m1_m3_confirmation_review(
             ]
             is False
         ),
+        "v4_amendment_preserves_v3_protocol": (
+            v4_protocol["amendment_record"]["prior_protocol_sha256"]
+            == digests["v3_protocol"]
+        ),
+        "v4_amendment_preserves_confirmation": (
+            v4_protocol["amendment_record"][
+                "prior_confirmation_result_sha256"
+            ]
+            == digests["v2_confirmation"]
+        ),
+        "v4_extension_kept_thresholds_and_verified_equivalence": (
+            v4_protocol["fixed_gates"] == v3_protocol["fixed_gates"]
+            and v4_protocol["amendment_record"][
+                "model_or_stage_algorithm_changed"
+            ]
+            is False
+            and v4_protocol["amendment_record"][
+                "default_parameter_equivalence_verified"
+            ]
+            is True
+        ),
         "current_protocol_hash_matches_development": (
-            development["protocol_sha256"] == digests["v3_protocol"]
+            development["protocol_sha256"] == digests["v4_protocol"]
         ),
         "current_development_passes": (
             development["passed"] is True
@@ -147,6 +173,7 @@ def build_v2_m1_m3_confirmation_review(
         "source_sha256": digests,
         "protocol_v2_sha256": digests["v2_protocol"],
         "protocol_v3_sha256": digests["v3_protocol"],
+        "protocol_v4_sha256": digests["v4_protocol"],
         "v1_development_regenerated_from_historical_source": True,
         "confirmation": {
             "m1": {
@@ -248,6 +275,16 @@ NLL 和不收敛直接检验无因果似然消融，并启用另一批全新确�
 改为等价的运行时计算，不改变任何阈值、种子或阶段算法；v3 的修订记录
 保留 v2 协议与一次性确认结果的哈希，本审计逐项验证该链条。开发集结果
 在 v3 下重新生成并全部通过。
+
+随后发布的 v4 修订（SHA-256 `{summary['protocol_v4_sha256']}`）给
+`OnlineEntityGraph` 加了一个默认值为 6（与此前硬编码值完全相同）的
+`reacquisition_window` 构造参数，只让主动选择更长遮挡窗口的新调用方
+（V2-I1 系统集成探针）受益；M1/M2/M3/本确认脚本均未传入该参数，行为
+不变。这不是靠论证声称不变，而是逐字段重跑验证：v4 修改前后的 M2、
+M3（含无因果似然消融）开发集产物，除 `cpu_wall_seconds`（计时，非
+行为输出）外逐字段完全一致。v4 的修订记录同样保留 v3 协议与一次性
+确认结果的哈希，本审计逐项验证该链条。开发集结果在 v4 下重新生成
+并全部通过。
 
 ## 确认结果
 

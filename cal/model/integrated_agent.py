@@ -122,8 +122,15 @@ class IntegratedSelfWorldAgent:
             infer_occlusion=infer_occlusion,
             seed=seed,
         )
+        # This world's fixed-camera occlusion runs far longer than
+        # OnlineEntityGraph's native V2-M2/M3 worlds (measured up to 34
+        # consecutive steps across 20 seeds, p99 ~28); 40 gives comfortable
+        # margin above that tail without being unbounded.
         self.graph = OnlineEntityGraph(
-            4, association_mode="probabilistic", maximum_tracks=16
+            4,
+            association_mode="probabilistic",
+            maximum_tracks=16,
+            reacquisition_window=40,
         )
         self._initialized = False
         self._action_rng = np.random.default_rng(seed + 60_000)
@@ -173,6 +180,10 @@ class IntegratedSelfWorldAgent:
         low = -margin
         high = (self.grid_size - 1) * self._scale + margin
         step = self.graph._step
+        # Only clean up tracks OnlineEntityGraph's own reacquisition_window
+        # has already given up on (plus slack) - pruning any sooner would
+        # undercut the wider window this world was given it for.
+        stale_after = self.graph.reacquisition_window + 10
         self.graph._tracks = [
             track
             for track in self.graph._tracks
@@ -181,7 +192,8 @@ class IntegratedSelfWorldAgent:
                 and low <= track.position[1] <= high
             )
             and not (
-                step - track.last_seen > 15 and track.probability < 0.5
+                step - track.last_seen > stale_after
+                and track.probability < 0.5
             )
         ]
 
