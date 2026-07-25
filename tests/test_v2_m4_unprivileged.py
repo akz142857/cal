@@ -21,7 +21,8 @@ from cal.model.occupancy import (
 
 ROOT = Path(__file__).resolve().parents[1]
 PROTOCOL_V1 = ROOT / "experiments/V2_M4_UNPRIVILEGED_PROTOCOL.json"
-PROTOCOL = ROOT / "experiments/V2_M4_UNPRIVILEGED_PROTOCOL_V2.json"
+PROTOCOL_V2 = ROOT / "experiments/V2_M4_UNPRIVILEGED_PROTOCOL_V2.json"
+PROTOCOL = ROOT / "experiments/V2_M4_UNPRIVILEGED_PROTOCOL_V3.json"
 
 
 def test_protocol_is_frozen_and_hash_locked() -> None:
@@ -29,7 +30,7 @@ def test_protocol_is_frozen_and_hash_locked() -> None:
 
     assert len(digest) == 64
     assert protocol["status"] == (
-        "frozen_after_v1_control_criterion_failure_before_any_holdout_run"
+        "frozen_after_v2_control_insensitivity_diagnosis_before_any_holdout_run"
     )
     expected = hashlib.sha256(PROTOCOL.read_bytes()).hexdigest()
     assert digest == expected
@@ -38,9 +39,28 @@ def test_protocol_is_frozen_and_hash_locked() -> None:
     assert not development & holdout
 
 
+def test_v2_knife_edge_is_preserved_in_v3_amendment() -> None:
+    v2, v2_digest = _load_frozen_protocol(PROTOCOL_V2)
+    v3, _ = _load_frozen_protocol(PROTOCOL)
+
+    assert v3["protocol_version"] == 3
+    record = v3["amendment_record"]
+    assert record["prior_protocol_sha256"] == v2_digest
+    assert record["holdout_runs_before_amendment"] == 0
+    assert record["model_or_stage_algorithm_changed"] is False
+    archived = ROOT / record["prior_development_result_path"]
+    payload = json.loads(archived.read_text(encoding="utf-8"))
+    assert payload["passed"] is False
+    digest = hashlib.sha256(archived.read_bytes()).hexdigest()
+    assert digest == record["prior_development_result_sha256"]
+    assert v3["fixed_gates"] == v2["fixed_gates"]
+    assert v3["holdout"]["seeds"] == v2["holdout"]["seeds"]
+    assert v3["environment"]["environment_version"] == 3
+
+
 def test_v1_control_failure_is_preserved_in_v2_amendment() -> None:
     v1, v1_digest = _load_frozen_protocol(PROTOCOL_V1)
-    v2, _ = _load_frozen_protocol(PROTOCOL)
+    v2, _ = _load_frozen_protocol(PROTOCOL_V2)
 
     assert v1["protocol_version"] == 1
     assert v2["protocol_version"] == 2

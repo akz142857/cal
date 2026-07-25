@@ -1,0 +1,80 @@
+{
+  "protocol_version": 3,
+  "frozen_at": "2026-07-25",
+  "status": "frozen_after_v2_control_insensitivity_diagnosis_before_any_holdout_run",
+  "purpose": "Replace the simulator-generated visibility mask in V2-M4 with agent-side geometric visibility inference from sensed occupancy only",
+  "amendment_record": {
+    "prior_protocol_path": "experiments/V2_M4_UNPRIVILEGED_PROTOCOL_V2.json",
+    "prior_protocol_sha256": "89ab12f33cec75536fccbd44c3d4e2628340c31a59addbc102376fdde60364e8",
+    "prior_development_result_path": "results/V2-M4-unprivileged-development-v2-summary.json",
+    "prior_development_result_sha256": "a0f0d22f97573473ccaaec9861ea97ea0ba467350ced90044ab6b4f921607c62",
+    "holdout_runs_before_amendment": 0,
+    "reason": "Under protocol v2 the best formal mechanism (discrete motion-hypothesis filter with online pause learning, suspend/re-anchor, and a reachable-interval floor) reached 0.5461 moving-hidden probability against the 0.55 minimum while the assume_all_visible control rose to 0.5760 against its 0.55 maximum. Instrumentation showed the structural cause: reachable-interval support is visibility-agnostic, so it carries the control almost as much as the formal agent, and the only surface where visibility inference matters - in-window occluded samples - is roughly 15 percent of all hidden samples, forcing both gates onto the same knife edge. V3 therefore enlarges that discriminating surface: the pause columns move from three cells beside the screen to one cell on each side (the deepest shadow from an opposite-side camera), and the bounce walls tighten from columns 2/22 to 6/18 so the object spends more hidden time inside the window's reach. No formal threshold, seed, agent constraint, or control criterion changes.",
+    "model_or_stage_algorithm_changed": false,
+    "environment_changed": true,
+    "new_holdout_seeds_assigned": false
+  },
+  "prerequisite": {
+    "artifact": "results/V2-M1-M3-integrated-confirmation-review-summary.json",
+    "expected_name": "V2-M1-M3-integrated-confirmation-review",
+    "expected_decision": "confirm_m1_m3_and_authorize_unprivileged_v2_m4_design"
+  },
+  "environment": {
+    "environment_version": 3,
+    "grid_size": 25,
+    "view_radius": 5,
+    "objects": "diagnostic V2-M4 layout plus two seed-jittered static blocks inside the central screen's habitual shadow bands",
+    "moving_object_pause": "the moving object pauses for 10 steps at one cell to either side of the screen column - the deepest shadow cells from an opposite-side camera - once per crossing direction",
+    "moving_object_range": "bounce walls at columns 6 and 18 keep the object within the camera's habitual window reach",
+    "occlusion_model": "discrete line-of-sight: a cell in the local window is hidden when any strictly intermediate cell on the Bresenham ray from the camera cell is truly occupied",
+    "agent_observation": "an 11x11 patch of visibly occupied cells only (occluded cells are indistinguishable from free cells); the executed action copy; no visibility channel, no labels",
+    "evaluation_only": "true occupancy grid and true visibility, used exclusively to score hidden-cell metrics after the fact"
+  },
+  "formal_agent": {
+    "mechanism": "deterministic geometric shadow-casting over the sensed patch reconstructs a visibility estimate; the log-odds occupancy update and moving-entity tracking then consume only sensed occupancy plus that self-inferred estimate",
+    "constraints": [
+      "update() accepts sensed occupancy and the action copy only; a visibility parameter must not exist in its signature",
+      "no simulator internals, labels, masks, or counterfactual branches may be read by the agent",
+      "online, chronological, zero experience replay"
+    ]
+  },
+  "required_mechanism_controls": {
+    "random_action": "active=False variant used for the step-reduction gate",
+    "assume_all_visible": "identical agent with shadow-casting disabled; it must fail the moving-hidden-probability gate, because treating occluded cells as visibly empty erases the paused hidden object"
+  },
+  "development": {
+    "seeds": [500, 501, 502, 503, 504, 505, 506, 507, 508, 509, 510, 511, 512, 513, 514, 515],
+    "may_be_run_repeatedly": true,
+    "result_path": "results/V2-M4-unprivileged-development-summary.json"
+  },
+  "holdout": {
+    "seeds": [9301, 9302, 9303, 9304, 9305, 9306, 9307, 9308, 9309, 9310, 9311, 9312, 9313, 9314, 9315, 9316],
+    "may_be_run": "once_after_development_passes_and_tests_are_green",
+    "result_path": "results/V2-M4-unprivileged-holdout-summary.json"
+  },
+  "fixed_runtime": {
+    "steps_per_seed": 220,
+    "hardware": "CPU",
+    "maximum_replays_per_experience": 0
+  },
+  "fixed_gates": {
+    "occupancy_iou_minimum": 0.70,
+    "hidden_occupancy_recall_minimum": 0.65,
+    "hidden_brier_maximum": 0.12,
+    "moving_hidden_probability_minimum": 0.55,
+    "active_step_reduction_minimum": 0.30,
+    "assume_all_visible_moving_hidden_probability_maximum": 0.55,
+    "visibility_parameter_must_be_absent_from_update": true,
+    "labels_absent_from_learner": true
+  },
+  "resource_limits": {
+    "learnable_parameters": 100000,
+    "active_state_bytes": 65536,
+    "mac_per_step": 5000000,
+    "steps_per_seed": 100000,
+    "maximum_replays_per_experience": 4,
+    "wall_seconds": 7200
+  },
+  "decision_rule": "Development passing every fixed gate authorizes exactly one holdout run. A passing holdout authorizes reconnection design review toward the original object-permanence M2. A failing holdout cannot be repaired by rerunning holdout seeds or editing this protocol; a new mechanism requires a new preregistration.",
+  "thresholds_note": "All formal thresholds equal the diagnostic V2-M4 gates so the only change under test is removing the privileged visibility mask; v3 changed only the occlusion-stress geometry of the environment."
+}

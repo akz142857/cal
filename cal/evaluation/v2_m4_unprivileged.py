@@ -24,11 +24,12 @@ from cal.model.occupancy import (
 )
 
 
-DEFAULT_PROTOCOL = Path("experiments/V2_M4_UNPRIVILEGED_PROTOCOL_V2.json")
+DEFAULT_PROTOCOL = Path("experiments/V2_M4_UNPRIVILEGED_PROTOCOL_V3.json")
 
 FROZEN_STATUSES = {
     "frozen_before_unprivileged_visibility_implementation",
     "frozen_after_v1_control_criterion_failure_before_any_holdout_run",
+    "frozen_after_v2_control_insensitivity_diagnosis_before_any_holdout_run",
 }
 
 
@@ -71,6 +72,9 @@ class _StressedLineOfSightWorld(_LineOfSightWorld):
     """
 
     PAUSE_STEPS = 10
+    PAUSE_OFFSET = 3
+    WALL_LOW = 2
+    WALL_HIGH_MARGIN = 3
 
     def __init__(self, seed: int, grid_size: int = 25) -> None:
         super().__init__(seed, grid_size)
@@ -81,7 +85,10 @@ class _StressedLineOfSightWorld(_LineOfSightWorld):
             (screen_x - 3, 14 - jitter),
         }
         self._pause_remaining = 0
-        self._pause_columns = {screen_x - 3, screen_x + 3}
+        self._pause_columns = {
+            screen_x - self.PAUSE_OFFSET,
+            screen_x + self.PAUSE_OFFSET,
+        }
         self._paused_at: set[tuple[int, int]] = set()
 
     def step(self, action: int) -> tuple[np.ndarray, np.ndarray]:
@@ -94,7 +101,10 @@ class _StressedLineOfSightWorld(_LineOfSightWorld):
             self._pause_remaining -= 1
             return self.observe()
         candidate = self.moving + self.velocity
-        if candidate[0] <= 2 or candidate[0] >= self.grid_size - 3:
+        if (
+            candidate[0] <= self.WALL_LOW
+            or candidate[0] >= self.grid_size - self.WALL_HIGH_MARGIN
+        ):
             self.velocity[0] *= -1
             candidate = self.moving + self.velocity
             self._paused_at.clear()
@@ -106,7 +116,24 @@ class _StressedLineOfSightWorld(_LineOfSightWorld):
         return self.observe()
 
 
-_WORLDS = {1: _LineOfSightWorld, 2: _StressedLineOfSightWorld}
+class _DeepShadowLineOfSightWorld(_StressedLineOfSightWorld):
+    """V3 stress: pauses in the deepest shadow, travel kept near the window.
+
+    Pause columns sit one cell to either side of the screen, and tighter
+    bounce walls keep the object inside the camera's habitual reach, so a
+    much larger share of hidden samples is occluded inside the window.
+    """
+
+    PAUSE_OFFSET = 1
+    WALL_LOW = 5
+    WALL_HIGH_MARGIN = 6
+
+
+_WORLDS = {
+    1: _LineOfSightWorld,
+    2: _StressedLineOfSightWorld,
+    3: _DeepShadowLineOfSightWorld,
+}
 
 
 def _episode(
