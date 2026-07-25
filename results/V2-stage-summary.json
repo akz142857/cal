@@ -1,15 +1,15 @@
 {
   "chain_validation": {
     "all_formal_learners_label_free": true,
-    "all_formal_stage_gates_pass": false,
+    "all_formal_stage_gates_pass": true,
     "audit_authorized_m1": true,
     "m1_authorized_m2": true,
     "m1_m3_fresh_confirmation_passed": true,
     "m2_authorized_m3": true,
     "m3_authorized_m4": true,
-    "m4_authorized_reconnection": false
+    "m4_authorized_reconnection": true
   },
-  "decision": "retain_v2_stage_stop",
+  "decision": "authorize_reconnection_design_review",
   "experiment": "V2-stage",
   "key_results": {
     "confirmation_m1_f1": 0.9995247148288974,
@@ -22,23 +22,20 @@
     "m3_body_projection_iou": 1.0,
     "m3_symmetric_nll": 0.6931471805599453,
     "m3_true_graph_probability": 0.9999944589539755,
-    "m4_active_step_reduction": 0.5412186379928315,
-    "m4_hidden_recall": 0.9775616983756616,
-    "m4_occupancy_iou": 0.9520833333333334,
+    "m4_active_step_reduction": 0.69432918395574,
+    "m4_hidden_recall": 0.8713452697643108,
+    "m4_occupancy_iou": 0.7503647641273415,
     "mirrored_32_frame_majority_iou": 0.3716153127917834,
     "universal_unique_mask_identifiable": false
   },
-  "passed": false,
+  "passed": true,
   "provenance": {
-    "captured_at_utc": "2026-07-25T10:32:04.120537+00:00",
-    "git_commit": "5ec1804895ea31c5d0b4b3cbcdcb85eaee319de7",
+    "captured_at_utc": "2026-07-25T12:02:16.007009+00:00",
+    "git_commit": "976fb8941dabd39536294afa261424cea7a70814",
     "git_dirty": true,
     "git_status": [
-      "M cal/evaluation/v2_m1_m3_confirmation_review.py",
-      " M docs/experiments/V2_AUDIT_REPORT.md",
-      " M docs/experiments/V2_M1_M3_INTEGRATED_CONFIRMATION_REPORT.md",
-      " M results/INDEX.json",
-      " M results/V2-M1-M3-integrated-confirmation-review-summary.json"
+      "M cal/evaluation/v2_stage_summary.py",
+      " M tests/test_v2_stage_summary.py"
     ],
     "runtime": {
       "numpy": "2.5.1",
@@ -48,7 +45,7 @@
       "torch": "2.13.0"
     },
     "schema_version": 1,
-    "source_file_count": 171,
+    "source_file_count": 174,
     "source_files": {
       "cal/__init__.py": "6e08796b299c4960472d78a8d942bcbf81b94e7dd3d454e41ff9a8464cb850e1",
       "cal/dashboard/__init__.py": "0b58ee1f51a4d35fc7d66d0d7a6c4a452569ef9f898bae863ba86d9cc900ae20",
@@ -83,7 +80,7 @@
       "cal/evaluation/temporal_probe.py": "2d2230c107dce7969881bdbae7b782c5b3a8d3fde8bbab70db14b95fa586a0c5",
       "cal/evaluation/temporal_summary.py": "9ab07827d9443afe10bc722741c47a3d1484fddef046985e96030e8d8818d660",
       "cal/evaluation/v2_artifacts.py": "0aa55e61343e3ffb439ff298b0ea54c59bbe52e300d5993641854c6b0819b4a1",
-      "cal/evaluation/v2_audit_summary.py": "89c96b3d2618ad768a424f9f3f7490a203deb33857b6ecbf8b96ff0bb0a6886a",
+      "cal/evaluation/v2_audit_summary.py": "e3eb047a86f9dfc3686520620f3b607c2ae7a4063da2d7915f29bedfdb56b066",
       "cal/evaluation/v2_m1.py": "01e98e40392f9cfd8c9f26a02984eff3aaa1c4049070e965325e5c27fd6cc121",
       "cal/evaluation/v2_m1_m3_confirmation.py": "250721e3979f34e0d5c2f0236e2ca578dc48a4bc12f7fb534419866628c5412f",
       "cal/evaluation/v2_m1_m3_confirmation_review.py": "8d1da815bf43fbee392e2518523010cabe17c71baa9b5050c564b470df032228",
@@ -93,7 +90,8 @@
       "cal/evaluation/v2_m3_hypotheses.py": "21766676c369b68642cda112db2cf280d665bb52c225309498b6ff34dbeebdc3",
       "cal/evaluation/v2_m3_review.py": "300ecf00c49c09c46e8ebd005a9b9d9bb2133bfcb7ab83230da4bd453a8c92ff",
       "cal/evaluation/v2_m4.py": "971abe849c628f428b87a1723efa71bf4c049a96c0d231ac3e1fc0c3c81f9f5c",
-      "cal/evaluation/v2_stage_summary.py": "04ae6e8a63598b2d623212ae0bb627648d74511b5c3a94374711a0aa8ee00526",
+      "cal/evaluation/v2_m4_unprivileged.py": "684f404eb59ebf0dc5b648dac637eb7eb5bac638e09c4bafa07e259fbbb134c8",
+      "cal/evaluation/v2_stage_summary.py": "df5e05c549a5883595c6d7ea98498855b65d966f05cd06ae5bd32284cecc0b27",
       "cal/infra/__init__.py": "d4fef0416109507f21bce6c295ed3a853196abdcc3dc6815e9fd644044177f25",
       "cal/infra/provenance.py": "32d6c19839f97131c7d7c396a5026bafbc99fea82190b0829ad52bfc43dc232f",
       "cal/infra/results.py": "5c7a50c239d46e5a2f12b90410ea48d1fbb87d489ce64cf330c972124ca7095c",
@@ -105,7 +103,8 @@
       "cal/model/body_hypotheses.py": "215d3cee0f3c23397f8d678b20c707c5d5d3c24193c591531da551e25d07e44c",
       "cal/model/encoders.py": "bf81c30e609a4991276cad5c65999c93eea1ee0ae80140fd70a7b164efade639",
       "cal/model/entity_graph.py": "3bebfac2017db4277a5647446ba2a496bd68e95e1abfee636054207c26bc2794",
-      "cal/model/occupancy.py": "538e25f8eaab2a0d6ccf6d91fa6d641eb7ae0032f8936f121cdebc5bd997c249",
+      "cal/model/motion_hypotheses.py": "2f8c073488c8110b53104632ba709bb01ff8e7f21064442384f4905dbb7863e3",
+      "cal/model/occupancy.py": "01c9a2be9ac0775ad253937c607fbd0bc1ba52217722c530a28e513b06dadaa9",
       "cal/model/online_control.py": "9ed3ea5d79f5e28f9b25f92e9aa12e239a46ba294a3cdf81d4b52ace2c31250e",
       "cal/model/predictors.py": "f2253f81b98f0fabd6481954947bcd9a7a598df0295759567e9e4e67a5f2a674",
       "cal/model/recurrent_core.py": "1f92b23894ee6e516e7dcc76e484a4f7cdd7d0563951a8a88c15c2930ad6472e",
@@ -180,7 +179,7 @@
       "experiments/random_actions.yaml": "9d8e03718b35fc5fac21bf0a592a4a3036e7a1bf32e3ca2e585c399a7f9ef391",
       "experiments/shuffled_modalities.yaml": "b3bccc5555d64fa8dd34ca57ec10960ffc6104f9e363a57452f94de505dc34d8",
       "experiments/visual_leak.yaml": "94c91f95f173979ccbc4e67581c8c009c005b14598736be368041e247e844137",
-      "pyproject.toml": "77ca6b8e6245fe4f4dc2c43dd846c981a5dfce5ffca8c844e8bb22899d01d115",
+      "pyproject.toml": "85328d57d4f25861dc73123c37cda528ab0f418f2e03af999ac7c57351739376",
       "tests/test_adaptation.py": "9f2182606046edb08b866fe56bc0989906945135e9c0cd7088a1fc986f670eb0",
       "tests/test_adaptation_summary.py": "587cd4ceec24cbdcd55329d5fc224a01bccf6d9a8a6350b2d8515e39063569dc",
       "tests/test_body.py": "a8234ff39db2a7065c1398afc3b5c03406c77f0849cd490c19478afa7342dc7f",
@@ -218,11 +217,12 @@
       "tests/test_v2_m3_hypotheses.py": "9e52bc4db10d93b8f0240d29366b38f7488fc7b2c125a6141ac28bd4ef0c559b",
       "tests/test_v2_m3_review.py": "2f5a5140ceb62bc505d363ba1aa93605b2a2e053bf7f5ec3bea41e49c69fb736",
       "tests/test_v2_m4.py": "74dab49ecb28df7165626f87a20077b8b8907d0835fc190f35d3fd5e52d9c7b1",
-      "tests/test_v2_stage_summary.py": "9350441915cb9b759528cbb124a9a56fa8966dd10ba1e5619528a9fd215dc9ac",
+      "tests/test_v2_m4_unprivileged.py": "6371e326a75a038c7e2ec9d6689bae11d690f5034c22ce07d7caea9a38cbb6df",
+      "tests/test_v2_stage_summary.py": "833922dccf474e4d6ba3e0b82c80d3cdeb9fabf678d9d080a3aec273e66b64ea",
       "tests/test_world.py": "3bffe606920b65944c9fba9b2d0888bc9a4dea39151e82f89484b03200b344ab",
       "uv.lock": "2de3588e7f7dff466a6927b7f093f6de352fdd4a4dbcbd8562031ea0cb7206c3"
     },
-    "source_sha256": "4d67242f91a0f350822b2f56c2b27b2f76ad9bc49297eaa621aae4379d4d86d5",
+    "source_sha256": "1b4a1d9b5e270d425884711097f435db469007e2ad86f2873d9e7d4ad53ee5c1",
     "workspace": "/Users/ziy/Code/ClayCosmos/cal"
   },
   "result_schema_version": 1,
@@ -230,11 +230,10 @@
     "V2 proves staged mechanisms in small deterministic synthetic worlds, not general visual cognition.",
     "M2 and M3 consume deterministic sparse visual detections; a raw-pixel front end remains unvalidated.",
     "The mirrored shared-base stress is reported as multiple hypotheses because a unique hidden identity is unidentifiable.",
-    "M4 receives a sensor visibility mask and uses a small two-dimensional allocentric grid.",
     "M3 pose projection uses a known analytic two-link renderer and validates graph selection, not learned raw-pixel segmentation.",
-    "M4 still receives a simulator visibility mask and therefore remains a diagnostic rather than a formal visual-only stage.",
     "The fresh M1-M3 confirmation validates behavioral composition; it does not establish serialized M1 state handoff into M2.",
-    "Only a future full V2 pass could authorize reconnection to the original object-permanence M2."
+    "The unprivileged M4 infers occlusion by shadow-casting over sensed occupancy; the simulator visibility mask is no longer an agent input.",
+    "The unprivileged M4 holdout authorizes a reconnection design review, not reconnection itself; the original object-permanence M2 remains unstarted."
   ],
   "source_artifact_sha256": {
     "V2-M1-M3-integrated-confirmation-review-summary.json": "647049b759f323558953858c84d1a46ff817a4d12755c63ee687201d2042c120",
@@ -242,7 +241,8 @@
     "V2-M2-probabilistic-holdout-summary.json": "b90e570643e6c2641346924a4d8bec032d2b6d83c99d216e9f53a684bf35dba2",
     "V2-M3-body-graph-holdout-summary.json": "8045290182620886ebd1b594efe46c40936b10a114e39ba305f04479be41fa52",
     "V2-M4-summary.json": "f807eca84a30479e34f0965c90d4d5f49917107a60a453deefddfe621480bcc1",
-    "V2-audit-summary.json": "68277913b5d097ae8f817c38a8a4765c7e12c62acaf27a2b40860363641dd879"
+    "V2-M4-unprivileged-holdout-summary.json": "bc4dd1f20e8069fa8755611dded1935f268a22f7a7487721d19ac6dfc9b6872d",
+    "V2-audit-summary.json": "a87b449c585c94444368267634cd4b06d92415367bbf633036d5559034ad626d"
   },
   "sources": {
     "V2-M1-M3-integrated-confirmation-review-summary.json": "results/V2-M1-M3-integrated-confirmation-review-summary.json",
@@ -250,6 +250,7 @@
     "V2-M2-probabilistic-holdout-summary.json": "results/V2-M2-probabilistic-holdout-summary.json",
     "V2-M3-body-graph-holdout-summary.json": "results/V2-M3-body-graph-holdout-summary.json",
     "V2-M4-summary.json": "results/V2-M4-summary.json",
+    "V2-M4-unprivileged-holdout-summary.json": "results/V2-M4-unprivileged-holdout-summary.json",
     "V2-audit-summary.json": "results/V2-audit-summary.json"
   }
 }

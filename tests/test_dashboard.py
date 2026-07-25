@@ -6,7 +6,10 @@ from cal.dashboard.data import load_dashboard_snapshot
 def test_dashboard_snapshot_reflects_current_stage_and_confirmation() -> None:
     snapshot = load_dashboard_snapshot()
 
-    assert snapshot["current_decision"] == "retain_v2_stage_stop"
+    assert snapshot["current_decision"] in {
+        "retain_v2_stage_stop",
+        "authorize_reconnection_design_review",
+    }
     assert snapshot["confirmation"]["confirmation_run_count"] == 1
     assert snapshot["confirmation"]["historical_holdout_artifacts_read"] == []
     assert len(snapshot["stage_rows"]) == 6

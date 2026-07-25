@@ -184,8 +184,15 @@ frozen holdout preserves the observable 0.5/0.5 symmetry, then reaches
 0.999994 mean true-graph probability within at most two steps after symmetry
 break. A separate one-shot fresh-data confirmation then revalidates M1–M3
 without reading either old holdout: M1 F1 is 0.9995, M2 crossing identity
-retention is 0.9792, and M3 true-graph probability is 0.999991. M4 still uses
-a privileged simulator visibility mask, so the formal chain now stops at M4.
+retention is 0.9792, and M3 true-graph probability is 0.999991. The
+simulator visibility mask has since been removed from M4: the unprivileged
+variant infers occlusion by shadow-casting over its own sensed occupancy,
+maintains probabilistic motion hypotheses with online pause-regularity
+learning for occluded objects, and passes its one-shot frozen holdout
+(occupancy IoU 0.7504, moving-hidden probability 0.7492, with the
+assume-all-visible control failing as required). The chain now authorizes a
+reconnection design review toward the original object-permanence M2; see
+[the unprivileged M4 report](docs/experiments/V2_M4_UNPRIVILEGED_REPORT.md).
 Rebuild development artifacts with:
 
 ```bash
@@ -201,6 +208,7 @@ uv run cal-v2-m3-review
 uv run cal-v2-m1-m3-confirm --split development
 uv run cal-v2-m1-m3-confirm-review
 uv run cal-v2-m4 --exploratory
+uv run cal-v2-m4-unprivileged --split development
 uv run cal-v2-stage-summary
 uv run cal-index --results results
 ```
