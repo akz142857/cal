@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import log
+from typing import Any
 
 import numpy as np
 
@@ -269,18 +270,8 @@ class UnprivilegedOccupancyMemory(OccupancyMemory):
         else:
             visibility = np.ones_like(sensed_occupancy, dtype=np.uint8)
         self._last_estimated_visibility = visibility
+        self._last_sensed_occupancy = sensed_occupancy
         super().update(sensed_occupancy, visibility, action)
-        stamps = getattr(self, "_empty_seen_step", None)
-        if stamps is None:
-            stamps = np.full(
-                (self.grid_size, self.grid_size), -10_000, dtype=np.int64
-            )
-            self._empty_seen_step = stamps
-        x0 = int(self._camera[0] - VIEW_RADIUS)
-        y0 = int(self._camera[1] - VIEW_RADIUS)
-        size = 2 * VIEW_RADIUS + 1
-        empty = (visibility.astype(bool)) & (sensed_occupancy == 0)
-        stamps[y0 : y0 + size, x0 : x0 + size][empty] = self._step
 
     def _may_clear_cell(self, x: int, y: int) -> bool:
         """Only visual evidence, never blind extrapolation, erases memory.
@@ -307,80 +298,147 @@ class UnprivilegedOccupancyMemory(OccupancyMemory):
             return False
         return bool(visibility[local_y, local_x])
 
-    REACHABLE_LOG_ODDS = 0.45
-    EMPTY_EVIDENCE_FRESH_STEPS = 5
+    MAX_FILTERS = 4
+    STATIC_LOG_ODDS = 2.0
+    PAINT_FLOOR = 0.02
+    PAINT_CEILING = 0.85
+    SUPPORT_MASS = 0.005
+    SUPPORT_LOG_ODDS = 0.45
 
     def _update_entities(self, detections: list[np.ndarray]) -> None:
         super()._update_entities(detections)
         visibility = getattr(self, "_last_estimated_visibility", None)
         if visibility is None:
             return
-        corridors = getattr(self, "_corridors", None)
-        if corridors is None:
-            corridors = {}
-            self._corridors = corridors
-        # A corridor collapses only when the object is actually re-found:
-        # a visible detection lands inside its span. Entity identity churn
-        # (timeouts, re-spawns) must not silently kill the reachable set.
-        found_keys = set()
-        for point in detections:
-            x, y = np.rint(point).astype(int)
-            for key, corridor in corridors.items():
-                along = x if corridor["axis"] == 0 else y
-                row = y if corridor["axis"] == 0 else x
-                if (
-                    row == corridor["row"]
-                    and corridor["low"] <= along <= corridor["high"]
-                ):
-                    found_keys.add(key)
-        for key in found_keys:
-            corridors.pop(key, None)
+        from cal.model.motion_hypotheses import (
+            MotionHypothesisFilter,
+            PauseLearner,
+        )
+
+        if not hasattr(self, "_filters"):
+            self._filters: dict[tuple[int, int], Any] = {}
+            self._pause_learner = PauseLearner()
+            self._stationary_runs: dict[int, tuple[int, int, int]] = {}
+            self._entity_history: dict[int, int] = {}
+        self._learn_pauses()
         for entity in self._entities:
-            if entity.last_seen == self._step or entity.motion_confidence < 2:
+            key = id(entity)
+            speed = float(np.linalg.norm(entity.velocity))
+            if entity.motion_confidence >= 2 and speed >= 0.5:
+                axis = int(np.argmax(np.abs(entity.velocity)))
+                direction = 1 if entity.velocity[axis] >= 0 else -1
+                self._entity_history[key] = (axis, direction)
+            if entity.last_seen == self._step:
                 continue
+            if key not in self._entity_history:
+                continue
+            axis, direction = self._entity_history[key]
             anchor = np.clip(
                 np.rint(entity.position).astype(int),
                 0,
                 self.grid_size - 1,
             )
-            axis = int(np.argmax(np.abs(entity.velocity)))
-            key = (axis, int(anchor[1 - axis]))
-            if key not in corridors:
-                corridors[key] = {
-                    "axis": axis,
-                    "row": int(anchor[1 - axis]),
-                    "low": int(anchor[axis]),
-                    "high": int(anchor[axis]),
-                }
-        for corridor in corridors.values():
-            # The unobserved object may keep moving, pause, or bounce, so
-            # its reachable set widens symmetrically one cell per step.
-            corridor["low"] = max(0, corridor["low"] - 1)
-            corridor["high"] = min(
-                self.grid_size - 1, corridor["high"] + 1
-            )
-            self._paint_corridor(corridor, visibility)
+            filter_key = (axis, int(anchor[1 - axis]))
+            if (
+                filter_key not in self._filters
+                and len(self._filters) < self.MAX_FILTERS
+            ):
+                self._filters[filter_key] = MotionHypothesisFilter(
+                    self.grid_size,
+                    axis=axis,
+                    row=int(anchor[1 - axis]),
+                    start=int(anchor[axis]),
+                    direction=direction,
+                    learner=self._pause_learner,
+                )
+        self._advance_filters(detections, visibility)
 
-    def _paint_corridor(
+    def _learn_pauses(self) -> None:
+        """Record visible stationary episodes into the pause table."""
+
+        for entity in self._entities:
+            key = id(entity)
+            if entity.last_seen != self._step:
+                continue
+            x, y = np.rint(entity.position).astype(int)
+            run = self._stationary_runs.get(key)
+            if run is None:
+                self._stationary_runs[key] = (int(x), int(y), 1)
+            else:
+                run_x, run_y, count = run
+                if (int(x), int(y)) == (run_x, run_y):
+                    self._stationary_runs[key] = (run_x, run_y, count + 1)
+                else:
+                    # Only a clean single-cell resume marks a genuine pause;
+                    # multi-cell jumps are rematches, not resumed motion.
+                    displacement = abs(int(x) - run_x) + abs(int(y) - run_y)
+                    if displacement == 1:
+                        axis = 0 if run_y == int(y) else 1
+                        along = run_x if axis == 0 else run_y
+                        self._pause_learner.record(int(along), count)
+                    self._stationary_runs[key] = (int(x), int(y), 1)
+
+    def _advance_filters(
         self,
-        corridor: dict[str, int],
+        detections: list[np.ndarray],
         visibility: np.ndarray,
     ) -> None:
-        stamps = getattr(self, "_empty_seen_step", None)
-        for position in range(corridor["low"], corridor["high"] + 1):
-            if corridor["axis"] == 0:
-                x, y = position, corridor["row"]
-            else:
-                x, y = corridor["row"], position
+        detection_cells = {
+            (int(point[0]), int(point[1]))
+            for point in (np.rint(p).astype(int) for p in detections)
+        }
+        for key in list(self._filters):
+            hypothesis = self._filters[key]
+            hypothesis.predict()
+            axis, row = key
+            visible_empty = set()
+            detection = None
+            for position in range(self.grid_size):
+                x, y = (
+                    (position, row) if axis == 0 else (row, position)
+                )
+                if (x, y) in detection_cells:
+                    detection = position
+                if self._cell_currently_visible(x, y, visibility):
+                    local_x = x - int(self._camera[0] - VIEW_RADIUS)
+                    local_y = y - int(self._camera[1] - VIEW_RADIUS)
+                    if self._last_sensed_occupancy[local_y, local_x] == 0:
+                        visible_empty.add(position)
+            hypothesis.observe(
+                visible_empty=visible_empty,
+                detection=detection,
+            )
+            if hypothesis.retired:
+                del self._filters[key]
+                continue
+            self._paint_marginal(key, hypothesis, visibility)
+
+    def _paint_marginal(
+        self,
+        key: tuple[int, int],
+        hypothesis: Any,
+        visibility: np.ndarray,
+    ) -> None:
+        axis, row = key
+        marginal = hypothesis.marginal()
+        for position in range(self.grid_size):
+            x, y = (position, row) if axis == 0 else (row, position)
             if self._cell_currently_visible(x, y, visibility):
                 continue
-            if (
-                stamps is not None
-                and self._step - int(stamps[y, x])
-                <= self.EMPTY_EVIDENCE_FRESH_STEPS
-            ):
+            if self._log_odds[y, x] > self.STATIC_LOG_ODDS:
                 continue
-            self._log_odds[y, x] = max(
-                self._log_odds[y, x],
-                self.REACHABLE_LOG_ODDS,
+            probability = float(
+                np.clip(marginal[position], self.PAINT_FLOOR, self.PAINT_CEILING)
             )
+            log_odds = float(np.log(probability / (1.0 - probability)))
+            # The never-shrinking reachable interval provably contains the
+            # unobserved object, so it carries a moderate floor even where
+            # the calibrated marginal has been diluted by timing mismatch;
+            # learned pause regularities raise concentrated cells above it.
+            if (
+                hypothesis.reachable_low
+                <= position
+                <= hypothesis.reachable_high
+            ):
+                log_odds = max(log_odds, self.SUPPORT_LOG_ODDS)
+            self._log_odds[y, x] = log_odds
