@@ -26,9 +26,6 @@ from cal.model.occupancy import UnprivilegedOccupancyMemory, VIEW_RADIUS
 ACTION_DELTAS = np.asarray(
     ((0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)), dtype=np.int64
 )
-_MOVE_VECTORS = np.asarray(
-    ((-1.0, 0.0), (1.0, 0.0), (0.0, -1.0), (0.0, 1.0))
-)
 
 
 def _action_vector(action: int) -> np.ndarray:
@@ -38,6 +35,72 @@ def _action_vector(action: int) -> np.ndarray:
     if action != 0:
         vector[action - 1] = 1.0
     return vector
+
+
+_EIGHT_CONNECTED = (
+    (-1, -1), (-1, 0), (-1, 1),
+    (0, -1), (0, 1),
+    (1, -1), (1, 0), (1, 1),
+)
+_FOUR_CONNECTED = ((-1, 0), (1, 0), (0, -1), (0, 1))
+
+
+def connected_component_centroids(
+    sensed: np.ndarray,
+    x0: int,
+    y0: int,
+    *,
+    connectivity: int = 8,
+) -> np.ndarray:
+    """One absolute-coordinate centroid per connected blob of occupied cells.
+
+    The V2-I1 integration report (docs/experiments/V2_I1_INTEGRATION_REPORT.md)
+    diagnosed a from-scratch "isolation filter" (drop any occupied cell that
+    touches another) as the unresolved front-end friction: in this world's
+    dense 11x11 arena, objects and the static screen are frequently
+    adjacent, so the isolated-cell count swung between 0 and 5 per frame
+    across 100 sampled steps, breaking track continuity before
+    OnlineEntityGraph's control estimator could accumulate evidence.
+
+    This replaces that filter with real blob segmentation: touching cells
+    merge into one detection at their centroid, instead of vanishing
+    entirely. A dense static wall becomes a single stationary blob (a
+    stable, correctly "not self" track) rather than several flickering
+    single-cell ones; two entities that momentarily touch merge into one
+    detection for those frames rather than both dropping out.
+    """
+
+    occupied = sensed > 0
+    height, width = occupied.shape
+    visited = np.zeros_like(occupied, dtype=bool)
+    steps = _EIGHT_CONNECTED if connectivity == 8 else _FOUR_CONNECTED
+    centroids: list[tuple[float, float]] = []
+    for start_y in range(height):
+        for start_x in range(width):
+            if not occupied[start_y, start_x] or visited[start_y, start_x]:
+                continue
+            visited[start_y, start_x] = True
+            stack = [(start_y, start_x)]
+            sum_x = sum_y = count = 0
+            while stack:
+                cy, cx = stack.pop()
+                sum_x += cx
+                sum_y += cy
+                count += 1
+                for dy, dx in steps:
+                    ny, nx = cy + dy, cx + dx
+                    if (
+                        0 <= ny < height
+                        and 0 <= nx < width
+                        and occupied[ny, nx]
+                        and not visited[ny, nx]
+                    ):
+                        visited[ny, nx] = True
+                        stack.append((ny, nx))
+            centroids.append((x0 + sum_x / count, y0 + sum_y / count))
+    if not centroids:
+        return np.zeros((0, 2))
+    return np.asarray(centroids, dtype=np.float64)
 
 
 class IntegratedSelfWorldAgent:
@@ -74,7 +137,7 @@ class IntegratedSelfWorldAgent:
         camera = self.memory._camera
         x0 = int(camera[0] - VIEW_RADIUS)
         y0 = int(camera[1] - VIEW_RADIUS)
-        detections = self._isolated_detections(sensed_occupancy, x0, y0)
+        detections = connected_component_centroids(sensed_occupancy, x0, y0)
         # OnlineEntityGraph's association cost is calibrated for its native
         # V2-M2/M3 worlds' sub-unit continuous displacement scale; the grid
         # world's 1-cell-per-step motion is rescaled into that regime so
@@ -140,36 +203,6 @@ class IntegratedSelfWorldAgent:
 
     def probability(self) -> np.ndarray:
         return self.memory.probability()
-
-    # -- internals --
-
-    def _isolated_detections(
-        self, sensed: np.ndarray, x0: int, y0: int
-    ) -> np.ndarray:
-        """Isolated occupied cells as float coordinates.
-
-        OnlineEntityGraph expects sparse point-object detections (as in its
-        native V2-M2/M3 worlds), not a rasterized occluder: a dense wall of
-        adjacent occupied cells fed in as individual "detections" starves
-        its track budget and geometrically confuses association (verified
-        by direct instrumentation - every track saturated the budget with
-        near-zero control evidence). A 3x3 isolation filter keeps only
-        blob-like detections (movers and small static blocks); the dense
-        screen wall is excluded from entity tracking but still fully
-        present in the occupancy memory's raw sensed grid.
-        """
-
-        occupied = sensed > 0
-        result = []
-        height, width = occupied.shape
-        for y, x in np.argwhere(occupied):
-            y0n, y1n = max(0, y - 1), min(height, y + 2)
-            x0n, x1n = max(0, x - 1), min(width, x + 2)
-            if int(occupied[y0n:y1n, x0n:x1n].sum()) == 1:
-                result.append((x0 + x, y0 + y))
-        if not result:
-            return np.zeros((0, 2))
-        return np.asarray(result, dtype=np.float64)
 
     # -- resource accounting --
 
