@@ -1,0 +1,74 @@
+{
+  "protocol_version": 1,
+  "frozen_at": "2026-07-25",
+  "status": "frozen_before_integration_probe_implementation",
+  "purpose": "First system-level closed loop: one agent, one world, one chronological experience stream exercising control discovery (M1), identity retention (M2), and vision-only object permanence (M4-unprivileged) simultaneously",
+  "prerequisite": {
+    "artifact": "results/V2-M4-unprivileged-holdout-summary.json",
+    "expected_name": "V2-M4-unprivileged",
+    "expected_decision": "authorize_reconnection_design_review"
+  },
+  "verification_inputs": [
+    "Component attribution: shadow-casting, reachable floor, and filter painting are load-bearing; pause learner and re-anchor are not required (V2_M4_UNPRIVILEGED_VERIFICATION.md)",
+    "Sensitivity: the reachable floor's guarantee requires object speed at most one cell per step",
+    "Seed sweep: mean-level gates replicate on 100 fresh seeds but per-seed variance is large; paired formal-vs-control comparisons are the stable signal"
+  ],
+  "environment": {
+    "grid_size": 25,
+    "camera": "fixed at the grid center; the 11x11 window covers the entire active arena, so no entity is ever out of view - hiding is caused only by line-of-sight occlusion",
+    "arena": "all movers and the self point are confined to columns/rows 7..17",
+    "objects": "one vertical screen segment and two seed-jittered static blocks; one self point moved by the commanded action each step; two autonomous distractor points with bounce dynamics, one seeded to cross the self path",
+    "occlusion_model": "discrete line-of-sight over Bresenham rays from the camera cell",
+    "agent_observation": "an 11x11 patch of visibly occupied cells only, plus the executed action copy; no visibility channel, no identity labels, no coordinates",
+    "evaluation_only": "true positions, identities, and visibility, used exclusively for scoring"
+  },
+  "formal_agent": {
+    "mechanism": "a single agent instance consuming one (sensed patch, action copy) pair per step: shadow-casting visibility inference; isolated-detection entity tracks with probabilistic identity; per-track online action-displacement control scoring for self discovery; the unprivileged occupancy machinery (log-odds fusion, reachable-floor painting) for non-self permanence",
+    "constraints": [
+      "exactly one agent object; one update per world step; chronological; zero replay",
+      "update() accepts the sensed patch and action copy only",
+      "no component may read simulator internals or labels"
+    ]
+  },
+  "required_mechanism_controls": {
+    "no_action_input": "the agent receives a random action copy instead of the executed one; self-identification must collapse",
+    "assume_all_visible": "shadow-casting disabled; hidden-distractor permanence must collapse",
+    "time_shuffled_action": "action copies delayed/shuffled in time; self-identification must degrade by at least the preregistered drop"
+  },
+  "development": {
+    "seeds": [30000, 30001, 30002, 30003, 30004, 30005, 30006, 30007, 30008, 30009, 30010, 30011, 30012, 30013, 30014, 30015],
+    "may_be_run_repeatedly": true,
+    "result_path": "results/V2-I1-integration-development-summary.json"
+  },
+  "holdout": {
+    "seeds": [31000, 31001, 31002, 31003, 31004, 31005, 31006, 31007, 31008, 31009, 31010, 31011, 31012, 31013, 31014, 31015],
+    "may_be_run": "once_after_development_passes_and_tests_are_green",
+    "result_path": "results/V2-I1-integration-holdout-summary.json"
+  },
+  "fixed_runtime": {
+    "steps_per_seed": 200,
+    "hardware": "CPU",
+    "maximum_replays_per_experience": 0
+  },
+  "fixed_gates": {
+    "self_identification_f1_minimum": 0.90,
+    "distractor_hidden_probability_minimum": 0.55,
+    "identity_consistency_minimum": 0.90,
+    "no_action_self_f1_drop_minimum": 0.15,
+    "time_shuffled_self_f1_drop_minimum": 0.15,
+    "assume_all_visible_hidden_probability_maximum": 0.55,
+    "paired_formal_beats_visible_control_fraction_minimum": 0.75,
+    "single_agent_single_stream": true,
+    "labels_absent_from_learner": true
+  },
+  "gate_design_note": "Mean gates inherit the M1/M4 stage thresholds. The paired-fraction gate responds to the seed-sweep finding that mean-level control separation hides per-seed overlap: the formal agent must beat the assume_all_visible control on hidden-distractor probability in at least 75% of paired seeds.",
+  "resource_limits": {
+    "learnable_parameters": 100000,
+    "active_state_bytes": 65536,
+    "mac_per_step": 5000000,
+    "steps_per_seed": 100000,
+    "maximum_replays_per_experience": 4,
+    "wall_seconds": 7200
+  },
+  "decision_rule": "Development passing every fixed gate authorizes exactly one holdout run. A passing holdout establishes the first verified system-level loop and authorizes extending the integrated agent toward the body-graph (M3) capability. A failing holdout cannot be repaired by rerunning holdout seeds or editing this protocol."
+}
