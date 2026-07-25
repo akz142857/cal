@@ -2,9 +2,40 @@
 
 from __future__ import annotations
 
+import inspect
 import json
 from pathlib import Path
 from typing import Any
+
+
+_GROUND_TRUTH_PARAMETER_SUBSTRINGS = (
+    "mask",
+    "label",
+    "truth",
+    "privileged",
+    "oracle",
+)
+
+
+def constructor_apis_reject_ground_truth(*constructors: type) -> bool:
+    """True if no constructor's public parameters look like a ground-truth input.
+
+    The formal M1-M3 learners are online estimators whose constructors take
+    only tuning/config values, never body masks or other privileged truth.
+    This checks that structural fact at gate-evaluation time instead of
+    asserting it as a fixed literal, so a future change that actually added
+    such a parameter would flip this gate rather than leave it silently
+    reporting success.
+    """
+    for constructor in constructors:
+        for name in inspect.signature(constructor).parameters:
+            lowered = name.lower()
+            if any(
+                token in lowered
+                for token in _GROUND_TRUTH_PARAMETER_SUBSTRINGS
+            ):
+                return False
+    return True
 
 
 def require_authorization(

@@ -23,6 +23,7 @@ from cal.evaluation.v2_m3_hypotheses import (
     _episode as _m3_episode,
     scenario_from_seed as m3_scenario_from_seed,
 )
+from cal.evaluation.v2_artifacts import constructor_apis_reject_ground_truth
 from cal.infra.provenance import capture_provenance
 from cal.model.body_hypotheses import BodyGraphHypothesisFilter
 from cal.model.entity_graph import OnlineEntityGraph
@@ -33,7 +34,7 @@ from cal.model.online_control import (
 
 
 DEFAULT_PROTOCOL = Path(
-    "experiments/V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL_V2.json"
+    "experiments/V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL_V3.json"
 )
 DEFAULT_NAMESPACE_MIGRATION = Path(
     "experiments/CAL_NAMESPACE_MIGRATION.json"
@@ -52,6 +53,7 @@ def _load_protocol(path: str | Path) -> tuple[dict[str, Any], str]:
     if protocol.get("status") not in {
         "frozen_before_integrated_confirmation_evaluator_implementation",
         "frozen_after_v1_development_metric_audit_before_any_confirmation_run",
+        "frozen_after_v2_confirmation_gate_computation_bugfix",
     }:
         raise RuntimeError("integrated confirmation protocol is not frozen")
     return protocol, digest
@@ -421,6 +423,9 @@ def _evaluate_gates(
     m2: dict[str, Any],
     m3: dict[str, Any],
     resources: dict[str, Any],
+    *,
+    source_digests: dict[str, str],
+    old_holdouts_intersected: bool,
 ) -> dict[str, bool]:
     fixed = protocol["fixed_gates"]
     limits = protocol["resource_limits"]
@@ -440,8 +445,10 @@ def _evaluate_gates(
         for item in resources["stage_resources"].values()
     ) and resources["cpu_wall_seconds"] <= limits["wall_seconds"]
     gates = {
-        "locked_sources_unchanged": True,
-        "old_holdouts_not_read": True,
+        "locked_sources_unchanged": (
+            source_digests == protocol["locked_source_sha256"]
+        ),
+        "old_holdouts_not_read": not old_holdouts_intersected,
         "m1_formal_f1_pass": (
             m1_formal["mean_f1"] >= fixed["m1_formal_mean_f1_minimum"]
         ),
@@ -557,7 +564,14 @@ def _evaluate_gates(
             >= fixed["m3_pose_identity_retention_minimum"]
         ),
         "resources_pass": resource_pass,
-        "labels_absent_from_all_formal_learners": True,
+        "labels_absent_from_all_formal_learners": (
+            constructor_apis_reject_ground_truth(
+                ControlAgentConfig,
+                OnlineControlAgent,
+                OnlineEntityGraph,
+                BodyGraphHypothesisFilter,
+            )
+        ),
     }
     probability_stays_half = (
         abs(m3_no_likelihood["broken_true_probability_mean"] - 0.5)
@@ -612,7 +626,10 @@ def run_v2_m1_m3_confirmation(
         name: tuple(int(seed) for seed in protocol[split][f"{name}_seeds"])
         for name in ("m1", "m2", "m3")
     }
-    if any(old_seed_set.intersection(stage_seeds) for stage_seeds in seeds.values()):
+    old_holdouts_intersected = any(
+        old_seed_set.intersection(stage_seeds) for stage_seeds in seeds.values()
+    )
+    if old_holdouts_intersected:
         raise RuntimeError("integrated confirmation reuses an old holdout seed")
     runtime = protocol["fixed_runtime"]
     started = perf_counter()
@@ -624,7 +641,15 @@ def run_v2_m1_m3_confirmation(
     )
     elapsed = perf_counter() - started
     resources = _resources(elapsed, runtime)
-    gates = _evaluate_gates(protocol, m1, m2, m3, resources)
+    gates = _evaluate_gates(
+        protocol,
+        m1,
+        m2,
+        m3,
+        resources,
+        source_digests=source_digests,
+        old_holdouts_intersected=old_holdouts_intersected,
+    )
     passed = all(gates.values())
     summary = {
         "result_schema_version": 1,

@@ -14,8 +14,11 @@ ROOT = Path(__file__).resolve().parents[1]
 PROTOCOL_V1 = (
     ROOT / "experiments/V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL.json"
 )
-PROTOCOL = (
+PROTOCOL_V2 = (
     ROOT / "experiments/V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL_V2.json"
+)
+PROTOCOL = (
+    ROOT / "experiments/V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL_V3.json"
 )
 DEVELOPMENT_RESULT = (
     ROOT / "results/V2-M1-M3-integrated-v2-development-summary.json"
@@ -42,13 +45,27 @@ def test_integrated_protocol_and_locked_sources_are_immutable() -> None:
 
 def test_v1_failure_is_preserved_in_v2_amendment_record() -> None:
     v1, v1_digest = _load_protocol(PROTOCOL_V1)
-    v2, _ = _load_protocol(PROTOCOL)
+    v2, _ = _load_protocol(PROTOCOL_V2)
 
     assert v1["protocol_version"] == 1
     assert v2["protocol_version"] == 2
     assert v2["amendment_record"]["prior_protocol_sha256"] == v1_digest
     assert v2["amendment_record"]["confirmation_runs_before_amendment"] == 0
     assert not v2["amendment_record"]["model_or_stage_algorithm_changed"]
+
+
+def test_v2_bugfix_is_preserved_in_v3_amendment_record() -> None:
+    v2, v2_digest = _load_protocol(PROTOCOL_V2)
+    v3, _ = _load_protocol(PROTOCOL)
+
+    assert v2["protocol_version"] == 2
+    assert v3["protocol_version"] == 3
+    assert v3["amendment_record"]["prior_protocol_sha256"] == v2_digest
+    assert v3["amendment_record"]["confirmation_runs_before_amendment"] == 1
+    assert not v3["amendment_record"]["model_or_stage_algorithm_changed"]
+    assert v3["amendment_record"]["gate_computation_changed"]
+    assert v3["fixed_gates"] == v2["fixed_gates"]
+    assert v3["confirmation"]["result_path"] == v2["confirmation"]["result_path"]
 
 
 def test_integrated_protocol_uses_only_fresh_seeds() -> None:

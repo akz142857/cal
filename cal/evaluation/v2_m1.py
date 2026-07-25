@@ -16,7 +16,10 @@ import numpy as np
 from cal.env.point_world import AnonymousPointWorld, PointWorldConfig
 from cal.infra.provenance import capture_provenance
 from cal.model.online_control import ControlAgentConfig, OnlineControlAgent
-from cal.evaluation.v2_artifacts import require_authorization
+from cal.evaluation.v2_artifacts import (
+    constructor_apis_reject_ground_truth,
+    require_authorization,
+)
 
 
 def _run_episode(
@@ -222,7 +225,7 @@ def run_v2_m1(
         "active_state_le_64kib": resources["active_state_bytes"] <= 64 * 1024,
         "mac_per_step_le_5000000": resources["estimated_mac_per_step"] <= 5_000_000,
         "steps_per_seed_le_100000": steps <= 100_000,
-        "replay_le_4": True,
+        "replay_le_4": resources["maximum_replays_per_experience"] <= 4,
         "cpu_wall_le_2h": resources["cpu_wall_seconds"] <= 7_200,
     }
     gates = {
@@ -241,7 +244,9 @@ def run_v2_m1(
         ),
         "failure_memory_bounded": formal["all_failure_memories_bounded"],
         "resources_pass": all(resource_gates.values()),
-        "labels_absent_from_learner": True,
+        "labels_absent_from_learner": constructor_apis_reject_ground_truth(
+            ControlAgentConfig, OnlineControlAgent
+        ),
     }
     summary = {
         "result_schema_version": 1,

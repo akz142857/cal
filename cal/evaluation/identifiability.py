@@ -12,10 +12,9 @@ import json
 import time
 from copy import deepcopy
 from dataclasses import asdict, dataclass, replace
-from math import ceil
 from pathlib import Path
 from random import Random
-from typing import Any, Iterable, Sequence
+from typing import Any, Iterable, Mapping, Sequence
 
 from cal.env.body import (
     ArticulatedBody,
@@ -562,7 +561,7 @@ def _majority_mask(items: Sequence[AuditSample]) -> BinaryMask:
         raise ValueError("majority mask requires at least one sample")
     height = len(items[0].body_mask)
     width = len(items[0].body_mask[0])
-    threshold = ceil(len(items) / 2)
+    threshold = len(items) // 2 + 1
     return tuple(
         tuple(
             sum(bool(item.body_mask[y][x]) for item in items) >= threshold

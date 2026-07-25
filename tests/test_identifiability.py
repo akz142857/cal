@@ -58,7 +58,10 @@ def test_equivalence_audit_detects_ambiguous_cross_seed_masks() -> None:
     assert result["collision_class_count"] == 1
     assert result["cross_seed_ambiguous_class_count"] == 1
     assert result["ambiguity_sample_rate"] == 1.0
-    assert result["majority_ceiling_ambiguous"]["iou"] == 0.5
+    # Strict majority of 2 disjoint single-pixel masks requires both members
+    # to agree on a pixel; neither does, so the ceiling mask is empty and its
+    # IoU against either truth mask is 0.
+    assert result["majority_ceiling_ambiguous"]["iou"] == 0.0
     assert len(result["ambiguous_examples"]) == 1
 
 
