@@ -84,6 +84,22 @@ def test_v1_control_failure_is_preserved_in_v2_amendment() -> None:
     assert v2["holdout"]["seeds"] == v1["holdout"]["seeds"]
 
 
+def test_resource_accounting_includes_filters_and_learner() -> None:
+    from cal.model.motion_hypotheses import MAX_PAUSE
+    from cal.model.occupancy import OccupancyMemory
+
+    base = OccupancyMemory()
+    memory = UnprivilegedOccupancyMemory()
+    filter_bytes = (
+        memory.MAX_FILTERS * memory.grid_size * 2 * (MAX_PAUSE + 1) * 8
+    )
+
+    assert memory.active_state_bytes >= base.active_state_bytes + filter_bytes
+    assert memory.active_state_bytes <= 64 * 1024
+    assert memory.estimated_mac_per_step > base.estimated_mac_per_step
+    assert memory.learnable_parameter_count > base.learnable_parameter_count
+
+
 def test_update_signature_has_no_visibility_parameter() -> None:
     parameters = set(
         inspect.signature(UnprivilegedOccupancyMemory.update).parameters

@@ -254,9 +254,40 @@ class UnprivilegedOccupancyMemory(OccupancyMemory):
         self.infer_occlusion = infer_occlusion
 
     @property
-    def estimated_mac_per_step(self) -> int:
+    def learnable_parameter_count(self) -> int:
+        # Base grid/tracker values plus the online pause table's worst case
+        # (one duration/confidence pair per column).
+        return super().learnable_parameter_count + 2 * self.grid_size
+
+    @property
+    def active_state_bytes(self) -> int:
+        # Worst case: MAX_FILTERS beliefs of grid x 2 x (MAX_PAUSE+1)
+        # float64 states, the sensed/visibility caches, and a bounded
+        # allowance for the pause table and tracking dicts.
+        from cal.model.motion_hypotheses import MAX_PAUSE
+
         window = (2 * VIEW_RADIUS + 1) ** 2
-        return super().estimated_mac_per_step + window * (2 * VIEW_RADIUS + 2)
+        filters = (
+            self.MAX_FILTERS * self.grid_size * 2 * (MAX_PAUSE + 1) * 8
+        )
+        return (
+            super().active_state_bytes
+            + filters
+            + 2 * window
+            + 2 * self.grid_size * 8
+            + 1024
+        )
+
+    @property
+    def estimated_mac_per_step(self) -> int:
+        from cal.model.motion_hypotheses import MAX_PAUSE
+
+        window = (2 * VIEW_RADIUS + 1) ** 2
+        ray_casting = window * (2 * VIEW_RADIUS + 2)
+        filter_states = self.grid_size * 2 * (MAX_PAUSE + 1)
+        filters = self.MAX_FILTERS * filter_states * 4
+        painting = self.MAX_FILTERS * self.grid_size * 8
+        return super().estimated_mac_per_step + ray_casting + filters + painting
 
     def update(  # type: ignore[override]
         self,

@@ -34,10 +34,18 @@ FROZEN_STATUSES = {
 
 
 class _LineOfSightWorld(_OccupancyWorld):
-    """Diagnostic M4 world with physically consistent ray occlusion.
+    """Diagnostic M4 world with discrete line-of-sight ray occlusion.
 
     observe() returns the sensed patch (visibly occupied cells only) for the
     agent, and the true visibility separately for evaluation-side scoring.
+
+    Known model caveat (independent review, 2026-07-25): discrete Bresenham
+    rays lack the prefix property, so an occluder can itself be hidden on
+    its own ray while still shadowing other cells. In rare geometries the
+    agent's shadow-cast over sensed occupiers marks a world-hidden cell as
+    visible-empty, producing false negative evidence. This only hurts the
+    agent (never inflates a gate) and is preserved unchanged because the
+    one-shot holdout consumed this exact geometry.
     """
 
     def observe(self) -> tuple[np.ndarray, np.ndarray]:
