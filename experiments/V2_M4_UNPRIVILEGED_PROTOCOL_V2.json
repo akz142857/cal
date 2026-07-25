@@ -1,0 +1,79 @@
+{
+  "protocol_version": 2,
+  "frozen_at": "2026-07-25",
+  "status": "frozen_after_v1_control_criterion_failure_before_any_holdout_run",
+  "purpose": "Replace the simulator-generated visibility mask in V2-M4 with agent-side geometric visibility inference from sensed occupancy only",
+  "amendment_record": {
+    "prior_protocol_path": "experiments/V2_M4_UNPRIVILEGED_PROTOCOL.json",
+    "prior_protocol_sha256": "983fda8684687d4029bfb0826ac946d99aa651efd5b386aaeb2308dbc4c10a19",
+    "prior_development_result_path": "results/V2-M4-unprivileged-development-v1-summary.json",
+    "prior_development_result_sha256": "eb3f766c6d9c398b7584fe929ef6b675bea7a68592233623eba119652604aad0",
+    "holdout_runs_before_amendment": 0,
+    "reason": "Protocol v1 development passed all eight formal gates but the assume_all_visible control failed to fail: its hidden-occupancy recall was 0.9386 and its moving-hidden probability 0.6708, above the formal agent's. Diagnosis: the hidden-cell metrics are dominated by out-of-window cells that both variants remember equally, the moving object's brief occlusions are bridged by motion extrapolation, and no static occupancy lies inside shadow bands. The v1 environment therefore cannot certify that occlusion inference is load-bearing. V2 strengthens the environment (the moving object pauses behind the screen; static blocks are placed inside habitual shadow bands) and moves the control criterion to the object-permanence metric where erasure-under-false-visibility is decisive. Formal gate thresholds are unchanged.",
+    "model_or_stage_algorithm_changed": false,
+    "environment_changed": true,
+    "new_holdout_seeds_assigned": false
+  },
+  "prerequisite": {
+    "artifact": "results/V2-M1-M3-integrated-confirmation-review-summary.json",
+    "expected_name": "V2-M1-M3-integrated-confirmation-review",
+    "expected_decision": "confirm_m1_m3_and_authorize_unprivileged_v2_m4_design"
+  },
+  "environment": {
+    "environment_version": 2,
+    "grid_size": 25,
+    "view_radius": 5,
+    "objects": "diagnostic V2-M4 layout plus two seed-jittered static blocks inside the central screen's habitual shadow bands",
+    "moving_object_pause": "the moving object pauses for 10 steps each time it reaches three cells to either side of the screen column, so extrapolation alone cannot bridge its occlusions",
+    "occlusion_model": "discrete line-of-sight: a cell in the local window is hidden when any strictly intermediate cell on the Bresenham ray from the camera cell is truly occupied",
+    "agent_observation": "an 11x11 patch of visibly occupied cells only (occluded cells are indistinguishable from free cells); the executed action copy; no visibility channel, no labels",
+    "evaluation_only": "true occupancy grid and true visibility, used exclusively to score hidden-cell metrics after the fact"
+  },
+  "formal_agent": {
+    "mechanism": "deterministic geometric shadow-casting over the sensed patch reconstructs a visibility estimate; the log-odds occupancy update and moving-entity tracking then consume only sensed occupancy plus that self-inferred estimate",
+    "constraints": [
+      "update() accepts sensed occupancy and the action copy only; a visibility parameter must not exist in its signature",
+      "no simulator internals, labels, masks, or counterfactual branches may be read by the agent",
+      "online, chronological, zero experience replay"
+    ]
+  },
+  "required_mechanism_controls": {
+    "random_action": "active=False variant used for the step-reduction gate",
+    "assume_all_visible": "identical agent with shadow-casting disabled; it must fail the moving-hidden-probability gate, because treating occluded cells as visibly empty erases the paused hidden object"
+  },
+  "development": {
+    "seeds": [500, 501, 502, 503, 504, 505, 506, 507, 508, 509, 510, 511, 512, 513, 514, 515],
+    "may_be_run_repeatedly": true,
+    "result_path": "results/V2-M4-unprivileged-development-summary.json"
+  },
+  "holdout": {
+    "seeds": [9301, 9302, 9303, 9304, 9305, 9306, 9307, 9308, 9309, 9310, 9311, 9312, 9313, 9314, 9315, 9316],
+    "may_be_run": "once_after_development_passes_and_tests_are_green",
+    "result_path": "results/V2-M4-unprivileged-holdout-summary.json"
+  },
+  "fixed_runtime": {
+    "steps_per_seed": 220,
+    "hardware": "CPU",
+    "maximum_replays_per_experience": 0
+  },
+  "fixed_gates": {
+    "occupancy_iou_minimum": 0.70,
+    "hidden_occupancy_recall_minimum": 0.65,
+    "hidden_brier_maximum": 0.12,
+    "moving_hidden_probability_minimum": 0.55,
+    "active_step_reduction_minimum": 0.30,
+    "assume_all_visible_moving_hidden_probability_maximum": 0.55,
+    "visibility_parameter_must_be_absent_from_update": true,
+    "labels_absent_from_learner": true
+  },
+  "resource_limits": {
+    "learnable_parameters": 100000,
+    "active_state_bytes": 65536,
+    "mac_per_step": 5000000,
+    "steps_per_seed": 100000,
+    "maximum_replays_per_experience": 4,
+    "wall_seconds": 7200
+  },
+  "decision_rule": "Development passing every fixed gate authorizes exactly one holdout run. A passing holdout authorizes reconnection design review toward the original object-permanence M2. A failing holdout cannot be repaired by rerunning holdout seeds or editing this protocol; a new mechanism requires a new preregistration.",
+  "thresholds_note": "All formal thresholds equal the diagnostic V2-M4 gates so the only change under test is removing the privileged visibility mask; only the environment stress and the control criterion changed in v2."
+}
