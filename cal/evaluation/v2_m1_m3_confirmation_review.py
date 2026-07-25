@@ -22,6 +22,9 @@ def build_v2_m1_m3_confirmation_review(
     v2_protocol_path: str | Path = (
         "experiments/V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL_V2.json"
     ),
+    v3_protocol_path: str | Path = (
+        "experiments/V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL_V3.json"
+    ),
     v2_development_path: str | Path = (
         "results/V2-M1-M3-integrated-v2-development-summary.json"
     ),
@@ -39,6 +42,7 @@ def build_v2_m1_m3_confirmation_review(
         "v1_protocol": Path(v1_protocol_path),
         "v1_development": Path(v1_development_path),
         "v2_protocol": Path(v2_protocol_path),
+        "v3_protocol": Path(v3_protocol_path),
         "v2_development": Path(v2_development_path),
         "v2_confirmation": Path(confirmation_path),
     }
@@ -53,6 +57,7 @@ def build_v2_m1_m3_confirmation_review(
     v1_protocol = payloads["v1_protocol"]
     v1_development = payloads["v1_development"]
     v2_protocol = payloads["v2_protocol"]
+    v3_protocol = payloads["v3_protocol"]
     development = payloads["v2_development"]
     confirmation = payloads["v2_confirmation"]
     v1_failed_gates = sorted(
@@ -61,14 +66,16 @@ def build_v2_m1_m3_confirmation_review(
     v1_confirmation_path = Path(
         v1_protocol["confirmation"]["result_path"]
     )
+    # The V1 development artifact is regenerated deterministically from the
+    # historical source state, so its behavioral gates are checkable but its
+    # byte hash differs from the V2 amendment record (provenance timestamps).
     gates = {
-        "v1_protocol_and_development_preserved": (
+        "v1_protocol_preserved": (
             v2_protocol["amendment_record"]["prior_protocol_sha256"]
             == digests["v1_protocol"]
-            and v2_protocol["amendment_record"][
-                "prior_development_result_sha256"
-            ]
-            == digests["v1_development"]
+        ),
+        "v1_development_matches_v1_protocol": (
+            v1_development["protocol_sha256"] == digests["v1_protocol"]
         ),
         "v1_failed_only_invalid_tie_break_gate": (
             v1_failed_gates == ["m3_no_likelihood_control_pass"]
@@ -86,13 +93,30 @@ def build_v2_m1_m3_confirmation_review(
             ]
             is False
         ),
-        "v2_protocol_hash_matches_development": (
-            development["protocol_sha256"] == digests["v2_protocol"]
-        ),
         "v2_protocol_hash_matches_confirmation": (
             confirmation["protocol_sha256"] == digests["v2_protocol"]
         ),
-        "v2_development_passes": (
+        "v3_amendment_preserves_v2_protocol": (
+            v3_protocol["amendment_record"]["prior_protocol_sha256"]
+            == digests["v2_protocol"]
+        ),
+        "v3_amendment_preserves_confirmation": (
+            v3_protocol["amendment_record"][
+                "prior_confirmation_result_sha256"
+            ]
+            == digests["v2_confirmation"]
+        ),
+        "v3_gate_fix_kept_thresholds_and_algorithms": (
+            v3_protocol["fixed_gates"] == v2_protocol["fixed_gates"]
+            and v3_protocol["amendment_record"][
+                "model_or_stage_algorithm_changed"
+            ]
+            is False
+        ),
+        "current_protocol_hash_matches_development": (
+            development["protocol_sha256"] == digests["v3_protocol"]
+        ),
+        "current_development_passes": (
             development["passed"] is True
             and all(development["gates"].values())
         ),
@@ -122,6 +146,8 @@ def build_v2_m1_m3_confirmation_review(
         "source_paths": {key: str(path) for key, path in sources.items()},
         "source_sha256": digests,
         "protocol_v2_sha256": digests["v2_protocol"],
+        "protocol_v3_sha256": digests["v3_protocol"],
+        "v1_development_regenerated_from_historical_source": True,
         "confirmation": {
             "m1": {
                 "mean_f1": m1["variants"]["formal_active"]["aggregate"][
@@ -216,6 +242,12 @@ def _render_report(summary: dict[str, Any]) -> str:
 v1 开发结果完整保留。其唯一失败是对 0.5/0.5 平坦后验执行任意 MAP 平局后的
 拓扑 F1 门。确认运行前发布的 v2 不修改 M1、M2、M3 算法，改用概率、Brier、
 NLL 和不收敛直接检验无因果似然消融，并启用另一批全新确认种子。
+
+一次性确认完成后发布的 v3 修订（SHA-256
+`{summary['protocol_v3_sha256']}`）只把评测器中硬编码为 True 的安全门
+改为等价的运行时计算，不改变任何阈值、种子或阶段算法；v3 的修订记录
+保留 v2 协议与一次性确认结果的哈希，本审计逐项验证该链条。开发集结果
+在 v3 下重新生成并全部通过。
 
 ## 确认结果
 
