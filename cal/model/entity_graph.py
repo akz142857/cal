@@ -54,6 +54,7 @@ class OnlineEntityGraph:
         association_mode: str = "probabilistic",
         reacquisition_window: int = 6,
         identity_switch_penalty_weight: float = 0.0,
+        drift_reset_after: int | None = None,
     ) -> None:
         self.action_dimensions = action_dimensions
         self.maximum_tracks = maximum_tracks
@@ -68,6 +69,9 @@ class OnlineEntityGraph:
         if identity_switch_penalty_weight < 0.0:
             raise ValueError("identity_switch_penalty_weight must be non-negative")
         self.identity_switch_penalty_weight = identity_switch_penalty_weight
+        if drift_reset_after is not None and drift_reset_after < 1:
+            raise ValueError("drift_reset_after must be positive")
+        self.drift_reset_after = drift_reset_after
         if association_mode not in {"probabilistic", "hard_map", "nearest"}:
             raise ValueError("invalid association mode")
         self.association_mode = association_mode
@@ -240,6 +244,12 @@ class OnlineEntityGraph:
                 if age > 3:
                     track.control_evidence *= 0.80
                     track.probability *= 0.80
+                if (
+                    self.drift_reset_after is not None
+                    and age > self.drift_reset_after
+                    and track.control_evidence < self._DRIFT_RESET_CONTROL_EVIDENCE_CEILING
+                ):
+                    self._reset_track_state(track)
         self._update_edges(visible)
         self._propagate_membership()
 
@@ -581,6 +591,46 @@ class OnlineEntityGraph:
         )
         self._next_index += 1
         return track
+
+    # Deliberately NOT `probability`: in a world where control_evidence
+    # rarely climbs high even for a genuinely correct track (e.g. one
+    # driven by an intermittent/weak action-correlation signal),
+    # probability can sit low for track after track regardless of whether
+    # any of them are actually corrupted - it can't discriminate a real
+    # mis-association from ordinary weak-but-real evidence. Raw
+    # control_evidence going NEGATIVE is a stronger, rarer signal: it
+    # means recent residuals were worse than the autonomous-only baseline,
+    # which a track merely riding out low-but-real signal does not do.
+    _DRIFT_RESET_CONTROL_EVIDENCE_CEILING = 0.0
+
+    def _reset_track_state(self, track: GraphTrack) -> None:
+        """Wipe a track's learned control/motion state, keeping its index.
+
+        Disabled by default (drift_reset_after is None): a mis-associated
+        track's theta/autonomous_velocity get updated from a wrong
+        displacement on the very step the bad association happens, and
+        every prediction after that is generated from this now-corrupted
+        state - it cannot "remember" the right answer no matter how long
+        it coasts unmatched, and no amount of retuning
+        identity_switch_penalty_weight (which only prevents a bad
+        association, never undoes one) changes that. Once a track has
+        gone unmatched long enough that reacquisition_window itself would
+        soon give up on it AND its control_evidence has already gone
+        negative (i.e. it is not a confident track merely riding out a
+        normal occlusion), there is no more evidence left to protect -
+        resetting it to the same blank state _new_track uses lets it
+        start learning cleanly the next time it is matched, instead of
+        dragging a poisoned theta into a match it might otherwise have
+        made well. Position, last_seen and index are untouched: this
+        does not create a new identity, it un-learns a corrupted one
+        under the same index.
+        """
+
+        track.theta = np.zeros((2, self.action_dimensions), dtype=np.float64)
+        track.covariance = np.eye(self.action_dimensions, dtype=np.float64) * 6.0
+        track.autonomous_velocity = np.zeros(2, dtype=np.float64)
+        track.control_evidence = 0.0
+        track.probability = 0.5
 
     @staticmethod
     def _sorted(detections: np.ndarray) -> list[np.ndarray]:

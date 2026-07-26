@@ -31,6 +31,9 @@ def build_v2_m1_m3_confirmation_review(
     v5_protocol_path: str | Path = (
         "experiments/V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL_V5.json"
     ),
+    v6_protocol_path: str | Path = (
+        "experiments/V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL_V6.json"
+    ),
     v2_development_path: str | Path = (
         "results/V2-M1-M3-integrated-v2-development-summary.json"
     ),
@@ -51,6 +54,7 @@ def build_v2_m1_m3_confirmation_review(
         "v3_protocol": Path(v3_protocol_path),
         "v4_protocol": Path(v4_protocol_path),
         "v5_protocol": Path(v5_protocol_path),
+        "v6_protocol": Path(v6_protocol_path),
         "v2_development": Path(v2_development_path),
         "v2_confirmation": Path(confirmation_path),
     }
@@ -68,6 +72,7 @@ def build_v2_m1_m3_confirmation_review(
     v3_protocol = payloads["v3_protocol"]
     v4_protocol = payloads["v4_protocol"]
     v5_protocol = payloads["v5_protocol"]
+    v6_protocol = payloads["v6_protocol"]
     development = payloads["v2_development"]
     confirmation = payloads["v2_confirmation"]
     v1_failed_gates = sorted(
@@ -181,8 +186,29 @@ def build_v2_m1_m3_confirmation_review(
             ]
             is True
         ),
+        "v6_amendment_preserves_v5_protocol": (
+            v6_protocol["amendment_record"]["prior_protocol_sha256"]
+            == digests["v5_protocol"]
+        ),
+        "v6_amendment_preserves_confirmation": (
+            v6_protocol["amendment_record"][
+                "prior_confirmation_result_sha256"
+            ]
+            == digests["v2_confirmation"]
+        ),
+        "v6_extension_kept_thresholds_and_verified_equivalence": (
+            v6_protocol["fixed_gates"] == v5_protocol["fixed_gates"]
+            and v6_protocol["amendment_record"][
+                "model_or_stage_algorithm_changed"
+            ]
+            is False
+            and v6_protocol["amendment_record"][
+                "default_parameter_equivalence_verified"
+            ]
+            is True
+        ),
         "current_protocol_hash_matches_development": (
-            development["protocol_sha256"] == digests["v5_protocol"]
+            development["protocol_sha256"] == digests["v6_protocol"]
         ),
         "current_development_passes": (
             development["passed"] is True
@@ -217,6 +243,7 @@ def build_v2_m1_m3_confirmation_review(
         "protocol_v3_sha256": digests["v3_protocol"],
         "protocol_v4_sha256": digests["v4_protocol"],
         "protocol_v5_sha256": digests["v5_protocol"],
+        "protocol_v6_sha256": digests["v6_protocol"],
         "v1_development_regenerated_from_historical_source": True,
         "confirmation": {
             "m1": {
@@ -338,6 +365,15 @@ M3（含无因果似然消融）开发集产物，除 `cpu_wall_seconds`（计�
 因果似然消融）开发集产物，除 `cpu_wall_seconds` 外逐字段完全一致。
 v5 的修订记录同样保留 v4 协议与一次性确认结果的哈希，本审计逐项
 验证该链条。开发集结果在 v5 下重新生成并全部通过。
+
+随后发布的 v6 修订（SHA-256 `{summary['protocol_v6_sha256']}`）给
+`OnlineEntityGraph` 加了一个默认值为 `None`（无操作）的
+`drift_reset_after` 构造参数，只让主动启用该恢复机制的新调用方
+（V2-I1 系统集成探针）受益；M1/M2/M3/本确认脚本均未传入该参数，
+行为不变。同样是逐字段重跑验证而非论证：v6 修改前后的 M2（三种
+关联模式）、M3（含无因果似然消融）开发集产物，除 `cpu_wall_seconds`
+外逐字段完全一致。v6 的修订记录同样保留 v5 协议与一次性确认结果的
+哈希，本审计逐项验证该链条。开发集结果在 v6 下重新生成并全部通过。
 
 ## 确认结果
 

@@ -147,6 +147,87 @@ def test_identity_switch_penalty_grows_with_rival_gap() -> None:
     assert 0.0 < weaker_penalty < penalty
 
 
+def test_default_drift_reset_after_is_none() -> None:
+    learner = OnlineEntityGraph(4)
+
+    assert learner.drift_reset_after is None
+
+
+def test_drift_reset_after_rejects_non_positive() -> None:
+    try:
+        OnlineEntityGraph(4, drift_reset_after=0)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("non-positive drift_reset_after must raise")
+
+
+def test_disabled_by_default_never_resets_a_negative_evidence_track() -> None:
+    # This is what makes M4's own worlds behave exactly as before this
+    # parameter existed: a track whose control_evidence has gone negative
+    # (as a genuinely mis-associated one would) must keep coasting on its
+    # existing theta/autonomous_velocity indefinitely, not get reset.
+    learner = OnlineEntityGraph(4)
+    _train_moving_track(learner)
+    track = learner._tracks[0]
+    track.control_evidence = -1.0
+    poisoned_theta = track.theta.copy()
+
+    action = np.asarray((1.0, 0.0, 0.0, 0.0))
+    empty = np.zeros((0, 2))
+    for _ in range(30):
+        learner.update(empty, action)
+
+    assert np.array_equal(learner._tracks[0].theta, poisoned_theta)
+
+
+def test_enabled_resets_a_negative_evidence_track_after_the_horizon() -> None:
+    learner = OnlineEntityGraph(4, reacquisition_window=50, drift_reset_after=5)
+    _train_moving_track(learner)
+    track = learner._tracks[0]
+    track.control_evidence = -1.0
+    assert np.linalg.norm(track.theta) > 0.0
+
+    action = np.asarray((1.0, 0.0, 0.0, 0.0))
+    empty = np.zeros((0, 2))
+    # age = step - last_seen exceeds drift_reset_after=5 for the first
+    # time on the 6th unmatched step; stop right there, before further
+    # per-step decay (which applies regardless of the reset) would move
+    # control_evidence/probability away from the just-reset neutral prior.
+    for _ in range(6):
+        learner.update(empty, action)
+
+    reset_track = learner._tracks[0]
+    assert reset_track.index == track.index
+    assert np.array_equal(reset_track.theta, np.zeros_like(reset_track.theta))
+    assert np.array_equal(
+        reset_track.autonomous_velocity, np.zeros_like(reset_track.autonomous_velocity)
+    )
+    assert reset_track.control_evidence == 0.0
+    assert reset_track.probability == 0.5
+
+
+def test_enabled_does_not_reset_a_track_with_non_negative_evidence() -> None:
+    # A track whose control_evidence hasn't gone negative is treated as a
+    # real, ongoing occlusion (what reacquisition_window exists to
+    # protect), not a corrupted one - it must not be reset just for going
+    # briefly unseen.
+    learner = OnlineEntityGraph(4, reacquisition_window=50, drift_reset_after=5)
+    _train_moving_track(learner)
+    track = learner._tracks[0]
+    poisoned_theta = track.theta.copy()
+    assert track.control_evidence >= 0.0
+
+    action = np.asarray((1.0, 0.0, 0.0, 0.0))
+    empty = np.zeros((0, 2))
+    for _ in range(10):
+        learner.update(empty, action)
+
+    assert np.array_equal(learner._tracks[0].theta, poisoned_theta)
+
+    assert np.array_equal(learner._tracks[0].theta, poisoned_theta)
+
+
 def test_entity_graph_consumes_unordered_detections() -> None:
     learner = OnlineEntityGraph(4)
     points = np.asarray(((4.0, 4.0), (2.0, 2.0), (2.0, 4.0)))
