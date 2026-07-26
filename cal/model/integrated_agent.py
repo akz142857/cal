@@ -44,6 +44,31 @@ _EIGHT_CONNECTED = (
 )
 _FOUR_CONNECTED = ((-1, 0), (1, 0), (0, -1), (0, 1))
 
+# Self-identification lock calibration (see self_track_identity /
+# _update_self_lock below). Chosen from the mechanism's own control_evidence
+# distribution on the development seeds, characterized against the two
+# negative controls this protocol requires - not fit against the self_f1
+# gate itself. Measured on the 16 development seeds with this exact
+# configuration (floor/margin/streak below, live-tracks-only candidacy):
+# - the true self track engages the lock on all 16/16 seeds, by step 154
+#   at the latest (median well under 100);
+# - no_action (random action copy) spuriously engages the lock on 3/16
+#   seeds and time-shuffled (5-step lag) on 6/16 - a genuinely uncorrelated
+#   or stale action does occasionally produce a short accidental streak,
+#   so this is not a clean guarantee, only a strong bias. It is sufficient
+#   in aggregate: mean self_f1 stays >=0.15 above both controls' mean
+#   self_f1 (the protocol's required control-drop margin) because the
+#   spurious locks are late, rare, and typically short-lived compared to
+#   the correctly-engaged formal lock. Raising the streak requirement
+#   further reduces false engagement but delays real engagement by the
+#   same mechanism, trading one failure mode for the other; see
+#   docs/experiments/V2_I1_INTEGRATION_REPORT.md for why the residual gap
+#   to the 0.90 self_f1 gate is a separate, deeper association-layer
+#   problem (track identity switching) that this lock cannot paper over.
+_SELF_LOCK_CONTROL_EVIDENCE_FLOOR = 0.5
+_SELF_LOCK_MARGIN = 0.3
+_SELF_LOCK_STREAK_REQUIRED = 5
+
 
 def connected_component_centroids(
     sensed: np.ndarray,
@@ -135,6 +160,14 @@ class IntegratedSelfWorldAgent:
         self._initialized = False
         self._action_rng = np.random.default_rng(seed + 60_000)
         self._scale = 0.32
+        # Persistent self-identification: see _update_self_lock. A per-step
+        # argmax over raw control_evidence is too noisy (stay actions, wall
+        # bounces, and brief blob merges all dip it), so identity is locked
+        # in once evidence has clearly favored one track for a sustained run
+        # and held afterward, rather than re-decided fresh every step.
+        self._self_lock: int | None = None
+        self._leader_track: int | None = None
+        self._leader_streak: int = 0
 
     # -- structural surface under test: one update, patch + action only --
 
@@ -144,7 +177,15 @@ class IntegratedSelfWorldAgent:
         camera = self.memory._camera
         x0 = int(camera[0] - VIEW_RADIUS)
         y0 = int(camera[1] - VIEW_RADIUS)
-        detections = connected_component_centroids(sensed_occupancy, x0, y0)
+        # 4-connectivity: this world's objects and walls are axis-aligned
+        # grid cells, so two entities diagonally touching are still
+        # visually distinct rather than one blob (measured: raises the
+        # self-position exact-detection rate from 66% to 80% over the
+        # development seeds by no longer merging the self point into a
+        # diagonally adjacent wall or distractor).
+        detections = connected_component_centroids(
+            sensed_occupancy, x0, y0, connectivity=4
+        )
         # OnlineEntityGraph's association cost is calibrated for its native
         # V2-M2/M3 worlds' sub-unit continuous displacement scale; the grid
         # world's 1-cell-per-step motion is rescaled into that regime so
@@ -162,6 +203,51 @@ class IntegratedSelfWorldAgent:
         else:
             self.graph.update(scaled, action_vector)
             self._prune_runaway_tracks()
+        self._update_self_lock()
+
+    def _update_self_lock(self) -> None:
+        tracks = {track.index: track for track in self.graph._tracks}
+        if self._self_lock is not None and self._self_lock not in tracks:
+            self._self_lock = None
+        # Only a track actually matched to a detection this step is eligible
+        # to lead: a stale/extrapolated track's control_evidence is a frozen
+        # (decaying) leftover, not fresh evidence, and letting it win the
+        # per-step argmax just because live candidates dipped is how a
+        # ghost fragment gets mistaken for self.
+        step = self.graph._step
+        live = {
+            index: track
+            for index, track in tracks.items()
+            if track.last_seen == step
+        }
+        if not live:
+            self._leader_track = None
+            self._leader_streak = 0
+            return
+        evidence = {index: track.control_evidence for index, track in live.items()}
+        best_index = max(evidence, key=evidence.get)
+        best_value = evidence[best_index]
+        runner_up = max(
+            (value for index, value in evidence.items() if index != best_index),
+            default=-float("inf"),
+        )
+        qualifies = (
+            best_value >= _SELF_LOCK_CONTROL_EVIDENCE_FLOOR
+            and best_value - runner_up >= _SELF_LOCK_MARGIN
+        )
+        if qualifies and best_index == self._leader_track:
+            self._leader_streak += 1
+        elif qualifies:
+            self._leader_track = best_index
+            self._leader_streak = 1
+        else:
+            self._leader_track = None
+            self._leader_streak = 0
+        if (
+            self._self_lock is None
+            and self._leader_streak >= _SELF_LOCK_STREAK_REQUIRED
+        ):
+            self._self_lock = self._leader_track
 
     def _prune_runaway_tracks(self) -> None:
         """Drop tracks that are both stale and no longer plausible.
@@ -206,11 +292,7 @@ class IntegratedSelfWorldAgent:
         ]
 
     def self_track_identity(self) -> int | None:
-        candidates = self.graph.self_tracks()
-        if not candidates:
-            return None
-        strengths = self.graph.control_strengths()
-        return max(candidates, key=lambda index: strengths.get(index, 0.0))
+        return self._self_lock
 
     def track_positions(self) -> dict[int, tuple[int, int]]:
         return {
