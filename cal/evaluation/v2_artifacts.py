@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import hashlib
 import inspect
 import json
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 
 
@@ -14,6 +16,7 @@ _GROUND_TRUTH_PARAMETER_SUBSTRINGS = (
     "truth",
     "privileged",
     "oracle",
+    "visibility",
 )
 
 
@@ -36,6 +39,78 @@ def constructor_apis_reject_ground_truth(*constructors: type) -> bool:
             ):
                 return False
     return True
+
+
+def load_frozen_protocol(
+    path: str | Path,
+    *,
+    frozen_statuses: str | set[str],
+) -> tuple[dict[str, Any], str]:
+    """Load a protocol JSON, verify its sha256 lock, and check it is frozen.
+
+    Shared by every V2 stage that gates a preregistered protocol behind a
+    sibling `.sha256` lock file: reads the protocol, hashes it, compares
+    against the lock, and rejects any status not in the caller's accepted
+    set (a stage typically accepts its own frozen-before-implementation
+    status plus any later amendment statuses it still honors).
+    """
+
+    source = Path(path)
+    digest = hashlib.sha256(source.read_bytes()).hexdigest()
+    expected = source.with_suffix(".sha256").read_text(
+        encoding="utf-8"
+    ).split()[0]
+    if digest != expected:
+        raise RuntimeError(f"protocol hash does not match its frozen lock: {source}")
+    protocol = json.loads(source.read_text(encoding="utf-8"))
+    allowed = (
+        {frozen_statuses} if isinstance(frozen_statuses, str) else frozen_statuses
+    )
+    if protocol.get("status") not in allowed:
+        raise RuntimeError(f"protocol is not frozen: {source}")
+    return protocol, digest
+
+
+def build_resources(
+    component: Any,
+    *,
+    steps: int,
+    started: float,
+    maximum_replays_per_experience: int = 0,
+) -> dict[str, Any]:
+    """Resource-accounting dict shared by every staged V2 evaluation runner.
+
+    `component` is anything exposing the three resource properties
+    (`learnable_parameter_count`, `active_state_bytes`,
+    `estimated_mac_per_step`) - a memory, an entity graph, or an agent that
+    composes them.
+    """
+
+    return {
+        "learnable_parameter_count": component.learnable_parameter_count,
+        "active_state_bytes": component.active_state_bytes,
+        "estimated_mac_per_step": component.estimated_mac_per_step,
+        "steps_per_seed": steps,
+        "maximum_replays_per_experience": maximum_replays_per_experience,
+        "cpu_wall_seconds": perf_counter() - started,
+    }
+
+
+def resources_pass(resources: dict[str, Any], limits: dict[str, Any]) -> bool:
+    """Whether a `build_resources()` dict stays within a stage's limits dict.
+
+    `limits` uses the same key names as the `resource_limits` block in every
+    V2 protocol JSON: learnable_parameters, active_state_bytes, mac_per_step,
+    steps_per_seed, wall_seconds.
+    """
+
+    return (
+        resources["learnable_parameter_count"] <= limits["learnable_parameters"]
+        and resources["active_state_bytes"] <= limits["active_state_bytes"]
+        and resources["estimated_mac_per_step"] <= limits["mac_per_step"]
+        and resources["steps_per_seed"] <= limits["steps_per_seed"]
+        and resources["cpu_wall_seconds"] <= limits["wall_seconds"]
+    )
 
 
 def require_authorization(

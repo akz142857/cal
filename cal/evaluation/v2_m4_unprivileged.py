@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import inspect
 import json
 from pathlib import Path
@@ -13,14 +12,19 @@ from typing import Any, Sequence
 
 import numpy as np
 
-from cal.evaluation.v2_artifacts import require_authorization
+from cal.evaluation.v2_artifacts import (
+    build_resources,
+    constructor_apis_reject_ground_truth,
+    load_frozen_protocol,
+    require_authorization,
+    resources_pass,
+)
 from cal.evaluation.v2_m4 import _OccupancyWorld
 from cal.infra.provenance import capture_provenance
 from cal.model.occupancy import (
-    MOTION_DELTAS,
     VIEW_RADIUS,
     UnprivilegedOccupancyMemory,
-    bresenham_intermediate_cells,
+    sense_via_line_of_sight,
 )
 
 
@@ -49,26 +53,8 @@ class _LineOfSightWorld(_OccupancyWorld):
     """
 
     def observe(self) -> tuple[np.ndarray, np.ndarray]:
-        size = 2 * VIEW_RADIUS + 1
-        sensed = np.zeros((size, size), dtype=np.uint8)
-        true_visibility = np.ones((size, size), dtype=np.uint8)
-        x0 = int(self.camera[0] - VIEW_RADIUS)
-        y0 = int(self.camera[1] - VIEW_RADIUS)
-        truth = self.truth()
         camera = (int(self.camera[0]), int(self.camera[1]))
-        for local_y in range(size):
-            for local_x in range(size):
-                x, y = x0 + local_x, y0 + local_y
-                if (x, y) != camera:
-                    for cx, cy in bresenham_intermediate_cells(
-                        camera, (x, y)
-                    ):
-                        if truth[cy, cx]:
-                            true_visibility[local_y, local_x] = 0
-                            break
-                if true_visibility[local_y, local_x] and truth[y, x]:
-                    sensed[local_y, local_x] = 1
-        return sensed, true_visibility
+        return sense_via_line_of_sight(camera, self.truth())
 
 
 class _StressedLineOfSightWorld(_LineOfSightWorld):
@@ -81,8 +67,9 @@ class _StressedLineOfSightWorld(_LineOfSightWorld):
 
     PAUSE_STEPS = 10
     PAUSE_OFFSET = 3
-    WALL_LOW = 2
-    WALL_HIGH_MARGIN = 3
+    # WALL_LOW/WALL_HIGH_MARGIN inherited unchanged from _OccupancyWorld;
+    # _DeepShadowLineOfSightWorld below overrides them to stress a tighter
+    # reachable range.
 
     def __init__(self, seed: int, grid_size: int = 25) -> None:
         super().__init__(seed, grid_size)
@@ -100,23 +87,12 @@ class _StressedLineOfSightWorld(_LineOfSightWorld):
         self._paused_at: set[tuple[int, int]] = set()
 
     def step(self, action: int) -> tuple[np.ndarray, np.ndarray]:
-        self.camera = np.clip(
-            self.camera + MOTION_DELTAS[action],
-            VIEW_RADIUS,
-            self.grid_size - VIEW_RADIUS - 1,
-        )
+        self._advance_camera(action)
         if self._pause_remaining > 0:
             self._pause_remaining -= 1
             return self.observe()
-        candidate = self.moving + self.velocity
-        if (
-            candidate[0] <= self.WALL_LOW
-            or candidate[0] >= self.grid_size - self.WALL_HIGH_MARGIN
-        ):
-            self.velocity[0] *= -1
-            candidate = self.moving + self.velocity
+        if self._advance_moving_point():
             self._paused_at.clear()
-        self.moving = candidate
         key = (int(self.moving[0]), int(self.velocity[0]))
         if int(self.moving[0]) in self._pause_columns and key not in self._paused_at:
             self._pause_remaining = self.PAUSE_STEPS
@@ -226,19 +202,7 @@ def _episode(
 
 
 def _load_frozen_protocol(path: str | Path) -> tuple[dict[str, Any], str]:
-    source = Path(path)
-    digest = hashlib.sha256(source.read_bytes()).hexdigest()
-    expected = source.with_suffix(".sha256").read_text(
-        encoding="utf-8"
-    ).split()[0]
-    if digest != expected:
-        raise RuntimeError(
-            "unprivileged M4 protocol hash does not match its frozen lock"
-        )
-    protocol = json.loads(source.read_text(encoding="utf-8"))
-    if protocol.get("status") not in FROZEN_STATUSES:
-        raise RuntimeError("unprivileged M4 protocol is not frozen")
-    return protocol, digest
+    return load_frozen_protocol(path, frozen_statuses=FROZEN_STATUSES)
 
 
 def run_v2_m4_unprivileged(
@@ -340,14 +304,7 @@ def run_v2_m4_unprivileged(
         / max(aggregate["random_confidence_step"], 1e-12)
     )
     memory = UnprivilegedOccupancyMemory()
-    resources = {
-        "learnable_parameter_count": memory.learnable_parameter_count,
-        "active_state_bytes": memory.active_state_bytes,
-        "estimated_mac_per_step": memory.estimated_mac_per_step,
-        "steps_per_seed": steps,
-        "maximum_replays_per_experience": 0,
-        "cpu_wall_seconds": perf_counter() - started,
-    }
+    resources = build_resources(memory, steps=steps, started=started)
     update_parameters = set(
         inspect.signature(UnprivilegedOccupancyMemory.update).parameters
     )
@@ -380,19 +337,10 @@ def run_v2_m4_unprivileged(
         "visual_only_no_privileged_visibility": not (
             {"visibility", "local_visibility", "mask"} & update_parameters
         ),
-        "labels_absent_from_learner": not any(
-            token in name.lower()
-            for name in update_parameters
-            for token in ("label", "truth", "mask")
+        "labels_absent_from_learner": constructor_apis_reject_ground_truth(
+            UnprivilegedOccupancyMemory.update
         ),
-        "resources_pass": (
-            resources["learnable_parameter_count"]
-            <= limits["learnable_parameters"]
-            and resources["active_state_bytes"] <= limits["active_state_bytes"]
-            and resources["estimated_mac_per_step"] <= limits["mac_per_step"]
-            and steps <= limits["steps_per_seed"]
-            and resources["cpu_wall_seconds"] <= limits["wall_seconds"]
-        ),
+        "resources_pass": resources_pass(resources, limits),
     }
     passed = all(gates.values())
     summary = {

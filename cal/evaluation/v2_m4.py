@@ -13,10 +13,20 @@ import numpy as np
 
 from cal.infra.provenance import capture_provenance
 from cal.model.occupancy import MOTION_DELTAS, VIEW_RADIUS, OccupancyMemory
-from cal.evaluation.v2_artifacts import require_authorization
+from cal.evaluation.v2_artifacts import (
+    build_resources,
+    require_authorization,
+    resources_pass,
+)
 
 
 class _OccupancyWorld:
+    # Bounce walls for the moving point, shared with subclasses via
+    # _advance_moving_point(); a subclass overrides these two to stress a
+    # different reachable range without reimplementing the bounce itself.
+    WALL_LOW = 2
+    WALL_HIGH_MARGIN = 3
+
     def __init__(self, seed: int, grid_size: int = 25) -> None:
         self.grid_size = grid_size
         self.rng = np.random.default_rng(seed)
@@ -36,17 +46,35 @@ class _OccupancyWorld:
             (1 if seed % 2 == 0 else -1, 0), dtype=np.int64
         )
 
-    def step(self, action: int) -> tuple[np.ndarray, np.ndarray]:
+    def _advance_camera(self, action: int) -> None:
         self.camera = np.clip(
             self.camera + MOTION_DELTAS[action],
             VIEW_RADIUS,
             self.grid_size - VIEW_RADIUS - 1,
         )
+
+    def _advance_moving_point(self) -> bool:
+        """Advance self.moving by self.velocity, bouncing off the walls.
+
+        Returns whether a bounce occurred, so subclasses that key extra
+        state off bounces (e.g. resetting a pause-site memory) don't need
+        to reimplement the bounce test themselves.
+        """
+
         candidate = self.moving + self.velocity
-        if candidate[0] <= 2 or candidate[0] >= self.grid_size - 3:
+        bounced = (
+            candidate[0] <= self.WALL_LOW
+            or candidate[0] >= self.grid_size - self.WALL_HIGH_MARGIN
+        )
+        if bounced:
             self.velocity[0] *= -1
             candidate = self.moving + self.velocity
         self.moving = candidate
+        return bounced
+
+    def step(self, action: int) -> tuple[np.ndarray, np.ndarray]:
+        self._advance_camera(action)
+        self._advance_moving_point()
         return self.observe()
 
     def truth(self) -> np.ndarray:
@@ -183,13 +211,13 @@ def run_v2_m4(
         / max(aggregate["random_confidence_step"], 1e-12)
     )
     memory = OccupancyMemory()
-    resources = {
-        "learnable_parameter_count": memory.learnable_parameter_count,
-        "active_state_bytes": memory.active_state_bytes,
-        "estimated_mac_per_step": memory.estimated_mac_per_step,
-        "steps_per_seed": steps,
-        "maximum_replays_per_experience": 0,
-        "cpu_wall_seconds": perf_counter() - started,
+    resources = build_resources(memory, steps=steps, started=started)
+    limits = {
+        "learnable_parameters": 100_000,
+        "active_state_bytes": 64 * 1024,
+        "mac_per_step": 5_000_000,
+        "steps_per_seed": 100_000,
+        "wall_seconds": 7_200,
     }
     gates = {
         "m3_prerequisite_passed": prerequisite_passed,
@@ -202,13 +230,7 @@ def run_v2_m4(
         "active_confirmation_steps_reduced_ge_30pct": (
             aggregate["active_step_reduction"] >= 0.30
         ),
-        "resources_pass": (
-            memory.learnable_parameter_count <= 100_000
-            and memory.active_state_bytes <= 64 * 1024
-            and memory.estimated_mac_per_step <= 5_000_000
-            and steps <= 100_000
-            and resources["cpu_wall_seconds"] <= 7_200
-        ),
+        "resources_pass": resources_pass(resources, limits),
         "labels_absent_from_learner": True,
         "visual_only_no_privileged_visibility": False,
     }

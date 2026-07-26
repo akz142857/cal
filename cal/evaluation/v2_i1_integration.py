@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import inspect
 import json
-from math import log
 from pathlib import Path
 from statistics import mean
 from time import perf_counter
@@ -14,13 +12,19 @@ from typing import Any, Sequence
 
 import numpy as np
 
-from cal.evaluation.v2_artifacts import require_authorization
+from cal.evaluation.v2_artifacts import (
+    build_resources,
+    constructor_apis_reject_ground_truth,
+    load_frozen_protocol,
+    require_authorization,
+    resources_pass,
+)
 from cal.infra.provenance import capture_provenance
 from cal.model.integrated_agent import (
     ACTION_DELTAS,
     IntegratedSelfWorldAgent,
 )
-from cal.model.occupancy import VIEW_RADIUS, bresenham_intermediate_cells
+from cal.model.occupancy import VIEW_RADIUS, sense_via_line_of_sight
 
 
 DEFAULT_PROTOCOL = Path("experiments/V2_I1_INTEGRATION_PROTOCOL.json")
@@ -94,24 +98,7 @@ class _IntegratedWorld:
         return grid
 
     def observe(self) -> tuple[np.ndarray, np.ndarray]:
-        size = 2 * VIEW_RADIUS + 1
-        sensed = np.zeros((size, size), dtype=np.uint8)
-        visibility = np.ones((size, size), dtype=np.uint8)
-        truth = self.truth()
-        x0, y0 = CAMERA[0] - VIEW_RADIUS, CAMERA[1] - VIEW_RADIUS
-        for ly in range(size):
-            for lx in range(size):
-                x, y = x0 + lx, y0 + ly
-                if (x, y) != CAMERA:
-                    for cx, cy in bresenham_intermediate_cells(
-                        CAMERA, (x, y)
-                    ):
-                        if truth[cy, cx]:
-                            visibility[ly, lx] = 0
-                            break
-                if visibility[ly, lx] and truth[y, x]:
-                    sensed[ly, lx] = 1
-        return sensed, visibility
+        return sense_via_line_of_sight(CAMERA, self.truth())
 
 
 def _global_visibility(
@@ -217,21 +204,10 @@ def _episode(
 
 
 def _load_frozen_protocol(path: str | Path) -> tuple[dict[str, Any], str]:
-    source = Path(path)
-    digest = hashlib.sha256(source.read_bytes()).hexdigest()
-    expected = source.with_suffix(".sha256").read_text(
-        encoding="utf-8"
-    ).split()[0]
-    if digest != expected:
-        raise RuntimeError(
-            "integration protocol hash does not match its frozen lock"
-        )
-    protocol = json.loads(source.read_text(encoding="utf-8"))
-    if protocol.get("status") != (
-        "frozen_before_integration_probe_implementation"
-    ):
-        raise RuntimeError("integration protocol is not frozen")
-    return protocol, digest
+    return load_frozen_protocol(
+        path,
+        frozen_statuses="frozen_before_integration_probe_implementation",
+    )
 
 
 def run_v2_i1(
@@ -304,14 +280,7 @@ def run_v2_i1(
         ),
     }
     agent = IntegratedSelfWorldAgent()
-    resources = {
-        "learnable_parameter_count": agent.learnable_parameter_count,
-        "active_state_bytes": agent.active_state_bytes,
-        "estimated_mac_per_step": agent.estimated_mac_per_step,
-        "steps_per_seed": steps,
-        "maximum_replays_per_experience": 0,
-        "cpu_wall_seconds": perf_counter() - started,
-    }
+    resources = build_resources(agent, steps=steps, started=started)
     update_parameters = set(
         inspect.signature(IntegratedSelfWorldAgent.update).parameters
     )
@@ -349,21 +318,10 @@ def run_v2_i1(
         "single_agent_single_stream": (
             update_parameters == {"self", "sensed_occupancy", "action"}
         ),
-        "labels_absent_from_learner": not any(
-            token in name.lower()
-            for name in update_parameters
-            for token in ("label", "truth", "mask", "visibility")
+        "labels_absent_from_learner": constructor_apis_reject_ground_truth(
+            IntegratedSelfWorldAgent.update
         ),
-        "resources_pass": (
-            resources["learnable_parameter_count"]
-            <= limits["learnable_parameters"]
-            and resources["active_state_bytes"]
-            <= limits["active_state_bytes"]
-            and resources["estimated_mac_per_step"]
-            <= limits["mac_per_step"]
-            and steps <= limits["steps_per_seed"]
-            and resources["cpu_wall_seconds"] <= limits["wall_seconds"]
-        ),
+        "resources_pass": resources_pass(resources, limits),
     }
     passed = all(gates.values())
     summary = {

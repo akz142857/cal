@@ -211,6 +211,40 @@ def bresenham_intermediate_cells(
         cells.append((x, y))
 
 
+def sense_via_line_of_sight(
+    camera: tuple[int, int],
+    truth: np.ndarray,
+    *,
+    view_radius: int = VIEW_RADIUS,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Shadow-cast ground truth into a local sensed+visibility patch.
+
+    World-simulator side of discrete line-of-sight occlusion: a cell is
+    visible iff no strictly intermediate cell on its ray from the camera is
+    truly occupied, and sensed marks cells that are both visible and truly
+    occupied. Shared by every world that renders this occlusion model
+    around a camera cell over ground truth it alone has access to; compare
+    `infer_visibility_from_sensed_occupancy` below, which is the agent-side
+    analogue over its own sensed (not ground-truth) patch.
+    """
+
+    size = 2 * view_radius + 1
+    sensed = np.zeros((size, size), dtype=np.uint8)
+    visibility = np.ones((size, size), dtype=np.uint8)
+    x0, y0 = camera[0] - view_radius, camera[1] - view_radius
+    for local_y in range(size):
+        for local_x in range(size):
+            x, y = x0 + local_x, y0 + local_y
+            if (x, y) != camera:
+                for cx, cy in bresenham_intermediate_cells(camera, (x, y)):
+                    if truth[cy, cx]:
+                        visibility[local_y, local_x] = 0
+                        break
+            if visibility[local_y, local_x] and truth[y, x]:
+                sensed[local_y, local_x] = 1
+    return sensed, visibility
+
+
 def infer_visibility_from_sensed_occupancy(
     sensed_occupancy: np.ndarray,
 ) -> np.ndarray:
