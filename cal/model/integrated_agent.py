@@ -154,6 +154,17 @@ class IntegratedSelfWorldAgent:
             active=False,
             infer_occlusion=infer_occlusion,
             seed=seed,
+            # Unlike M4's native world (one moving point), this world has
+            # self plus two distractors simultaneously - the occupancy
+            # memory's simple visual-entity tracker has no native pruning
+            # (stale_entity_horizon defaults to None/disabled for M4's own
+            # worlds), so spurious one-off entities from the extra objects
+            # would otherwise accumulate forever and dilute the bounded
+            # MAX_FILTERS motion-hypothesis slots. 5 matches the same
+            # "few-step" order of magnitude already used elsewhere in this
+            # codebase for "has this had a fair chance to prove itself yet"
+            # (e.g. OnlineEntityGraph's age>3 evidence-decay threshold).
+            stale_entity_horizon=5,
         )
         # This world's fixed-camera occlusion runs far longer than
         # OnlineEntityGraph's native V2-M2/M3 worlds (measured up to 34

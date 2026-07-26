@@ -27,7 +27,14 @@ class _VisualEntity:
 class OccupancyMemory:
     """Fuse local visual occupancy using integrated visual-agent motion."""
 
-    def __init__(self, grid_size: int = 25, *, active: bool = True, seed: int = 0):
+    def __init__(
+        self,
+        grid_size: int = 25,
+        *,
+        active: bool = True,
+        seed: int = 0,
+        stale_entity_horizon: int | None = None,
+    ):
         self.grid_size = grid_size
         self.active = active
         self._rng = np.random.default_rng(seed)
@@ -35,6 +42,15 @@ class OccupancyMemory:
         self._camera = np.asarray((grid_size // 2, grid_size // 2), dtype=np.int64)
         self._entities: list[_VisualEntity] = []
         self._step = 0
+        if stale_entity_horizon is not None and stale_entity_horizon < 1:
+            raise ValueError("stale_entity_horizon must be positive")
+        # None (default) preserves the original behavior exactly: entities
+        # are never pruned by staleness alone, only capped at 40 total.
+        # Callers whose world has more simultaneous objects than this
+        # tracker's native calibration (one moving point) may opt into
+        # pruning entities that never earn real motion confidence, so they
+        # stop permanently occupying match priority and MAX_FILTERS slots.
+        self.stale_entity_horizon = stale_entity_horizon
 
     @property
     def learnable_parameter_count(self) -> int:
@@ -149,6 +165,28 @@ class OccupancyMemory:
                 self._entities.append(
                     _VisualEntity(point, np.zeros(2), self._step)
                 )
+        # Entities are never expired by default (unlike OnlineEntityGraph's
+        # tracks, which gained pruning during the V2-I1 investigation): a
+        # one-off detection that's never matched again - noise, or a
+        # momentarily isolated cell from an unrelated object - stays in the
+        # list forever, up to the 40-entity cap, permanently competing for
+        # match priority (sorted by velocity, so a spurious high-velocity
+        # entity could out-rank a genuine one for a nearby detection) and
+        # for the 4 MAX_FILTERS motion-hypothesis slots via LRU eviction.
+        # This is a real cost in a world with several simultaneous objects
+        # (V2-I1), but stale_entity_horizon defaults to None (disabled) so
+        # M4's own single-moving-point world, whose passing development
+        # and one-shot holdout results were produced without this pruning,
+        # is completely unaffected unless a caller opts in.
+        if self.stale_entity_horizon is not None:
+            self._entities = [
+                entity
+                for entity in self._entities
+                if not (
+                    self._step - entity.last_seen > self.stale_entity_horizon
+                    and entity.motion_confidence < 2
+                )
+            ]
         for entity in self._entities:
             if (
                 entity.last_seen == self._step
@@ -283,8 +321,14 @@ class UnprivilegedOccupancyMemory(OccupancyMemory):
         active: bool = True,
         infer_occlusion: bool = True,
         seed: int = 0,
+        stale_entity_horizon: int | None = None,
     ):
-        super().__init__(grid_size, active=active, seed=seed)
+        super().__init__(
+            grid_size,
+            active=active,
+            seed=seed,
+            stale_entity_horizon=stale_entity_horizon,
+        )
         self.infer_occlusion = infer_occlusion
 
     @property

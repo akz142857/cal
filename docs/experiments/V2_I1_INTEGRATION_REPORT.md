@@ -488,3 +488,73 @@ locked track 是否"仍然合格"；连续 5 步（`_SELF_REVOKE_STREAK_REQUIRED
 本身仍不足以让 `self_f1` 达标；是否还要为 entity_graph.py 加内部
 状态重置（原设想的 V6），要等 `distractor_permanence` 单独诊断完
 之后再判断，不是现在就该启动。
+
+### 单独诊断 `distractor_permanence_pass`（2026-07-26）
+
+按计划第二步，独立诊断这个门（0.220 vs 需要 0.55）——插桩发现这
+和身份互换完全是两回事：`UnprivilegedOccupancyMemory`（M4 侧机制，
+`cal/model/occupancy.py`，不在锁定文件列表）内部有一个**独立于**
+`entity_graph.py` 的简易可视实体追踪器（`_VisualEntity`，服务于
+`MotionHypothesisFilter`/暂停学习），这个追踪器**没有任何过期
+机制**——只要没被重新匹配上，一个实体就永远留在列表里（上限 40
+个），不会被清理。实测：本世界 200 步内 `_entities` 数量从 5 单调
+涨到 31（自我+两个干扰物+墙面噪声不断产生一次性"实体"），持续
+挤占按速度排序的匹配优先级和仅有 4 个的 `MAX_FILTERS`
+运动假设槽位——同一类"track 从不过期"的问题（第 2 处摩擦）在
+M4 侧机制里从未被处理过。
+
+**尝试过、被拒绝的方案**：把该追踪器的探测前端从孤立格判据换成
+连通分量分割（跟 M2 侧已验证有效的思路一样）——实测反而更差
+（`distractor_hidden_probability` 0.220→0.135）：连通分量把相邻的
+自我/干扰物/墙面合并成一个"平均"质心，喂给这个简单的按轴+行建模
+的运动假设滤波器时，一次错误的融合位置比"这一步没探测到"伤害更大
+（漏检不会误导，融合质心会）。已回退，不采用。
+
+**采纳的方案**：给基类 `OccupancyMemory` 加
+`stale_entity_horizon: int | None = None` 构造参数——默认 `None`
+完全保留原行为（M4 自己的开发集/一次性留出结果都是在没有这个剪枝
+的情况下产生的，必须不受影响），仅在这个值不为 `None` 时，才会
+剪除"连续超过这么多步未被重新匹配、且从未攒够 `motion_confidence
+>= 2`"的实体（同一类判据，跟 `entity_graph.py._prune_runaway_tracks`
+是同一个思路）。**先按经验扫描测出 3 是效果最好的单点，但没有直接
+采用它**——那样等价于对着门直接调参数，本报告已经明确拒绝过这种
+做法；改为选 5，和 `OnlineEntityGraph` 里已有的 `age>3` 证据衰减
+阈值同一个数量级，理由是"给一个新出现的候选几步机会证明自己"，
+而不是"调到 `distractor_hidden_probability` 最大的那个值"。
+
+**验证零回归**：`stale_entity_horizon=None`（默认）下重跑
+`cal-v2-m4 --exploratory` 和 `cal-v2-m4-unprivileged --split
+development`，逐字段（除计时外）与改动前完全一致——特别是
+`assume_all_visible_control_fails` 门（本报告第一次尝试连通分量
+方案时曾经被打破过，0.538→0.564 越过 0.55 上限）在默认参数下完全
+不受影响。M4 一次性留出（已消费，`results/V2-M4-unprivileged-holdout-summary.json`）
+本身是静态文件，不会被代码改动影响；但如实说明：若现在用当前
+代码重新生成该 holdout 的开发集，其在 `stale_entity_horizon=None`
+下的数值与消费时完全一致，本次改动没有引入这类风险。
+
+**效果**：`distractor_hidden_probability` 0.220→**0.264**；
+`paired_formal_beats_visible_control` 也从 0.8125→0.875 小幅改善。
+`identity_consistency` **依旧是 0.219，一位小数都没变**——这是本轮
+三次独立改动（V5 身份互换惩罚项、集成层锁定可撤销化、M4 侧实体
+剪枝）里唯一一个完全没有反应的指标，而且理由现在很清楚：
+`identity_consistency` 只由 `entity_graph.py` 里干扰物 track 索引
+是否持续稳定决定，跟自我锁定逻辑、跟 M4 侧的 `OccupancyMemory`
+都无关——三次改动没有一次touch到它该 touch 的那个机制。
+
+### 阶段性结论：三步都做完了，是否启动 V6？
+
+| 指标 | 起点 | 现在 | 门限 |
+| --- | ---: | ---: | ---: |
+| `self_f1` | 0.0000 | 0.3747 | ≥0.90 |
+| `identity_consistency` | 0.198 | 0.219 | ≥0.90 |
+| `distractor_hidden_probability` | 0.220 | 0.264 | ≥0.55 |
+
+三步都做完、都测出了真实、独立、可验证的进展，但没有一个门真正
+接近通过；`identity_consistency` 尤其顽固——三次跟它无关的改动
+都没能移动它，说明它需要的修复必须**直接命中** `entity_graph.py`
+的 track 连续性机制本身，不能靠集成层或 M4 侧的改动顺带解决。这
+恰好是原设想的 V6（给锁定文件加"检测漂移并重置内部状态"的恢复
+机制）唯一能直接命中的目标——但 V6 的工程量和验证成本仍然是三步
+里最大的一个（前两步已经证明"更贵的协议修订不一定换来更大的
+提升"），值不值得现在启动，是需要用户决定的优先级问题，不是
+纯技术判断。
