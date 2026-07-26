@@ -150,7 +150,7 @@ def _episode(
     steps: int,
     active: bool,
     infer_occlusion: bool,
-    environment_version: int = 2,
+    environment_version: int,
 ) -> dict[str, Any]:
     world = _WORLDS[environment_version](seed)
     memory = UnprivilegedOccupancyMemory(

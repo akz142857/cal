@@ -1,6 +1,8 @@
 """Tests for the read-only Cal dashboard data contract."""
 
-from cal.dashboard.data import load_dashboard_snapshot
+from pathlib import Path
+
+from cal.dashboard.data import PROJECT_ROOT, load_dashboard_snapshot
 
 
 def test_dashboard_snapshot_reflects_current_stage_and_confirmation() -> None:
@@ -20,6 +22,23 @@ def test_dashboard_snapshot_reflects_current_stage_and_confirmation() -> None:
         "M3 正式",
         "M3 删除因果似然",
     }
+
+    # The V2-M4 row's wording must track which artifact actually backs the
+    # displayed number - a stale hardcoded "still privileged" description
+    # would misinform a viewer once the unprivileged holdout has passed.
+    m4_row = next(
+        row for row in snapshot["stage_rows"] if row["阶段"] == "V2-M4"
+    )
+    m4_unprivileged_exists = (
+        Path(PROJECT_ROOT) / "results" / "V2-M4-unprivileged-holdout-summary.json"
+    ).exists()
+    if m4_unprivileged_exists:
+        assert "无特权" in m4_row["核心证据"]
+        assert "重连设计评审" == m4_row["下一门"]
+        assert "已授权重连设计评审" in snapshot["current_blocker"]
+    else:
+        assert "特权可见性" in m4_row["核心证据"]
+        assert "删除模拟器可见性掩码" == m4_row["下一门"]
 
 
 def test_dashboard_comparisons_preserve_required_controls() -> None:

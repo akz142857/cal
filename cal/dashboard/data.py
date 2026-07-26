@@ -42,6 +42,7 @@ def load_dashboard_snapshot(
     chain = stage["chain_validation"]
     key = stage["key_results"]
     confirmed = review["confirmation"]
+    m4_unprivileged = (results / "V2-M4-unprivileged-holdout-summary.json").exists()
     stages = [
         {
             "阶段": "V2-A–C",
@@ -93,9 +94,15 @@ def load_dashboard_snapshot(
                 else "诊断/停止"
             ),
             "核心证据": (
-                f"特权可见性占据 IoU {key['m4_occupancy_iou']:.3f}"
+                f"无特权视觉占据 IoU {key['m4_occupancy_iou']:.3f}"
+                if m4_unprivileged
+                else f"特权可见性占据 IoU {key['m4_occupancy_iou']:.3f}"
             ),
-            "下一门": "删除模拟器可见性掩码",
+            "下一门": (
+                "重连设计评审"
+                if m4_unprivileged
+                else "删除模拟器可见性掩码"
+            ),
         },
     ]
     comparison = [
@@ -179,5 +186,9 @@ def load_dashboard_snapshot(
         "resource_rows": resource_rows,
         "episodes": episodes,
         "current_decision": stage["decision"],
-        "current_blocker": "V2-M4 仍使用模拟器生成的可见性掩码",
+        "current_blocker": (
+            "已授权重连设计评审；原对象永久性 M2 尚未开始"
+            if m4_unprivileged
+            else "V2-M4 仍使用模拟器生成的可见性掩码"
+        ),
     }

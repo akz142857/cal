@@ -333,7 +333,6 @@ class UnprivilegedOccupancyMemory(OccupancyMemory):
     STATIC_LOG_ODDS = 2.0
     PAINT_FLOOR = 0.02
     PAINT_CEILING = 0.85
-    SUPPORT_MASS = 0.005
     SUPPORT_LOG_ODDS = 0.45
 
     def _update_entities(self, detections: list[np.ndarray]) -> None:
@@ -348,6 +347,7 @@ class UnprivilegedOccupancyMemory(OccupancyMemory):
 
         if not hasattr(self, "_filters"):
             self._filters: dict[tuple[int, int], Any] = {}
+            self._filter_last_touched: dict[tuple[int, int], int] = {}
             self._pause_learner = PauseLearner()
             self._stationary_runs: dict[int, tuple[int, int, int]] = {}
             self._entity_history: dict[int, int] = {}
@@ -370,10 +370,20 @@ class UnprivilegedOccupancyMemory(OccupancyMemory):
                 self.grid_size - 1,
             )
             filter_key = (axis, int(anchor[1 - axis]))
-            if (
-                filter_key not in self._filters
-                and len(self._filters) < self.MAX_FILTERS
-            ):
+            if filter_key not in self._filters:
+                if len(self._filters) >= self.MAX_FILTERS:
+                    # Evict the least-recently-touched filter rather than
+                    # refusing to track this entity: without this, once
+                    # MAX_FILTERS distinct (axis, row) keys have ever been
+                    # minted the slots never free up (filters have no other
+                    # expiry), silently disabling permanence tracking for
+                    # every subsequently occluded entity/location.
+                    oldest_key = min(
+                        self._filters,
+                        key=lambda k: self._filter_last_touched.get(k, -1),
+                    )
+                    del self._filters[oldest_key]
+                    self._filter_last_touched.pop(oldest_key, None)
                 self._filters[filter_key] = MotionHypothesisFilter(
                     self.grid_size,
                     axis=axis,
@@ -382,6 +392,7 @@ class UnprivilegedOccupancyMemory(OccupancyMemory):
                     direction=direction,
                     learner=self._pause_learner,
                 )
+            self._filter_last_touched[filter_key] = self._step
         self._advance_filters(detections, visibility)
 
     def _learn_pauses(self) -> None:
@@ -406,7 +417,7 @@ class UnprivilegedOccupancyMemory(OccupancyMemory):
                     if displacement == 1:
                         axis = 0 if run_y == int(y) else 1
                         along = run_x if axis == 0 else run_y
-                        self._pause_learner.record(int(along), count)
+                        self._pause_learner.record(axis, int(along), count)
                     self._stationary_runs[key] = (int(x), int(y), 1)
 
     def _advance_filters(
@@ -439,9 +450,11 @@ class UnprivilegedOccupancyMemory(OccupancyMemory):
                 visible_empty=visible_empty,
                 detection=detection,
             )
-            if hypothesis.retired:
-                del self._filters[key]
-                continue
+            if detection is not None:
+                # Actively reacquired this step: protect it from LRU
+                # eviction in _update_entities ahead of filters that have
+                # been coasting on prediction alone.
+                self._filter_last_touched[key] = self._step
             self._paint_marginal(key, hypothesis, visibility)
 
     def _paint_marginal(

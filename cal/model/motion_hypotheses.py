@@ -18,27 +18,36 @@ SMOOTHING = 1e-3
 
 
 class PauseLearner:
-    """Online table of where and for how long the object habitually pauses."""
+    """Online table of where and for how long the object habitually pauses.
+
+    One learner is shared across every MotionHypothesisFilter belonging to a
+    memory instance (filters for different entities/travel axes reuse it), so
+    entries are keyed by (axis, position) rather than a bare coordinate - two
+    filters on different axes or rows can otherwise share a numeric
+    coordinate by coincidence and read back each other's learned pauses.
+    """
 
     def __init__(self) -> None:
-        self._durations: dict[int, list[int]] = {}
+        self._durations: dict[tuple[int, int], list[int]] = {}
 
     MIN_DURATION = 4
     MAX_DURATION = 14
 
-    def record(self, position: int, duration: int) -> None:
+    def record(self, axis: int, position: int, duration: int) -> None:
         # Below the band: tracker jitter. Above it: a moving entity glued
         # to a static detection by the loose match gate. Both poison the
         # transition model far more than a missed real pause does.
         if not (self.MIN_DURATION <= duration <= self.MAX_DURATION):
             return
-        self._durations.setdefault(position, []).append(duration)
+        self._durations.setdefault((axis, position), []).append(duration)
 
-    def locations(self) -> dict[int, tuple[int, float]]:
+    def locations(self, axis: int) -> dict[int, tuple[int, float]]:
         """Map position -> (expected duration, trigger confidence)."""
 
         result = {}
-        for position, durations in self._durations.items():
+        for (entry_axis, position), durations in self._durations.items():
+            if entry_axis != axis:
+                continue
             # Observed stationary runs are censored from below (the camera
             # may look away mid-pause), so trust the longest run seen.
             expected = min(MAX_PAUSE, max(durations))
@@ -78,12 +87,17 @@ class MotionHypothesisFilter:
         # per step the object provably stays inside it while unobserved.
         self.reachable_low = anchor
         self.reachable_high = anchor
-        self.retired = False
+        # Seeded from the constructor's own direction so the first
+        # reappearance (observe() with no prior detection to diff against)
+        # re-anchors using the filter's real initial heading instead of an
+        # arbitrary +x default.
+        self._direction = d
+        self._last_detection = anchor
 
     def predict(self) -> None:
         self.reachable_low = max(0, self.reachable_low - 1)
         self.reachable_high = min(self.grid_size - 1, self.reachable_high + 1)
-        table = self.learner.locations()
+        table = self.learner.locations(self.axis)
         successor = np.zeros_like(self.belief)
         moving = self.belief[:, :, 0]
         for x in range(self.grid_size):
@@ -122,12 +136,13 @@ class MotionHypothesisFilter:
         if detection is not None:
             # The object is visible: re-anchor instead of dying, so the
             # next disappearance resumes with a tight, current belief.
-            previous = getattr(self, "_last_detection", None)
-            if previous is not None and previous != detection:
-                self._direction = 1 if detection > previous else 0
+            # _direction/_last_detection are always set (seeded in
+            # __init__), so this never falls back to an arbitrary default.
+            if self._last_detection != detection:
+                self._direction = 1 if detection > self._last_detection else 0
             self._last_detection = detection
             self.belief[:, :, :] = 0.0
-            self.belief[detection, getattr(self, "_direction", 1), 0] = 1.0
+            self.belief[detection, self._direction, 0] = 1.0
             self.reachable_low = detection
             self.reachable_high = detection
             return

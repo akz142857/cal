@@ -74,6 +74,13 @@ def build_v2_m1_m3_confirmation_review(
     # The V1 development artifact is regenerated deterministically from the
     # historical source state, so its behavioral gates are checkable but its
     # byte hash differs from the V2 amendment record (provenance timestamps).
+    # amendment_record["prior_development_result_sha256"] is therefore a
+    # point-in-time attestation about a repeatable-by-design artifact and
+    # cannot be re-verified by byte equality (regenerating it legitimately
+    # changes the hash every run) - the checks below instead verify the
+    # regenerated file's own internal consistency and its expected gate
+    # pattern, which catches tampering that flips pass/fail or the reported
+    # decision without also editing every individual gate entry to match.
     gates = {
         "v1_protocol_preserved": (
             v2_protocol["amendment_record"]["prior_protocol_sha256"]
@@ -81,6 +88,15 @@ def build_v2_m1_m3_confirmation_review(
         ),
         "v1_development_matches_v1_protocol": (
             v1_development["protocol_sha256"] == digests["v1_protocol"]
+        ),
+        "v1_development_internally_consistent": (
+            v1_development["passed"] == all(v1_development["gates"].values())
+            and v1_development["decision"]
+            == (
+                "authorize_design_of_unprivileged_v2_m4"
+                if v1_development["passed"]
+                else "retain_stop_at_m1_m3_confirmation"
+            )
         ),
         "v1_failed_only_invalid_tie_break_gate": (
             v1_failed_gates == ["m3_no_likelihood_control_pass"]

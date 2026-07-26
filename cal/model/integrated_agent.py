@@ -164,36 +164,44 @@ class IntegratedSelfWorldAgent:
             self._prune_runaway_tracks()
 
     def _prune_runaway_tracks(self) -> None:
-        """Drop tracks whose unmatched extrapolation has left the arena.
+        """Drop tracks that are both stale and no longer plausible.
 
         OnlineEntityGraph never expires a track: an unmatched track keeps
         being extrapolated by its own theta/autonomous-velocity estimate
         indefinitely. Under this world's long occlusions, a track fit from
         only a few noisy samples can drift outside the grid and never be
         reacquired, permanently consuming one of the bounded track slots.
-        This integration-layer safeguard reclaims only tracks that have
-        left the physically valid area - it does not touch tracks merely
-        occluded-but-plausible, which stay to represent permanence.
+
+        The out-of-bounds check alone must NOT fire before
+        reacquisition_window elapses: a noisy track can drift past a fixed
+        margin in a handful of steps (a single bad RLS update from one
+        mis-associated detection can inflate theta well above real motion),
+        which would evict it long before OnlineEntityGraph's own widened
+        window ever gives it a chance to be reacquired - silently undercutting
+        the wider-window guarantee for exactly the tracks it exists to
+        protect. So both conditions require the same staleness gate: this
+        reclaims tracks OnlineEntityGraph's own reacquisition_window has
+        already given up on AND that are either implausibly positioned or
+        low-confidence, never tracks still within their guaranteed window.
         """
 
         margin = 4 * self._scale
         low = -margin
         high = (self.grid_size - 1) * self._scale + margin
         step = self.graph._step
-        # Only clean up tracks OnlineEntityGraph's own reacquisition_window
-        # has already given up on (plus slack) - pruning any sooner would
-        # undercut the wider window this world was given it for.
         stale_after = self.graph.reacquisition_window + 10
         self.graph._tracks = [
             track
             for track in self.graph._tracks
-            if (
-                low <= track.position[0] <= high
-                and low <= track.position[1] <= high
-            )
-            and not (
+            if not (
                 step - track.last_seen > stale_after
-                and track.probability < 0.5
+                and (
+                    not (
+                        low <= track.position[0] <= high
+                        and low <= track.position[1] <= high
+                    )
+                    or track.probability < 0.5
+                )
             )
         ]
 
@@ -231,7 +239,14 @@ class IntegratedSelfWorldAgent:
 
     @property
     def estimated_mac_per_step(self) -> int:
+        window = (2 * VIEW_RADIUS + 1) ** 2
+        # connected_component_centroids visits every cell and, worst case,
+        # its 8 neighbors once each; _prune_runaway_tracks scans every track.
+        blob_detection = window * 9
+        track_pruning = self.graph.maximum_tracks * 4
         return (
             self.memory.estimated_mac_per_step
             + self.graph.estimated_mac_per_step
+            + blob_detection
+            + track_pruning
         )
