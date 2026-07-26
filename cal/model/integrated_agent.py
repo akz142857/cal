@@ -68,6 +68,14 @@ _FOUR_CONNECTED = ((-1, 0), (1, 0), (0, -1), (0, 1))
 _SELF_LOCK_CONTROL_EVIDENCE_FLOOR = 0.5
 _SELF_LOCK_MARGIN = 0.3
 _SELF_LOCK_STREAK_REQUIRED = 5
+# Revocation uses the same floor+margin qualification test as acquisition,
+# symmetrically: a locked track must fail it for this many consecutive
+# LIVE (matched-this-step) steps before the lock is dropped. Kept equal to
+# the acquisition streak by default - a track that was confident enough to
+# earn the lock over 5 steps should need a comparably sustained run of
+# disqualifying evidence, not a single bad step, before losing it; see the
+# report for measured effect.
+_SELF_REVOKE_STREAK_REQUIRED = 5
 
 
 def connected_component_centroids(
@@ -177,10 +185,18 @@ class IntegratedSelfWorldAgent:
         # argmax over raw control_evidence is too noisy (stay actions, wall
         # bounces, and brief blob merges all dip it), so identity is locked
         # in once evidence has clearly favored one track for a sustained run
-        # and held afterward, rather than re-decided fresh every step.
+        # and held afterward, rather than re-decided fresh every step. The
+        # lock is revocable (see _revoke_streak): a track that silently gets
+        # associated with a different physical entity mid-episode (an
+        # identity switch) keeps the same index but its control_evidence
+        # should degrade, since the wrong entity's motion is no longer
+        # explained by the fed action - a sustained run of that is grounds
+        # to drop the lock and let it be re-earned, rather than trusting a
+        # lock forever just because the track object never disappears.
         self._self_lock: int | None = None
         self._leader_track: int | None = None
         self._leader_streak: int = 0
+        self._revoke_streak: int = 0
 
     # -- structural surface under test: one update, patch + action only --
 
@@ -219,17 +235,53 @@ class IntegratedSelfWorldAgent:
         self._update_self_lock()
 
     def _update_self_lock(self) -> None:
+        step = self.graph._step
         if self._self_lock is not None:
-            if any(track.index == self._self_lock for track in self.graph._tracks):
-                # Already locked and that track still exists: nothing to
-                # decide. Deliberately skip the streak bookkeeping below
-                # entirely while locked (see the comment on it) instead of
-                # letting it keep running for some other track in the
-                # background.
+            locked_track = next(
+                (t for t in self.graph._tracks if t.index == self._self_lock),
+                None,
+            )
+            if locked_track is None:
+                self._self_lock = None
+                self._leader_track = None
+                self._leader_streak = 0
+                self._revoke_streak = 0
+            elif locked_track.last_seen == step:
+                # Only judge revocation on steps where the locked track was
+                # actually matched to a detection: a miss (occlusion) is
+                # expected and normal, and must not itself count as
+                # evidence the lock is wrong, or every long-but-legitimate
+                # occlusion would erode a correct lock exactly when
+                # reacquisition_window is supposed to be protecting it.
+                live = {
+                    t.index: t.control_evidence
+                    for t in self.graph._tracks
+                    if t.last_seen == step
+                }
+                own_value = live[self._self_lock]
+                runner_up = max(
+                    (v for i, v in live.items() if i != self._self_lock),
+                    default=-float("inf"),
+                )
+                still_qualifies = (
+                    own_value >= _SELF_LOCK_CONTROL_EVIDENCE_FLOOR
+                    and own_value - runner_up >= _SELF_LOCK_MARGIN
+                )
+                if still_qualifies:
+                    self._revoke_streak = 0
+                else:
+                    self._revoke_streak += 1
+                    if self._revoke_streak >= _SELF_REVOKE_STREAK_REQUIRED:
+                        self._self_lock = None
+                        self._leader_track = None
+                        self._leader_streak = 0
+                        self._revoke_streak = 0
+            if self._self_lock is not None:
+                # Still locked (nothing above dropped it): skip the
+                # acquisition streak bookkeeping below entirely while
+                # locked, same reasoning as before - it must not keep
+                # accumulating for some other track in the background.
                 return
-            self._self_lock = None
-            self._leader_track = None
-            self._leader_streak = 0
         # Only a track actually matched to a detection this step is eligible
         # to lead: a stale/extrapolated track's control_evidence is a frozen
         # (decaying) leftover, not fresh evidence, and letting it win the

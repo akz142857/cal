@@ -203,3 +203,32 @@ def test_streak_bookkeeping_does_not_accumulate_for_a_rival_while_locked() -> No
         raise AssertionError("original lock was never dropped within the test window")
 
     assert lock_step is not None
+
+
+def test_self_lock_is_revoked_once_locked_track_stops_correlating() -> None:
+    # An identity switch keeps the same track index but the entity it now
+    # follows is no longer explained by the fed action - the lock must
+    # notice and drop, not hold onto a now-wrong index indefinitely.
+    agent = IntegratedSelfWorldAgent(seed=1)
+    point = np.asarray((5, 5))
+    agent.update(_patch_at(point), 0)
+    rng = np.random.default_rng(0)
+    lock_step = None
+    revoke_step = None
+    for step in range(1, 100):
+        action = int(rng.integers(1, 5))
+        if lock_step is None:
+            point = np.clip(point + ACTION_DELTAS[action], 0, 2 * VIEW_RADIUS)
+        # Once locked, the point stops following the action entirely -
+        # simulating the track having been silently switched onto an
+        # uncontrolled entity.
+        agent.update(_patch_at(point), action)
+        if lock_step is None and agent.self_track_identity() is not None:
+            lock_step = step
+        elif lock_step is not None and agent.self_track_identity() is None:
+            revoke_step = step
+            break
+
+    assert lock_step is not None
+    assert revoke_step is not None
+    assert revoke_step > lock_step
