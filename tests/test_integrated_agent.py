@@ -6,6 +6,7 @@ import numpy as np
 from cal.model.integrated_agent import (
     ACTION_DELTAS,
     IntegratedSelfWorldAgent,
+    _SELF_LOCK_STREAK_REQUIRED,
     connected_component_centroids,
 )
 from cal.model.occupancy import VIEW_RADIUS
@@ -152,3 +153,53 @@ def test_self_lock_never_engages_under_uncorrelated_action() -> None:
         agent.update(_patch_at(point), supplied_action)
 
     assert agent.self_track_identity() is None
+
+
+def test_streak_bookkeeping_does_not_accumulate_for_a_rival_while_locked() -> None:
+    # Regression test: _update_self_lock must not keep updating
+    # _leader_track/_leader_streak for some OTHER track while a lock is
+    # already held. If it did, a rival that happened to qualify for many
+    # steps in the background (while unrelated to the locked track) could
+    # instantly re-lock the moment the original lock's track is pruned,
+    # with no fresh confirmation streak after the handoff - defeating the
+    # whole point of requiring a sustained run before trusting an identity.
+    #
+    # Point `a` moves under the commanded action and is dropped from the
+    # detections once locked, so its track goes stale and is eventually
+    # pruned. From the same moment, point `b` (a stand-in for a rival
+    # entity) starts moving under the *same* commanded action, i.e. it
+    # would itself have qualified for a lock throughout that whole window.
+    agent = IntegratedSelfWorldAgent(seed=1)
+    a = np.asarray((2, 2))
+    b = np.asarray((2 * VIEW_RADIUS - 2, 2))
+    agent.update(_patch_at(a), 0)
+    rng = np.random.default_rng(0)
+    lock_step = None
+    freeze_step = None
+    for step in range(1, 120):
+        action = int(rng.integers(1, 5))
+        if freeze_step is None:
+            a = np.clip(a + ACTION_DELTAS[action], 0, 2 * VIEW_RADIUS)
+            point = a
+        else:
+            b = np.clip(b + ACTION_DELTAS[action], 0, 2 * VIEW_RADIUS)
+            point = b
+        previous_lock = agent._self_lock
+        agent.update(_patch_at(point), action)
+        if lock_step is None and agent.self_track_identity() is not None:
+            lock_step = step
+            freeze_step = step
+        if (
+            freeze_step is not None
+            and previous_lock is not None
+            and agent._self_lock != previous_lock
+        ):
+            # The instant the original lock is dropped (its track pruned),
+            # _leader_streak for the rival must NOT already be at or past
+            # the requirement - it must still need a fresh run.
+            assert agent._leader_streak < _SELF_LOCK_STREAK_REQUIRED
+            break
+    else:
+        raise AssertionError("original lock was never dropped within the test window")
+
+    assert lock_step is not None

@@ -206,29 +206,45 @@ class IntegratedSelfWorldAgent:
         self._update_self_lock()
 
     def _update_self_lock(self) -> None:
-        tracks = {track.index: track for track in self.graph._tracks}
-        if self._self_lock is not None and self._self_lock not in tracks:
+        if self._self_lock is not None:
+            if any(track.index == self._self_lock for track in self.graph._tracks):
+                # Already locked and that track still exists: nothing to
+                # decide. Deliberately skip the streak bookkeeping below
+                # entirely while locked (see the comment on it) instead of
+                # letting it keep running for some other track in the
+                # background.
+                return
             self._self_lock = None
+            self._leader_track = None
+            self._leader_streak = 0
         # Only a track actually matched to a detection this step is eligible
         # to lead: a stale/extrapolated track's control_evidence is a frozen
         # (decaying) leftover, not fresh evidence, and letting it win the
         # per-step argmax just because live candidates dipped is how a
-        # ghost fragment gets mistaken for self.
+        # ghost fragment gets mistaken for self. This bookkeeping only runs
+        # while unlocked (the early return above): if it kept accumulating
+        # for a different track while one was already locked, that stale
+        # streak would let the moment the old lock's track is pruned
+        # trigger an unverified "instant" re-lock, defeating the point of
+        # requiring a fresh sustained run right after losing an identity.
         step = self.graph._step
         live = {
-            index: track
-            for index, track in tracks.items()
+            track.index: track.control_evidence
+            for track in self.graph._tracks
             if track.last_seen == step
         }
         if not live:
             self._leader_track = None
             self._leader_streak = 0
             return
-        evidence = {index: track.control_evidence for index, track in live.items()}
-        best_index = max(evidence, key=evidence.get)
-        best_value = evidence[best_index]
+        best_index = max(live, key=live.get)
+        best_value = live[best_index]
+        # -inf when best_index is the only live track this step: with no
+        # competitor to out-margin, only the absolute floor gates
+        # qualification for that step (a deliberately weaker bar than the
+        # floor+margin combination used whenever a rival is live).
         runner_up = max(
-            (value for index, value in evidence.items() if index != best_index),
+            (value for index, value in live.items() if index != best_index),
             default=-float("inf"),
         )
         qualifies = (
@@ -243,10 +259,7 @@ class IntegratedSelfWorldAgent:
         else:
             self._leader_track = None
             self._leader_streak = 0
-        if (
-            self._self_lock is None
-            and self._leader_streak >= _SELF_LOCK_STREAK_REQUIRED
-        ):
+        if self._leader_streak >= _SELF_LOCK_STREAK_REQUIRED:
             self._self_lock = self._leader_track
 
     def _prune_runaway_tracks(self) -> None:
@@ -323,12 +336,15 @@ class IntegratedSelfWorldAgent:
     def estimated_mac_per_step(self) -> int:
         window = (2 * VIEW_RADIUS + 1) ** 2
         # connected_component_centroids visits every cell and, worst case,
-        # its 8 neighbors once each; _prune_runaway_tracks scans every track.
-        blob_detection = window * 9
+        # its 4 neighbors once each (4-connectivity, see update());
+        # _prune_runaway_tracks and _update_self_lock each scan every track.
+        blob_detection = window * 5
         track_pruning = self.graph.maximum_tracks * 4
+        self_lock_bookkeeping = self.graph.maximum_tracks * 4
         return (
             self.memory.estimated_mac_per_step
             + self.graph.estimated_mac_per_step
             + blob_detection
             + track_pruning
+            + self_lock_bookkeeping
         )

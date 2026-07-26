@@ -334,3 +334,58 @@ track 中 `control_evidence` 严格最大且领先次优至少 0.3、且自身
   或环境定义。
 - 一次性留出种子（31000–31015）**仍未消费**：开发集仍未通过，
   协议禁止进入留出。
+
+### 提交后的子 Agent 审查（2026-07-26）
+
+按流程对本轮改动跑了 8 角度并行审查（line-by-line、removed-behavior、
+cross-file、reuse、simplification、efficiency、altitude、
+CLAUDE.md conventions），确认并修复了两处真实缺陷：
+
+1. **锁定期间"候选连击计数"未冻结，可导致解锁瞬间免验证地误锁**
+   （已修复）。`_update_self_lock` 原来在 `self._self_lock` 已经
+   锁定时仍继续为其他 track 累积 `_leader_track`/`_leader_streak`；
+   一旦原锁定 track 最终被淘汰（`self._self_lock` 变回 `None`），
+   若某个陪跑 track 恰好已经在后台攒够连击数，会在解锁的同一步
+   立即"顶替"上位，完全跳过本该要求的、解锁之后重新开始的连续
+   确认窗口。用构造场景直接复现：track 0 第 12 步锁定，此后 track 0
+   不再被探测（等待被淘汰的同时），track 1 从同一步开始与真实动作
+   完全相关；track 0 在第 62 步左右被淘汰时，track 1 的连击计数
+   已经达到 37（远超所需的 5），在同一步"瞬间"顶替。修复：锁定期间
+   直接跳过连击记账（`_update_self_lock` 顶部提前返回），只有解锁
+   之后才重新开始计数。修复后同一构造场景下解锁瞬间连击数归零，
+   需要真正新的连续确认窗口才能重新锁定；新增回归测试
+   `test_streak_bookkeeping_does_not_accumulate_for_a_rival_while_locked`
+   固定这一行为。开发集聚合指标基本不受影响（`self_f1`
+   0.2970→0.2956，其余不变）。
+2. **`estimated_mac_per_step` 对 4 邻接前端的成本模型和注释未同步
+   更新，且遗漏了新增连击记账本身的开销**（已修复）。
+   `blob_detection = window * 9`（8 邻接的"自身+8 邻居"注释）
+   在改用 4 邻接之后应为 `window * 5`；同时补上了
+   `_update_self_lock` 每步 O(track 数) 工作的估算项
+   （`self_lock_bookkeeping = maximum_tracks * 4`，与已有的
+   `track_pruning` 同量级）。这类资源核算属性按项目约定
+   （见 CLAUDE.md "Provenance"/资源核算章节）必须诚实反映全部
+   计算，此前的漂移会让协议的 `resource_limits` 门核对到一个不
+   准确的数字。
+3. **已确认但按设计保留、未改动**：自我锁定一旦确立，只有在
+   locked track 从 `graph._tracks` 中彻底消失时才会解锁，从不基于
+   `control_evidence`/`probability` 的实时变化重新评估——这正是
+   本报告"第六处摩擦"（身份互换）在代码层面的具体后果，审查用
+   开发集种子 30001 的真实轨迹重新确认了它：track 3 在第 13 步
+   锁定，第 31 步左右被关联算法错误改判给了别的实体，第 82 步才因
+   陈旧被淘汰，第 115 步误锁到 track 16（并非真实自我）。这不是
+   本轮引入的新缺陷，是"下一步开发方案"第 1 条（`entity_graph.py`
+   协议修订）要解决的同一个根因，审查确认了它，没有尝试在集成层
+   打补丁掩盖。
+4. **已记录、暂不处理**：连击确认（streak-until-confirmed）这个
+   模式在仓库里并非首次出现——`cal/evaluation/v2_m1.py` 的
+   `stable_confidence`、`cal/evaluation/v2_m3_hypotheses.py` 的
+   `stable_convergence`、`cal/model/online_control.py` 的
+   `identification_ready()` 都是同一类"噪声信号需要持续确认才可信"
+   的手工实现。三者形状略有不同，且其中两个在协议锁定文件内，
+   现在提取共享抽象需要走协议修订，不是这一轮的当务之急，留作
+   未来清理项而非立即修复。
+
+修复后回归：`uv run pytest`（全量）与 development split 均已重新
+验证，无回归；`self_f1`/`identity_consistency`/`distractor_hidden_probability`
+三个未通过门的结论不变。
