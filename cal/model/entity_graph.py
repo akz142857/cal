@@ -53,6 +53,7 @@ class OnlineEntityGraph:
         association_miss_cost: float = 7.0,
         association_mode: str = "probabilistic",
         reacquisition_window: int = 6,
+        identity_switch_penalty_weight: float = 0.0,
     ) -> None:
         self.action_dimensions = action_dimensions
         self.maximum_tracks = maximum_tracks
@@ -64,6 +65,9 @@ class OnlineEntityGraph:
         if reacquisition_window < 1:
             raise ValueError("reacquisition_window must be positive")
         self.reacquisition_window = reacquisition_window
+        if identity_switch_penalty_weight < 0.0:
+            raise ValueError("identity_switch_penalty_weight must be non-negative")
+        self.identity_switch_penalty_weight = identity_switch_penalty_weight
         if association_mode not in {"probabilistic", "hard_map", "nearest"}:
             raise ValueError("invalid association mode")
         self.association_mode = association_mode
@@ -99,7 +103,18 @@ class OnlineEntityGraph:
 
     @property
     def estimated_mac_per_step(self) -> int:
-        return self.maximum_tracks * (80 + 12 * self.action_dimensions)
+        base = self.maximum_tracks * (80 + 12 * self.action_dimensions)
+        if self.identity_switch_penalty_weight <= 0.0:
+            # Disabled callers (every existing one, at the default weight
+            # 0.0) do zero extra work: _identity_switch_penalty
+            # short-circuits before touching predicted_positions, so this
+            # matches the exact computation performed, not just a rough
+            # estimate of it.
+            return base
+        # Enabled: for each active track's candidate detection, worst case
+        # compares against every other active track's predicted position.
+        identity_switch_penalty = self.maximum_tracks * self.maximum_tracks * 4
+        return base + identity_switch_penalty
 
     def reset(self, detections: np.ndarray) -> None:
         self._tracks = []
@@ -364,11 +379,20 @@ class OnlineEntityGraph:
             for track in self._tracks
             if self._step - track.last_seen <= self.reacquisition_window
         ]
+        # Predicted positions for every active track, computed once up
+        # front (not order-dependent) so the identity-switch penalty below
+        # can compare a candidate detection's fit against every OTHER
+        # track's own prediction, independent of which track this beam
+        # happens to process first.
+        predicted_positions = {
+            other.index: self._predicted_position(other, action)
+            for other in active_tracks
+        }
         beams: list[
             tuple[float, tuple[tuple[int, int], ...], frozenset[int]]
         ] = [(0.0, (), frozenset())]
         for track in active_tracks:
-            predicted = self._predicted_position(track, action)
+            predicted = predicted_positions[track.index]
             age = self._step - track.last_seen
             radius = self.match_radius + min(age, 3)
             candidates = [
@@ -395,9 +419,15 @@ class OnlineEntityGraph:
                         detections,
                     )
                     motion_cost = (distance / 0.32) ** 2
+                    switch_penalty = self._identity_switch_penalty(
+                        track.index,
+                        detections[detection_index],
+                        distance,
+                        predicted_positions,
+                    )
                     expanded.append(
                         (
-                            cost + motion_cost + geometry_cost,
+                            cost + motion_cost + geometry_cost + switch_penalty,
                             assignments + ((track.index, detection_index),),
                             used | {detection_index},
                         )
@@ -503,6 +533,41 @@ class OnlineEntityGraph:
             )
             cost += ((observed - edge.mean) / 0.20) ** 2
         return cost
+
+    def _identity_switch_penalty(
+        self,
+        track_index: int,
+        detection: np.ndarray,
+        distance: float,
+        predicted_positions: dict[int, np.ndarray],
+    ) -> float:
+        """Extra cost for claiming a detection that fits a rival track better.
+
+        Disabled by default (identity_switch_penalty_weight == 0.0): this is
+        a no-op for every existing caller and adds exactly 0.0 to the cost,
+        so default behavior is bit-for-bit unchanged from before this
+        parameter existed. When enabled, it discourages a track from being
+        assigned a detection that some OTHER active track's own prediction
+        is closer to - the concrete precondition for an identity switch
+        (two tracks close enough that a detection near their crossing point
+        gets attributed to the wrong one, silently swapping which physical
+        entity a track index follows from then on, since the corrupted
+        association also poisons that track's theta/autonomous_velocity on
+        the very same update).
+        """
+
+        if self.identity_switch_penalty_weight <= 0.0:
+            return 0.0
+        best_rival_gap = 0.0
+        for other_index, other_predicted in predicted_positions.items():
+            if other_index == track_index:
+                continue
+            other_distance = float(np.linalg.norm(detection - other_predicted))
+            if other_distance < distance:
+                best_rival_gap = max(best_rival_gap, distance - other_distance)
+        if best_rival_gap <= 0.0:
+            return 0.0
+        return self.identity_switch_penalty_weight * (best_rival_gap / 0.32) ** 2
 
     def _new_track(self, detection: np.ndarray) -> GraphTrack:
         track = GraphTrack(

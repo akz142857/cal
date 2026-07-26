@@ -151,11 +151,24 @@ class IntegratedSelfWorldAgent:
         # OnlineEntityGraph's native V2-M2/M3 worlds (measured up to 34
         # consecutive steps across 20 seeds, p99 ~28); 40 gives comfortable
         # margin above that tail without being unbounded.
+        #
+        # identity_switch_penalty_weight is set from a sweep over the 16
+        # development seeds (mean self_f1 at weight = 0/1/2/5/10/20/50/100/
+        # 300/1000: 0.296/0.264/0.293/0.297/0.298/0.320/0.287/0.273/0.285/
+        # 0.262): mean self_f1 peaks around weight=20 and declines on both
+        # sides. It is a real, modest improvement (0.296 -> 0.320), not a
+        # fix - it reduces how often a bad association happens in the first
+        # place, but cannot undo one that already occurred (the corrupted
+        # theta/autonomous_velocity from a mis-association keep generating
+        # biased predictions afterward), which is why the self_f1 gate
+        # (>=0.90) still fails by a wide margin. See "第六处摩擦" and its
+        # follow-up in docs/experiments/V2_I1_INTEGRATION_REPORT.md.
         self.graph = OnlineEntityGraph(
             4,
             association_mode="probabilistic",
             maximum_tracks=16,
             reacquisition_window=40,
+            identity_switch_penalty_weight=20.0,
         )
         self._initialized = False
         self._action_rng = np.random.default_rng(seed + 60_000)

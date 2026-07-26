@@ -76,6 +76,77 @@ def test_wider_window_preserves_identity_across_the_same_occlusion() -> None:
     assert np.linalg.norm(learner._tracks[0].theta[:, 0]) > 0.1
 
 
+def test_default_identity_switch_penalty_weight_is_zero() -> None:
+    learner = OnlineEntityGraph(4)
+
+    assert learner.identity_switch_penalty_weight == 0.0
+
+
+def test_identity_switch_penalty_weight_rejects_negative() -> None:
+    try:
+        OnlineEntityGraph(4, identity_switch_penalty_weight=-0.1)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("negative identity_switch_penalty_weight must raise")
+
+
+def test_identity_switch_penalty_is_zero_when_disabled() -> None:
+    # Default weight 0.0 must be a hard no-op, not just numerically small -
+    # this is what makes the default-parameter equivalence to every
+    # existing caller exact rather than approximate.
+    learner = OnlineEntityGraph(4)
+    detection = np.asarray((5.0, 0.0))
+    predicted_positions = {
+        0: np.asarray((4.0, 0.0)),
+        1: np.asarray((5.0, 0.0)),  # a rival predicting exactly at detection
+    }
+
+    penalty = learner._identity_switch_penalty(
+        0, detection, distance=1.0, predicted_positions=predicted_positions
+    )
+
+    assert penalty == 0.0
+
+
+def test_identity_switch_penalty_is_zero_when_own_track_is_closest() -> None:
+    learner = OnlineEntityGraph(4, identity_switch_penalty_weight=1.0)
+    detection = np.asarray((5.0, 0.0))
+    predicted_positions = {
+        0: np.asarray((4.0, 0.0)),  # own: distance 1.0
+        1: np.asarray((2.0, 0.0)),  # rival: distance 3.0, farther away
+    }
+
+    penalty = learner._identity_switch_penalty(
+        0, detection, distance=1.0, predicted_positions=predicted_positions
+    )
+
+    assert penalty == 0.0
+
+
+def test_identity_switch_penalty_grows_with_rival_gap() -> None:
+    learner = OnlineEntityGraph(4, identity_switch_penalty_weight=1.0)
+    detection = np.asarray((5.0, 0.0))
+    predicted_positions = {
+        0: np.asarray((4.0, 0.0)),  # own: distance 1.0
+        1: np.asarray((5.0, 0.0)),  # rival: distance 0.0, a perfect fit
+    }
+
+    penalty = learner._identity_switch_penalty(
+        0, detection, distance=1.0, predicted_positions=predicted_positions
+    )
+
+    assert penalty == 1.0 * (1.0 / 0.32) ** 2
+    # A weaker rival advantage produces a smaller (but still positive)
+    # penalty - the term scales with the gap, not just a fixed hit for any
+    # closer rival.
+    weaker_predicted_positions = {0: np.asarray((4.0, 0.0)), 1: np.asarray((4.6, 0.0))}
+    weaker_penalty = learner._identity_switch_penalty(
+        0, detection, distance=1.0, predicted_positions=weaker_predicted_positions
+    )
+    assert 0.0 < weaker_penalty < penalty
+
+
 def test_entity_graph_consumes_unordered_detections() -> None:
     learner = OnlineEntityGraph(4)
     points = np.asarray(((4.0, 4.0), (2.0, 2.0), (2.0, 4.0)))
