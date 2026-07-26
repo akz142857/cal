@@ -375,7 +375,7 @@ class IntegratedSelfWorldAgent:
                         low <= track.position[0] <= high
                         and low <= track.position[1] <= high
                     )
-                    or track.probability < 0.5
+                    or track.probability <= 0.5
                 )
             )
         ]

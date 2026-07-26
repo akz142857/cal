@@ -632,3 +632,52 @@ None`（默认关闭，硬性 no-op）。对每一个本步未匹配的 track，
 它把继续调查的方向从"entity_graph.py 的状态污染"重新指向了
 "集成层的 track 淘汰/重建节奏"，避免了未来继续在同一个错误假设
 上砸时间。
+
+### 提交后的子 Agent 审查（2026-07-26）
+
+按流程对 V6 改动跑了 8 角度并行审查，确认并修复了 4 处真实问题：
+
+1. **`_reset_track_state` 把 `probability` 设为恰好 0.5，卡在了
+   `_prune_runaway_tracks`（集成层）"probability < 0.5 才淘汰"这个
+   严格小于判据的边界上**（已修复，改为 `<= 0.5`）——两个独立审查
+   角度分别发现了同一个问题：一旦启用 `drift_reset_after`，一个被
+   重置、此后再也没被重新匹配的 track 会永远卡在 0.5，既不满足
+   淘汰条件也不会被真正当作可信 track，永久占用一个名额。
+2. **重置时没有清空 `self._edges` 里该 track 的几何统计**（已
+   修复，重置时一并清除）——两个独立审查角度分别指出同一个问题：
+   如果被重置的 track 之前跟某个高置信度（`probability>=0.95`）
+   邻居之间攒过刚性边统计，`_propagate_membership` 会在**同一次**
+   `update()` 调用里，靠这个陈旧的几何关系把刚重置到 0.5 的
+   `probability` 立刻拉回 0.82 以上——重置从未真正对外生效过。
+3. **`estimated_mac_per_step` 最初的修复把 `drift_reset_after` 的
+   开销项错误地嵌套在了 `identity_switch_penalty_weight` 的分支
+   内部**（已修复，改为两个独立的 if）——效率审查角度指出
+   `estimated_mac_per_step` 遗漏了这项开销，但我第一次补上时犯了
+   一个新错误：如果未来只启用 `drift_reset_after` 而不启用
+   `identity_switch_penalty_weight`，这项开销永远不会被计入。
+4. **`cal-v2-m1-m3-confirm-review` 自动生成的中文审计报告文字
+   夸大了 V6 的实际使用情况**（已修复）——原文说"只让主动启用该
+   恢复机制的新调用方（V2-I1 系统集成探针）受益"，但本节已经如实
+   记录：V6 效果是空结果，**没有**被接入 V2-I1 的默认配置，仓库里
+   当前没有任何调用方启用这个参数。审查用逐字段核对确认了这处
+   与代码实际状态不符的表述，已改为如实说明"设计给 V2-I1 用、
+   但因为空结果没有被采纳，目前是已验证但未使用的能力"。
+
+修复后：`estimated_mac_per_step` 加了新的
+`test_reset_clears_stale_rigid_edges_so_propagation_cannot_undo_it`
+回归测试；改动前后 M2（三种关联模式）、M3（含消融）开发集产物
+逐字段核对完全一致；`cal-v2-m1-m3-confirm`、
+`cal-v2-m1-m3-confirm-review` 全部通过；全量 `pytest` 通过；重新
+跑 V2-I1 development 确认 `self_f1`/`identity_consistency` 数值
+不变（这些修复只影响 `drift_reset_after` 启用路径，V2-I1 仍未
+启用它，因此这些修复对当前唯一的调用方零影响，纯粹是为"如果未来
+真的启用"这个能力打的补丁）。
+
+审查还指出一处**未采纳的架构级意见**（判定为合理但不是本轮范围）：
+`entity_graph.py` 现在累积了三个独立的、按调用方选择性开启的扩展
+（`reacquisition_window`、`identity_switch_penalty_weight`、
+`drift_reset_after`），其中后两个的存在理由都只是 V2-I1 这一个
+非正式的一次性诊断探针，而不是这个文件本该服务的 M1-M3 阶段——
+如果未来 V2-I1 还需要类似的专属扩展，这个锁定文件有可能从"一个
+通用的 OnlineEntityGraph"逐渐变成"V2-I1 的私有开关集合"，值得在
+下一次类似修订前重新考虑。

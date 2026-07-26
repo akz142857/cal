@@ -36,7 +36,7 @@
   },
   "locked_source_sha256": {
     "cal/model/online_control.py": "9ed3ea5d79f5e28f9b25f92e9aa12e239a46ba294a3cdf81d4b52ace2c31250e",
-    "cal/model/entity_graph.py": "781cf36090660396d851dbfafb2c8c86e088a1ce7df7bb979a39b1ac2a21ac53",
+    "cal/model/entity_graph.py": "61843583cf266c05141b383215a33f5a27c8de5dc79b69903f3688ba97071932",
     "cal/model/body_hypotheses.py": "215d3cee0f3c23397f8d678b20c707c5d5d3c24193c591531da551e25d07e44c",
     "cal/evaluation/v2_m1.py": "01e98e40392f9cfd8c9f26a02984eff3aaa1c4049070e965325e5c27fd6cc121",
     "cal/evaluation/v2_m2.py": "ce8a5eba449c46e24bca36e2ed1b4a25e11902b2b32e60d176805f635b446d1f",

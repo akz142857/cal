@@ -108,21 +108,20 @@
   "protocol_v3_sha256": "505156c835472828a6442cb966b92f82ae5b1462c0b8716f789deb684776214a",
   "protocol_v4_sha256": "c1d04f17e11691bfe019541d62175133105a3eaecd704d42d14a9ae82a08a8e2",
   "protocol_v5_sha256": "43234417b1458a708639b3a3892f50c2ef789d83b8c7268f8fdb2f53c1784b96",
-  "protocol_v6_sha256": "70120b65eeac539d1f5d978f47bdd15ee9136e297e1413c4fc3235c54e8f18f9",
+  "protocol_v6_sha256": "89f805e2ef916f5cfd549ae003ff58ede34d9c57715d881f7836165daf41f089",
   "provenance": {
-    "captured_at_utc": "2026-07-26T12:47:38.073533+00:00",
-    "git_commit": "15475909311b747b5758f567b8f3f52ca788723e",
+    "captured_at_utc": "2026-07-26T14:27:39.945214+00:00",
+    "git_commit": "dd65d77ecf77251427c76d391fc67802a5876063",
     "git_dirty": true,
     "git_status": [
-      "M cal/evaluation/v2_m1_m3_confirmation.py",
-      " M cal/evaluation/v2_m1_m3_confirmation_review.py",
+      "M cal/evaluation/v2_m1_m3_confirmation_review.py",
       " M cal/model/entity_graph.py",
+      " M cal/model/integrated_agent.py",
       " M docs/experiments/V2_M1_M3_INTEGRATED_CONFIRMATION_REPORT.md",
+      " M experiments/V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL_V6.json",
+      " M experiments/V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL_V6.sha256",
       " M results/V2-M1-M3-integrated-confirmation-review-summary.json",
-      " M tests/test_entity_graph.py",
-      " M tests/test_v2_m1_m3_confirmation.py",
-      "?? experiments/V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL_V6.json",
-      "?? experiments/V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL_V6.sha256"
+      " M tests/test_entity_graph.py"
     ],
     "runtime": {
       "numpy": "2.5.1",
@@ -171,7 +170,7 @@
       "cal/evaluation/v2_i1_integration.py": "a7cf13b4561d71c066ca2b03fd7b2bc9462981609a947b38770f5a5d2ccb0376",
       "cal/evaluation/v2_m1.py": "01e98e40392f9cfd8c9f26a02984eff3aaa1c4049070e965325e5c27fd6cc121",
       "cal/evaluation/v2_m1_m3_confirmation.py": "2c40d04a724ed19a59a6e7ca940eb0c54f69ebc197feb43cc9b0d60ece6a7c22",
-      "cal/evaluation/v2_m1_m3_confirmation_review.py": "bb45d943a86fcb154a9848da4c2bcb079896a346b86ae9c40919145a76fd9002",
+      "cal/evaluation/v2_m1_m3_confirmation_review.py": "027f4b3787d88e0a34ea450ad1a3469ac4e9dd22b3953e88a96f6e9ed4eee59c",
       "cal/evaluation/v2_m2.py": "ce8a5eba449c46e24bca36e2ed1b4a25e11902b2b32e60d176805f635b446d1f",
       "cal/evaluation/v2_m2_review.py": "5141b43e57b4b5896a15410f7c62b9aac4c42b35c395a7bb34ac07da51f20d2b",
       "cal/evaluation/v2_m3.py": "dd8641bb04e4c76eb1422135cba7de0a72beea32df4216d41577b91da67a90a9",
@@ -190,8 +189,8 @@
       "cal/model/__init__.py": "4aded75f47b4371ab540367814d52556e9eddba75d1cd91857dab6538f123754",
       "cal/model/body_hypotheses.py": "215d3cee0f3c23397f8d678b20c707c5d5d3c24193c591531da551e25d07e44c",
       "cal/model/encoders.py": "bf81c30e609a4991276cad5c65999c93eea1ee0ae80140fd70a7b164efade639",
-      "cal/model/entity_graph.py": "781cf36090660396d851dbfafb2c8c86e088a1ce7df7bb979a39b1ac2a21ac53",
-      "cal/model/integrated_agent.py": "d17eb83dc0085698e32f4b5bdbd4f64aa6a93c681de493aa3cac4c7812831dcb",
+      "cal/model/entity_graph.py": "61843583cf266c05141b383215a33f5a27c8de5dc79b69903f3688ba97071932",
+      "cal/model/integrated_agent.py": "2a09b80d96b3498f8d381ad5e0663ede04ea84dffe72df0fbc13950ea93500ce",
       "cal/model/motion_hypotheses.py": "756379277786a8fce7f9433780d4d0678d6e14dde4967d9568c79789050dc03b",
       "cal/model/occupancy.py": "ec98ab531022f09fe6297bc2f53cff75b835ae998044a87766ee4e6eeda3e8b3",
       "cal/model/online_control.py": "9ed3ea5d79f5e28f9b25f92e9aa12e239a46ba294a3cdf81d4b52ace2c31250e",
@@ -282,7 +281,7 @@
       "tests/test_dataset.py": "bb8a7394e488f2254835d77313c0b801feb919d8bf7597482c6ff405e241d74e",
       "tests/test_diagnostic_ceiling.py": "32a93607ec9203f2e5f6bfad8ad130a34d83e257fca1d25a88013479645b4461",
       "tests/test_efficiency.py": "fc3b91955e33944b93913c2d3df83a3f9a05014d63c0edb5bbead3aedf8db6b6",
-      "tests/test_entity_graph.py": "75f407af644747e7222fcbc1446dd474a84e5ec4bb0e649cc52c78c7803afbed",
+      "tests/test_entity_graph.py": "25fb86dbb1e512aa611a9fb3006b2b6aa7fd0545f0a2aebaf02397684e569cd4",
       "tests/test_identifiability.py": "8f301f4a1949326780417b2d9b74b39da2bd2201025277fa79a74a7690684263",
       "tests/test_infra.py": "c26d1301ee4ebbb2aa6f3d78b7f65f59a9fa0e9074153070359ef56560620f42",
       "tests/test_integrated_agent.py": "95d909541fdb469d2cd959518c0873f59e1cfc3a2912c70582290d89f6049c5f",
@@ -316,7 +315,7 @@
       "tests/test_world.py": "3bffe606920b65944c9fba9b2d0888bc9a4dea39151e82f89484b03200b344ab",
       "uv.lock": "2de3588e7f7dff466a6927b7f093f6de352fdd4a4dbcbd8562031ea0cb7206c3"
     },
-    "source_sha256": "d8670ea3c4f6412777b2d5dae255fffd6c5ceb1b6bba26b58b8724bb4decae6f",
+    "source_sha256": "20459afe16a9f08b876f1b4d925734b8b8834a51691aa7e46a00a6b7e7ad9469",
     "workspace": "/Users/ziy/Code/ClayCosmos/cal"
   },
   "result_schema_version": 1,
@@ -341,12 +340,12 @@
     "v1_development": "15336e3cdf4ced740319565cdc26189625b81cf3535896a69428889fbc508d0b",
     "v1_protocol": "09063b7ebabb59d5b80ea9d74a28023655a4618e4e85608e72158bc1c0428107",
     "v2_confirmation": "88c9ba04666ba60e570680f34bb88d320ac40fb806e7c58ffa5ab973af31524b",
-    "v2_development": "85462bff6892895e60fdda3c46551e5d5e20bb01ef3946b69ad2b804d5f3702e",
+    "v2_development": "d6c223cfea2c716cb42843f5c1344b80e82790ebb5bce645a827fba1146dfc85",
     "v2_protocol": "d9ca5a58009e6f92dcb14f46403b2f579fa50945f72d042aabc29565b958519b",
     "v3_protocol": "505156c835472828a6442cb966b92f82ae5b1462c0b8716f789deb684776214a",
     "v4_protocol": "c1d04f17e11691bfe019541d62175133105a3eaecd704d42d14a9ae82a08a8e2",
     "v5_protocol": "43234417b1458a708639b3a3892f50c2ef789d83b8c7268f8fdb2f53c1784b96",
-    "v6_protocol": "70120b65eeac539d1f5d978f47bdd15ee9136e297e1413c4fc3235c54e8f18f9"
+    "v6_protocol": "89f805e2ef916f5cfd549ae003ff58ede34d9c57715d881f7836165daf41f089"
   },
   "v1_development_regenerated_from_historical_source": true
 }

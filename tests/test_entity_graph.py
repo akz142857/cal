@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from cal.model.entity_graph import OnlineEntityGraph
+from cal.model.entity_graph import OnlineEntityGraph, _Edge
 
 
 def _train_moving_track(learner: OnlineEntityGraph) -> np.ndarray:
@@ -225,7 +225,38 @@ def test_enabled_does_not_reset_a_track_with_non_negative_evidence() -> None:
 
     assert np.array_equal(learner._tracks[0].theta, poisoned_theta)
 
-    assert np.array_equal(learner._tracks[0].theta, poisoned_theta)
+
+def test_reset_clears_stale_rigid_edges_so_propagation_cannot_undo_it() -> None:
+    # Regression test: _reset_track_state must drop this track's pairwise
+    # geometry statistics. Otherwise a stale rigid edge to a confident
+    # neighbor lets _propagate_membership (called later in the same
+    # update()) immediately raise the just-reset probability back up,
+    # defeating the reset before any caller ever observes the neutral
+    # prior it was supposed to produce.
+    learner = OnlineEntityGraph(4, reacquisition_window=50, drift_reset_after=5)
+    corrupted = learner._new_track(np.asarray((0.0, 0.0)))
+    corrupted.control_evidence = -1.0
+    confident_neighbor = learner._new_track(np.asarray((1.0, 0.0)))
+    confident_neighbor.probability = 0.99
+    learner._tracks = [corrupted, confident_neighbor]
+    # A rigid edge (low variance, enough samples) between the two tracks,
+    # as _update_edges would build from many consistent co-observations.
+    edge_key = tuple(sorted((corrupted.index, confident_neighbor.index)))
+    edge = _Edge()
+    for _ in range(12):
+        edge.update(1.0)
+    learner._edges[edge_key] = edge
+
+    action = np.asarray((1.0, 0.0, 0.0, 0.0))
+    empty = np.zeros((0, 2))
+    for _ in range(6):
+        learner.update(empty, action)
+
+    assert edge_key not in learner._edges
+    reset_track = next(
+        t for t in learner._tracks if t.index == corrupted.index
+    )
+    assert reset_track.probability == 0.5
 
 
 def test_entity_graph_consumes_unordered_detections() -> None:

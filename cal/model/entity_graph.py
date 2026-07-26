@@ -107,18 +107,28 @@ class OnlineEntityGraph:
 
     @property
     def estimated_mac_per_step(self) -> int:
-        base = self.maximum_tracks * (80 + 12 * self.action_dimensions)
-        if self.identity_switch_penalty_weight <= 0.0:
-            # Disabled callers (every existing one, at the default weight
-            # 0.0) do zero extra work: _identity_switch_penalty
-            # short-circuits before touching predicted_positions, so this
+        total = self.maximum_tracks * (80 + 12 * self.action_dimensions)
+        if self.identity_switch_penalty_weight > 0.0:
+            # For each active track's candidate detection, worst case
+            # compares against every other active track's predicted
+            # position. Disabled callers (every existing one, at the
+            # default weight 0.0) do zero extra work here:
+            # _identity_switch_penalty short-circuits before touching
+            # predicted_positions, so omitting this term at the default
             # matches the exact computation performed, not just a rough
             # estimate of it.
-            return base
-        # Enabled: for each active track's candidate detection, worst case
-        # compares against every other active track's predicted position.
-        identity_switch_penalty = self.maximum_tracks * self.maximum_tracks * 4
-        return base + identity_switch_penalty
+            total += self.maximum_tracks * self.maximum_tracks * 4
+        if self.drift_reset_after is not None:
+            # Worst case: every unmatched track qualifies for a reset in
+            # the same step, each rebuilding a theta/covariance of size
+            # action_dimensions and action_dimensions^2 respectively.
+            # Disabled callers (drift_reset_after is None, the default)
+            # never reach _reset_track_state, so this term is correctly
+            # omitted for them too.
+            total += self.maximum_tracks * (
+                2 * self.action_dimensions + self.action_dimensions**2
+            )
+        return total
 
     def reset(self, detections: np.ndarray) -> None:
         self._tracks = []
@@ -623,7 +633,13 @@ class OnlineEntityGraph:
         dragging a poisoned theta into a match it might otherwise have
         made well. Position, last_seen and index are untouched: this
         does not create a new identity, it un-learns a corrupted one
-        under the same index.
+        under the same index. Also drops this track's pairwise geometry
+        statistics from self._edges: they were built from a position
+        history that may itself be corrupted, and _propagate_membership
+        would otherwise be free to read a stale rigid edge to a
+        confident neighbor and immediately raise probability right back
+        up in this same update() call, undoing the reset before any
+        caller ever observes the neutral prior.
         """
 
         track.theta = np.zeros((2, self.action_dimensions), dtype=np.float64)
@@ -631,6 +647,11 @@ class OnlineEntityGraph:
         track.autonomous_velocity = np.zeros(2, dtype=np.float64)
         track.control_evidence = 0.0
         track.probability = 0.5
+        self._edges = {
+            key: edge
+            for key, edge in self._edges.items()
+            if track.index not in key
+        }
 
     @staticmethod
     def _sorted(detections: np.ndarray) -> list[np.ndarray]:
