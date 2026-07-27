@@ -735,6 +735,9 @@ def test_v8_owned_consumed_failure_is_recorded_and_published(
     protocol_digest = "c" * 64
     document = {
         "protocol_version": 8,
+        "authorization": {
+            "orphan_recovery_minimum_age_seconds": 21_600,
+        },
         "result_paths": {
             "holdout_reservation": "results/reservation.json",
             "holdout": "results/result.json",
@@ -883,6 +886,9 @@ def test_v8_failure_records_result_written_pending_evidence(
     protocol_digest = "c" * 64
     document = {
         "protocol_version": 8,
+        "authorization": {
+            "orphan_recovery_minimum_age_seconds": 21_600,
+        },
         "result_paths": {
             "holdout_reservation": "results/reservation.json",
             "holdout": "results/result.json",
@@ -1004,6 +1010,9 @@ def test_v8_orphan_recovery_uses_origin_attempt_and_exact_tag_oid(
     consumption_oid = "b" * 40
     protocol = {
         "protocol_version": 8,
+        "authorization": {
+            "orphan_recovery_minimum_age_seconds": 21_600,
+        },
         "exact_source_sha256": "c" * 64,
         "shared_git_registry": {
             "remote": "origin",
@@ -1086,6 +1095,9 @@ def test_v8_orphan_recovery_rejects_wrong_registry_chain(
     digest = "a" * 64
     protocol = {
         "protocol_version": 8,
+        "authorization": {
+            "orphan_recovery_minimum_age_seconds": 21_600,
+        },
         "exact_source_sha256": "c" * 64,
         "shared_git_registry": {
             "remote": "origin",
@@ -1141,6 +1153,9 @@ def test_v8_orphan_recovery_enforces_not_before_time(
     digest = "a" * 64
     protocol = {
         "protocol_version": 8,
+        "authorization": {
+            "orphan_recovery_minimum_age_seconds": 21_600,
+        },
         "exact_source_sha256": "c" * 64,
         "shared_git_registry": {
             "remote": "origin",
@@ -1188,3 +1203,22 @@ def test_v8_orphan_recovery_enforces_not_before_time(
             reason="confirmed crash",
             confirm_original_run_terminated=True,
         )
+
+
+def test_v8_recovery_window_must_equal_frozen_positive_age() -> None:
+    protocol = {
+        "authorization": {
+            "orphan_recovery_minimum_age_seconds": 21_600,
+        }
+    }
+    consumption = {
+        "consumed_at_utc": "2000-01-01T00:00:00+00:00",
+        "recovery_not_before_utc": "2000-01-01T00:00:00+00:00",
+    }
+
+    with pytest.raises(RuntimeError, match="recovery window"):
+        language._v8_recovery_window(consumption, protocol)
+
+    protocol["authorization"]["orphan_recovery_minimum_age_seconds"] = 0
+    with pytest.raises(RuntimeError, match="minimum age"):
+        language._v8_recovery_window(consumption, protocol)

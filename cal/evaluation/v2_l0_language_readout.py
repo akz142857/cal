@@ -83,6 +83,7 @@ KNOWN_PROTOCOL_DIGESTS = {
     5: "51a4f561bceb23de2c9c483895b82e2f5b1cd4168736b22b166e236be6ce1aae",
     6: "6742a36cc6b6b572ed89642fc154a2104c814ec1e348a9c7af5bfa691f3776aa",
 }
+V8_ORPHAN_RECOVERY_MINIMUM_AGE_SECONDS = 21_600
 PROPOSITION_NAMES = (
     "first_pointed_entity_is_self",
     "second_pointed_entity_is_self",
@@ -800,6 +801,15 @@ def _merge_v8(document: Mapping[str, Any]) -> dict[str, Any]:
     ):
         raise RuntimeError("V2-L0 V8 review does not authorize locking")
     predecessor = document["superseded_v7_source_lock"]
+    authorization = document["authorization"]
+    recovery_age = authorization.get(
+        "orphan_recovery_minimum_age_seconds"
+    )
+    if (
+        isinstance(recovery_age, bool)
+        or recovery_age != V8_ORPHAN_RECOVERY_MINIMUM_AGE_SECONDS
+    ):
+        raise RuntimeError("V2-L0 V8 orphan recovery age mismatch")
     if (
         predecessor.get("tag") != "calmodel-l0-v7-source-locked"
         or predecessor.get("tag_object_sha")
@@ -2892,6 +2902,35 @@ def _v8_terminal_evidence_tag(protocol: Mapping[str, Any]) -> str:
     raise RuntimeError("terminal evidence registry requires V2-L0 V8")
 
 
+def _v8_recovery_window(
+    consumption: Mapping[str, Any],
+    protocol: Mapping[str, Any],
+) -> tuple[datetime, datetime]:
+    minimum_age = protocol["authorization"].get(
+        "orphan_recovery_minimum_age_seconds"
+    )
+    if (
+        isinstance(minimum_age, bool)
+        or minimum_age != V8_ORPHAN_RECOVERY_MINIMUM_AGE_SECONDS
+    ):
+        raise RuntimeError("invalid V8 orphan recovery minimum age")
+    try:
+        consumed_at = datetime.fromisoformat(consumption["consumed_at_utc"])
+        recovery_not_before = datetime.fromisoformat(
+            consumption["recovery_not_before_utc"]
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        raise RuntimeError("invalid V8 recovery timestamps") from exc
+    if (
+        consumed_at.tzinfo is None
+        or recovery_not_before.tzinfo is None
+        or recovery_not_before - consumed_at
+        != timedelta(seconds=minimum_age)
+    ):
+        raise RuntimeError("invalid V8 recovery window")
+    return consumed_at, recovery_not_before
+
+
 def _load_v8_terminal_evidence(
     protocol: Mapping[str, Any],
     protocol_digest: str,
@@ -3018,7 +3057,11 @@ def _require_superseded_v7_origin_state(
         "calmodel-l0-v7-holdout-evidence",
         "calmodel-l0-v7-holdout-failure-evidence",
     }
-    if set(registry["permanently_forbidden_tags"]) != expected_forbidden:
+    if (
+        registry.get("remote") != "origin"
+        or set(registry["permanently_forbidden_tags"])
+        != expected_forbidden
+    ):
         raise RuntimeError("V7 permanently forbidden tag set mismatch")
     _, target, tag_object_sha = _load_registry_certificate(
         remote=registry["remote"],
@@ -3281,11 +3324,9 @@ def _run_v2_l0_language_readout(
                 }
             )
         recovery_not_before = consumed_at + timedelta(
-            seconds=int(
-                protocol["authorization"].get(
-                    "orphan_recovery_minimum_age_seconds", 0
-                )
-            )
+            seconds=protocol["authorization"][
+                "orphan_recovery_minimum_age_seconds"
+            ]
         )
         consumption = _reserve_shared_one_shot(
             remote=registry["remote"],
@@ -3713,6 +3754,7 @@ def _record_v8_holdout_failure_if_owned(
         raise RuntimeError(
             "V8 failure recorder does not own origin consumption"
         )
+    _v8_recovery_window(consumption, document)
     reservation_present = reservation_path.exists()
     if reservation_present:
         reservation = json.loads(reservation_path.read_bytes())
@@ -3943,18 +3985,8 @@ def recover_v2_l0_v8_orphaned_holdout(
         or not isinstance(consumption.get("recovery_not_before_utc"), str)
     ):
         raise RuntimeError("orphan recovery consumption evidence mismatch")
-    try:
-        recovery_not_before = datetime.fromisoformat(
-            consumption["recovery_not_before_utc"]
-        )
-    except ValueError as exc:
-        raise RuntimeError(
-            "invalid orphan recovery not-before timestamp"
-        ) from exc
-    if (
-        recovery_not_before.tzinfo is None
-        or datetime.now(timezone.utc) < recovery_not_before
-    ):
+    _, recovery_not_before = _v8_recovery_window(consumption, protocol)
+    if datetime.now(timezone.utc) < recovery_not_before:
         raise RuntimeError("orphan recovery minimum age has not elapsed")
     attempt_state = {
         "attempt_id": consumption["attempt_id"],
