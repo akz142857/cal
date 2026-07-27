@@ -254,8 +254,10 @@ report no P0/P1/P2 findings. Its V7 exact-source lock was published as tag
 object `b8b391abc5b54aa7acbf58bef6a6cdf2c7d32664`, targeting
 `db524a3d1b65a232c2159541a79d7098227848f5`. Post-lock independent review found
 one-shot crash-recovery defects, so V7 remains unopened and unauthorized and
-must never be consumed. Those defects are being repaired in preparation for a
-new immutable V8 protocol and tag namespace. See the
+must never be consumed. Those defects are fixed and five rounds of independent
+review end at P0=0/P1=0/P2=0. V8 freezes the repaired control plane under the
+new `calmodel-l0-v8-*` namespace; its holdout remains unopened and requires
+separate explicit authorization. See the
 [L0 language-readout report](docs/experiments/V2_L0_LANGUAGE_READOUT.md).
 
 The measured evidence, limitations, and M4 decision are documented in the

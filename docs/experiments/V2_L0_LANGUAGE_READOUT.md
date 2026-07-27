@@ -11,8 +11,10 @@ P0/P1 阻塞；V5 exact source-lock 已发布。唯一一次 V5 review holdout �
 tag object 为 `b8b391abc5b54aa7acbf58bef6a6cdf2c7d32664`，目标提交为
 `db524a3d1b65a232c2159541a79d7098227848f5`。发布后的三路独立攻击审查发现
 消费所有权、崩溃恢复、结果阶段标记、run-start 复核和证据字节一致性问题，
-因此 V7 被否决，永不授权、永不消费，也绝不移动原 tag。修复进入全新的 V8
-协议与 tag 命名空间；新的 holdout 仍未授权、未运行。
+因此 V7 被否决，永不授权、永不消费，也绝不移动原 tag。修复已进入全新的 V8
+协议与 tag 命名空间，五轮独立复审最终均为 P0=0/P1=0/P2=0。V8 exact
+source-lock 使用 `calmodel-l0-v8-source-locked`；新的 holdout 仍未授权、
+未运行。
 
 ## 1. 这个实验究竟验证什么
 
@@ -361,6 +363,12 @@ authorization、consumption、result 和 failure tags 现在永久禁止创建�
 V7 exact source SHA：
 `bc86f58979a8453efedaf25135d907edb2de1e6a230e90e8e1b1edf473cf613b`
 
+V8 protocol SHA：
+`cacaf9c159b6939d2723cce10f5c8c146da8d3693bc4671d6c8ae88e7fc9d908`
+
+V8 exact source SHA：
+`1a4b1a8ac55c5a8213e219ffc30fae276170b33f31bfdc7f88ff1598633de41c`
+
 ## 13. 如何重复已允许的部分
 
 可重复 development：
@@ -376,6 +384,6 @@ uv run pytest tests/test_v2_l0_language_readout.py -q
 ```
 
 V5 holdout 已消费，不能再次运行。V7 source-lock 已发布，但事后审查否决了
-授权，因此也不能运行。V6 实现和实验方案已通过 development/review，但新的
-holdout 从未运行；必须先完成 V8 修复、独立复审和全新 source-lock，之后仍
-要等待用户另行明确授权。
+授权，因此也不能运行。V6 实现和实验方案已通过 development/review，V8
+control-plane 修复也已通过五轮独立复审并进入新的 exact source-lock；新的
+holdout 从未运行，仍要等待用户另行明确授权。

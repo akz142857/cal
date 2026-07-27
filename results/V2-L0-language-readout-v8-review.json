@@ -1,0 +1,63 @@
+{
+  "candidate_commit": "be80c85b1419cc2d2ac61dc5ca621c6453a612b3",
+  "decision": "authorize_v8_exact_source_lock",
+  "final_reviews": {
+    "freeze_implementation": {
+      "p0": 0,
+      "p1": 0,
+      "p2": 0,
+      "verdict": "allow_v8_exact_source_lock"
+    },
+    "language_claims": {
+      "p0": 0,
+      "p1": 0,
+      "p2": 0,
+      "verdict": "allow_v8_exact_source_lock"
+    },
+    "metrics_controls": {
+      "p0": 0,
+      "p1": 0,
+      "p2": 0,
+      "verdict": "allow_v8_exact_source_lock"
+    }
+  },
+  "holdout_authorization_published": false,
+  "holdout_consumption_published": false,
+  "holdout_data_inspected": false,
+  "holdout_data_run": false,
+  "review_rounds": [
+    {
+      "candidate_commit": "f266454ab2553ef330bb93f1b96b076479f87d6f",
+      "decision": "reject_and_fix",
+      "findings": "origin-only recovery and distinct result/failure terminal refs remained unsafe"
+    },
+    {
+      "candidate_commit": "4591adb9ba0c9ff36c70dc86d4284e7fbdae6dcf",
+      "decision": "reject_and_fix",
+      "findings": "pre-publication V7 checks and recovery certificate cross-binding were incomplete"
+    },
+    {
+      "candidate_commit": "1821d788ab35985def4a124c5c373b9ff7431082",
+      "decision": "reject_and_fix",
+      "findings": "the recovery minimum age and predecessor origin were not protocol-level invariants"
+    },
+    {
+      "candidate_commit": "be80c85b1419cc2d2ac61dc5ca621c6453a612b3",
+      "decision": "authorize_v8_exact_source_lock",
+      "findings": "all three independent reviews reported P0=0, P1=0, P2=0"
+    }
+  ],
+  "reviewed_invariants": [
+    "V7 source-lock remains immutable and V7 authorization, consumption, result, and failure tags remain permanently absent",
+    "source-lock publication validates the V7 origin state before and after V8 tag creation",
+    "CAS losers cannot be mistaken for the consumption owner",
+    "consumption ownership binds a unique attempt ID and exact consumption tag object SHA",
+    "run-start is rechecked against the exact locked commit and full source digest immediately before consumption",
+    "result and failure compete for one terminal evidence CAS tag",
+    "result and failure SHA-256 and Git blob IDs derive from the same in-memory bytes",
+    "orphan recovery binds the actual source-lock, authorization, consumption, commit, source, and terminal evidence chain",
+    "orphan recovery requires a six-hour immutable delay, an exact consumption tag object SHA, a non-empty reason, and explicit confirmation that the original process terminated",
+    "the fixed reviewer set is freeze_implementation, language_claims, and metrics_controls"
+  ],
+  "schema_version": 1
+}
