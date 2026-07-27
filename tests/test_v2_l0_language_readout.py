@@ -210,12 +210,39 @@ def test_paired_queries_require_real_sensor_occlusion_and_unique_boundaries() ->
     scramble_audit = language.identity_scramble_audit(data, scrambled)
     assert scramble_audit["all_references_changed"] is True
     assert scramble_audit["opposite_reference_role_fraction"] == 1.0
+    assert scramble_audit["row_local_counterfactual_fraction"] == 1.0
+    assert (
+        scramble_audit[
+            "preserved_labels_masks_candidates_and_nonidentity_features"
+        ]
+        is True
+    )
     assert torch.equal(
         data.graph_features[:, : data.graph_base_feature_count],
         scrambled.graph_features[:, : data.graph_base_feature_count],
     )
     assert torch.equal(data.labels, scrambled.labels)
     assert torch.equal(data.training_mask, scrambled.training_mask)
+
+    active = torch.nonzero(
+        data.group_masks["identity"][:, 8:10].any(dim=1),
+        as_tuple=False,
+    ).flatten()
+    first = int(active[0])
+    same_episode_and_role = active[
+        (data.episode_ids[active] == data.episode_ids[first])
+        & (
+            data.identity_reference_roles[active]
+            == data.identity_reference_roles[first]
+        )
+    ]
+    focused = language.subset_data(data, same_episode_and_role)
+    focused_scrambled = language.identity_scramble_data(focused)
+    focused_audit = language.identity_scramble_audit(
+        focused, focused_scrambled
+    )
+    assert focused_audit["all_references_changed"] is True
+    assert focused_audit["row_local_counterfactual_fraction"] == 1.0
 
 
 def test_query_heads_are_isolated_and_identity_hides_absolute_position() -> None:
@@ -347,8 +374,8 @@ def test_v1_protocol_refuses_holdout_before_review(tmp_path: Path) -> None:
     assert not (tmp_path / "must-not-exist.json").exists()
 
 
-def test_v5_protocol_exactly_locks_sources_and_waits_for_authorization() -> None:
-    protocol, digest = language._load_protocol(language.PROTOCOL_V5)
+def test_v5_protocol_is_historical_after_locked_source_changes() -> None:
+    protocol, digest = language._read_protocol_document(language.PROTOCOL_V5)
 
     assert len(digest) == 64
     assert protocol["protocol_version"] == 5
@@ -357,48 +384,69 @@ def test_v5_protocol_exactly_locks_sources_and_waits_for_authorization() -> None
         == "source_locked_awaiting_explicit_holdout_authorization"
     )
     assert protocol["authorization"]["holdout_authorized"] is False
-    for relative, expected in protocol["exact_source_locks"].items():
-        assert language._sha256(language.PROJECT_ROOT / relative) == expected
+    assert (
+        language._sha256(
+            language.PROJECT_ROOT
+            / "cal/evaluation/v2_l0_language_readout.py"
+        )
+        != protocol["exact_source_locks"][
+            "cal/evaluation/v2_l0_language_readout.py"
+        ]
+    )
+    with pytest.raises(RuntimeError, match="exact source changed"):
+        language._load_protocol(language.PROTOCOL_V5)
 
 
-def test_v5_holdout_requires_remote_authorization_before_collection(
+def test_consumed_v5_holdout_cannot_collect_after_v6_changes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     calls: list[str] = []
 
-    monkeypatch.setattr(
-        language,
-        "_remote_tag_exists",
-        lambda *args, **kwargs: False,
-    )
-
-    def reject_authorization(*args: object, **kwargs: object) -> object:
-        calls.append("authorization")
-        raise RuntimeError("authorization tag absent")
-
     def forbidden_collection(*args: object, **kwargs: object) -> object:
         calls.append("collection")
-        raise AssertionError("holdout collection started before authorization")
+        raise AssertionError("consumed V5 holdout collection restarted")
 
-    monkeypatch.setattr(
-        language, "_require_source_lock_registry", reject_authorization
-    )
     monkeypatch.setattr(
         language, "collect_language_data", forbidden_collection
     )
 
-    with pytest.raises(RuntimeError, match="authorization tag absent"):
+    with pytest.raises(RuntimeError, match="exact source changed"):
         language.run_v2_l0_language_readout(
             split="holdout",
             protocol_path=language.PROTOCOL_V5,
         )
-    assert calls == ["authorization"]
+    assert calls == []
+
+
+def test_v6_protocol_locks_v5_failure_and_new_unopened_holdout() -> None:
+    protocol, digest = language._load_protocol(language.PROTOCOL_V6)
+
+    assert len(digest) == 64
+    assert protocol["protocol_version"] == 6
+    assert (
+        protocol["status"]
+        == "frozen_after_v5_consumed_failure_before_row_local_control_implementation"
+    )
+    assert protocol["authorization"]["holdout_authorized"] is False
+    assert protocol["authorization"]["v5_retry_forbidden"] is True
+    assert protocol["splits"]["review_holdout"]["seeds"] == [
+        33600,
+        33601,
+        33602,
+        33603,
+    ]
+    assert (
+        protocol["control_integrity_gates"][
+            "counterfactual_defined_for_every_active_identity_row"
+        ]
+        is True
+    )
 
 
 def test_source_lock_publication_certificate_is_exact(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    protocol, digest = language._load_protocol(language.PROTOCOL_V5)
+    protocol, digest = language._read_protocol_document(language.PROTOCOL_V5)
     captured: dict[str, object] = {}
     provenance = {
         "git_dirty": False,

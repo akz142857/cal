@@ -63,7 +63,10 @@ PROTOCOL_V4 = (
 PROTOCOL_V5 = (
     PROJECT_ROOT / "experiments" / "V2_L0_LANGUAGE_READOUT_PROTOCOL_V5.json"
 )
-DEFAULT_PROTOCOL = PROTOCOL_V4
+PROTOCOL_V6 = (
+    PROJECT_ROOT / "experiments" / "V2_L0_LANGUAGE_READOUT_PROTOCOL_V6.json"
+)
+DEFAULT_PROTOCOL = PROTOCOL_V6
 KNOWN_PROTOCOL_DIGESTS = {
     1: "39026a8ef6c1253ea40e830356504741636532fa7fcecbefadff4fabd8199493",
     2: "bb70d7983621a4756bf8e1030eb729ccca776888f3ba0fad062ba319022c32e3",
@@ -382,6 +385,7 @@ def _canonical_protocol_path(version: int) -> Path:
         3: PROTOCOL_V3,
         4: PROTOCOL_V4,
         5: PROTOCOL_V5,
+        6: PROTOCOL_V6,
     }
     try:
         return paths[version].resolve()
@@ -400,7 +404,7 @@ def _read_protocol_document(path: Path) -> tuple[dict[str, Any], str]:
     if version <= 4:
         if digest != KNOWN_PROTOCOL_DIGESTS[version]:
             raise RuntimeError("V2-L0 protocol digest is not recognized")
-    elif version != 5:
+    elif version not in {5, 6}:
         raise RuntimeError("unsupported V2-L0 protocol version")
     sidecar = source.with_suffix(".sha256")
     recorded = sidecar.read_text(encoding="utf-8").split()[0]
@@ -610,6 +614,77 @@ def _merge_v5(document: Mapping[str, Any]) -> dict[str, Any]:
     return payload
 
 
+def _merge_v6(document: Mapping[str, Any]) -> dict[str, Any]:
+    if (
+        document["base_protocol_path"]
+        != str(PROTOCOL_V5.relative_to(PROJECT_ROOT))
+        or document["base_protocol_sha256"] != _sha256(PROTOCOL_V5)
+    ):
+        raise RuntimeError("V2-L0 V6 amendment base mismatch")
+    _read_protocol_document(PROTOCOL_V5)
+    base_document, _ = _read_protocol_document(PROTOCOL_V4)
+    payload = _merge_v4(base_document)
+    amendment = document["amendment_record"]
+    prior_result = PROJECT_ROOT / amendment["prior_development_result_path"]
+    prior_raw = prior_result.read_bytes()
+    if (
+        hashlib.sha256(prior_raw).hexdigest()
+        != amendment["prior_development_result_sha256"]
+    ):
+        raise RuntimeError("V2-L0 V6 prior development result changed")
+    prior_payload = json.loads(prior_raw)
+    if (
+        prior_payload.get("passed") is not True
+        or prior_payload.get("decision")
+        != amendment["prior_development_decision"]
+        or not all(prior_payload.get("gates", {}).values())
+    ):
+        raise RuntimeError("V2-L0 V6 prior development result is invalid")
+    for path_key, sha_key in (
+        ("consumed_v5_failure_path", "consumed_v5_failure_sha256"),
+        ("consumed_v5_reservation_path", "consumed_v5_reservation_sha256"),
+    ):
+        if _sha256(PROJECT_ROOT / amendment[path_key]) != amendment[sha_key]:
+            raise RuntimeError(f"V2-L0 V5 evidence changed: {path_key}")
+    failure = json.loads(
+        (PROJECT_ROOT / amendment["consumed_v5_failure_path"]).read_bytes()
+    )
+    reservation = json.loads(
+        (PROJECT_ROOT / amendment["consumed_v5_reservation_path"]).read_bytes()
+    )
+    if (
+        failure.get("outcome") != "consumed_failed_before_result"
+        or failure.get("retry_allowed") is not False
+        or failure.get("result_created") is not False
+        or failure.get("evidence_tag_created") is not False
+        or reservation.get("status") != "consumed_before_first_episode"
+    ):
+        raise RuntimeError("V2-L0 V5 consumed failure evidence is invalid")
+    payload.update(
+        {
+            "protocol_name": document["protocol_name"],
+            "protocol_version": 6,
+            "status": document["status"],
+            "amendment_record_v4": payload["amendment_record"],
+            "amendment_record": amendment,
+            "base_protocol_path": document["base_protocol_path"],
+            "base_protocol_sha256": document["base_protocol_sha256"],
+            "control_amendment_v6": document["control_amendment"],
+            "control_integrity_gates": document["control_integrity_gates"],
+            "holdout_contamination_record_v6": document[
+                "holdout_contamination_record"
+            ],
+            "authorization": document["authorization"],
+            "result_paths": document["result_paths"],
+        }
+    )
+    payload["controls"]["identity_scrambled_at_occlusion"] = document[
+        "control_amendment"
+    ]["identity_scrambled_at_occlusion"]
+    payload["splits"].update(document["split_amendment"])
+    return payload
+
+
 def _load_protocol(path: Path = DEFAULT_PROTOCOL) -> tuple[dict[str, Any], str]:
     document, digest = _read_protocol_document(path)
     version = int(document["protocol_version"])
@@ -623,6 +698,8 @@ def _load_protocol(path: Path = DEFAULT_PROTOCOL) -> tuple[dict[str, Any], str]:
         payload = _merge_v4(document)
     elif version == 5:
         payload = _merge_v5(document)
+    elif version == 6:
+        payload = _merge_v6(document)
     else:
         raise RuntimeError("unsupported V2-L0 protocol version")
     if payload.get("status") not in {
@@ -632,6 +709,7 @@ def _load_protocol(path: Path = DEFAULT_PROTOCOL) -> tuple[dict[str, Any], str]:
         "frozen_before_cross_episode_identity_control_implementation",
         "source_locked_awaiting_explicit_holdout_authorization",
         "frozen_after_language_readout_review_before_holdout",
+        "frozen_after_v5_consumed_failure_before_row_local_control_implementation",
     }:
         raise RuntimeError("V2-L0 protocol is not frozen")
 
@@ -1590,7 +1668,7 @@ def identity_scramble_data(
     *,
     lag: int = 1,
 ) -> CollectedLanguageData:
-    """Rotate only saved identity references, preserving current candidates."""
+    """Replace saved identity history with the row-local other actor."""
 
     if lag < 1:
         raise ValueError("identity scramble lag must be positive")
@@ -1602,26 +1680,11 @@ def identity_scramble_data(
         data.group_masks["identity"][:, 8:10].any(dim=1),
         as_tuple=False,
     ).flatten()
-    source_rows: list[int] = []
-    role_ranks = {0: 0, 1: 0}
-    for row in active.tolist():
-        role = int(data.identity_reference_roles[row])
-        if role not in (0, 1):
-            raise RuntimeError("active identity row lacks a reference role")
-        opposite = active[
-            (data.identity_reference_roles[active] == role)
-            & (data.episode_ids[active] != data.episode_ids[row])
-        ]
-        if not len(opposite):
-            raise RuntimeError(
-                "identity scramble requires both reference roles"
-            )
-        rank = role_ranks[role]
-        source = int(opposite[(rank + lag - 1) % len(opposite)])
-        role_ranks[role] += 1
-        source_rows.append(source)
-        scrambled_roles[row] = 1 - role
-    sources = torch.tensor(source_rows, dtype=torch.int64)
+    roles = data.identity_reference_roles[active]
+    if bool(((roles != 0) & (roles != 1)).any()):
+        raise RuntimeError("active identity row lacks a reference role")
+    scrambled_roles[active] = 1 - roles
+    references = data.identity_opposite_control_references[active].clone()
     for query_index in (4, 5):
         start = (
             data.graph_base_feature_count
@@ -1632,9 +1695,6 @@ def identity_scramble_data(
         reference_start = current_start + descriptor_count
         product_start = reference_start + descriptor_count
         difference_start = product_start + descriptor_count
-        references = data.identity_opposite_control_references[
-            sources
-        ].clone()
         features[
             active,
             reference_start : reference_start + descriptor_count,
@@ -1665,14 +1725,21 @@ def identity_scramble_audit(
     active = original.group_masks["identity"][:, 8:10].any(dim=1)
     changed = 0
     opposite_motion = 0
+    row_local_matches = 0
     count = 0
+    preserved = (
+        torch.equal(original.labels, scrambled.labels)
+        and torch.equal(original.training_mask, scrambled.training_mask)
+        and torch.equal(original.episode_ids, scrambled.episode_ids)
+        and torch.equal(original.raw_features, scrambled.raw_features)
+    )
     for query_index in (4, 5):
-        reference_start = (
+        block_start = (
             original.graph_base_feature_count
             + query_index * original.graph_query_block_size
-            + arena_cells
-            + descriptor_count
         )
+        current_start = block_start + arena_cells
+        reference_start = current_start + descriptor_count
         before = original.graph_features[
             active,
             reference_start : reference_start + descriptor_count,
@@ -1685,14 +1752,53 @@ def identity_scramble_audit(
         before_motion = torch.argmax(before[:, 8:10], dim=1)
         after_motion = torch.argmax(after[:, 8:10], dim=1)
         opposite_motion += int((before_motion != after_motion).sum())
+        expected = original.identity_opposite_control_references[active]
+        row_local_matches += int(torch.eq(after, expected).all(dim=1).sum())
         count += int(before.shape[0])
+        preserved = (
+            preserved
+            and torch.equal(
+                original.graph_features[active, block_start:reference_start],
+                scrambled.graph_features[active, block_start:reference_start],
+            )
+            and torch.equal(
+                original.graph_features[
+                    active,
+                    reference_start + 3 * descriptor_count :
+                    block_start + original.graph_query_block_size,
+                ],
+                scrambled.graph_features[
+                    active,
+                    reference_start + 3 * descriptor_count :
+                    block_start + original.graph_query_block_size,
+                ],
+            )
+        )
+    first_identity_block = (
+        original.graph_base_feature_count
+        + 4 * original.graph_query_block_size
+    )
+    preserved = (
+        preserved
+        and torch.equal(
+            original.graph_features[:, :first_identity_block],
+            scrambled.graph_features[:, :first_identity_block],
+        )
+    )
     return {
         "reference_block_count": count,
         "changed_reference_block_count": changed,
         "opposite_motion_reference_block_count": opposite_motion,
+        "row_local_counterfactual_match_count": row_local_matches,
         "all_references_changed": bool(count and changed == count),
+        "preserved_labels_masks_candidates_and_nonidentity_features": bool(
+            preserved
+        ),
         "opposite_motion_fraction": (
             float(opposite_motion / count) if count else 0.0
+        ),
+        "row_local_counterfactual_fraction": (
+            float(row_local_matches / count) if count else 0.0
         ),
         "opposite_reference_role_fraction": (
             float(
@@ -2277,6 +2383,26 @@ def _gates(
                 scramble_audit["opposite_reference_role_fraction"]
             )
             == 1.0
+            and (
+                int(protocol["protocol_version"]) < 6
+                or (
+                    float(
+                        scramble_audit[
+                            "row_local_counterfactual_fraction"
+                        ]
+                    )
+                    >= float(
+                        protocol["control_integrity_gates"][
+                            "row_local_counterfactual_fraction_minimum"
+                        ]
+                    )
+                    and bool(
+                        scramble_audit[
+                            "preserved_labels_masks_candidates_and_nonidentity_features"
+                        ]
+                    )
+                )
+            )
         ),
         "all_registered_columns_covered": all(
             int(item["positive_count"]) >= minimum_per_class
