@@ -12,5 +12,10 @@ results/*
 !results/V2-M1-M3-integrated-development-summary.json
 !results/V2-M1-M3-integrated-v2-development-summary.json
 !results/V2-I1-v2-development-v3-review-baseline.json
+!results/V2-I1-v4-calibration-summary.json
+!results/V2-I1-v4-validation-summary.json
+!results/V2-I1-v4-validation-reservation.json
+!results/V2-I1-v4-holdout-summary.json
+!results/V2-I1-v4-holdout-reservation.json
 !results/V2-M1-M3-integrated-v2-confirmation-summary.json
 !results/V2-M1-M3-integrated-confirmation-review-summary.json
