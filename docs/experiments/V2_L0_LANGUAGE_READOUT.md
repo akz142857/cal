@@ -6,8 +6,9 @@
 P0/P1 阻塞；V5 exact source-lock 已发布。唯一一次 V5 review holdout 已获得
 授权并被原子消费，但身份负对照无法在该 holdout 事件集合上构造，运行在产出
 指标前终止。协议禁止重试，因此没有 V5 holdout 通过结论。后续 V6 已在实现前
-冻结逐行身份反事实，development 全部 24 门通过；新的 holdout 仍未运行，
-下一步是独立审查与 V7 exact source-lock。
+冻结逐行身份反事实，development 全部 24 门通过；首轮独立审查发现的两个 P1
+与两个 P2 已修复，三路最终复审均无 P0/P1/P2。当前允许进入 V7 exact
+source-lock，但新的 holdout 仍未授权、未运行。
 
 ## 1. 这个实验究竟验证什么
 
@@ -298,8 +299,25 @@ inactive-row 修改。加固后 148/148 行 metadata 与独立推导一致，296
 product 和 difference 块均正确重算。
 
 V6 在实现前登记了新的候选 holdout `33600–33603`。这些 seed 当前未检查、
-未运行，也不因 development 通过而自动获得授权。下一步必须先完成独立审查，
-再冻结 V7 exact-source-lock 与全新 origin tags；仍需用户另行授权后才能消费。
+未运行，也不因 development 通过而自动获得授权。
+
+三路最终独立复审分别检查：
+
+- 语言主张、learner/label 边界和 head 隔离；
+- 指标、覆盖、负对照与攻击回归；
+- protocol/source/result 冻结、TOCTOU、V5 不可重试和一次性执行边界。
+
+最终三路均为 `P0=0 / P1=0 / P2=0`，一致允许进入 V7 exact source-lock。
+结构化审查记录保存在：
+
+```text
+results/V2-L0-language-readout-v6-review.json
+SHA-256 b6ef0c1150a1893d91fcc205753794253163389ce689391fdfce3097ba3945fc
+```
+
+这一决定只授权建立 V7 锁定协议和 source-lock 证据，不授权创建 holdout
+authorization/consumption tag，也不授权运行 holdout。V7 必须使用全新的 tag
+namespace，并继续等待用户另行明确授权。
 
 ## 12. 如何重复已允许的部分
 
@@ -316,4 +334,4 @@ uv run pytest tests/test_v2_l0_language_readout.py -q
 ```
 
 V5 holdout 已消费，不能再次运行。V6 当前只允许 development；新的 holdout
-必须先通过审查和 V7 source-lock，并使用新的 tag 名称。
+已经通过审查，但仍必须先完成 V7 source-lock，并使用新的 tag 名称。

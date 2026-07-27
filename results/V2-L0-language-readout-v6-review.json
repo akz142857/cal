@@ -1,0 +1,84 @@
+{
+  "decision": "authorize_v7_exact_source_lock",
+  "development_evidence": {
+    "all_gates_passed": true,
+    "decision": "authorize_review_and_source_lock",
+    "gate_count": 24,
+    "git_commit": "b023cc4420938f75c8a2030fae7f67a07096b5ae",
+    "git_dirty": false,
+    "path": "results/V2-L0-language-readout-development-v6.json",
+    "sha256": "a2582e058d83264ef4284a02e19d296b31ee44b20ada022fa9b4b97f128de0dd",
+    "source_sha256": "da803e27f6bc62f9649ad436c7dc606a4ae7ebb053a3550399e041fdb1878ceb"
+  },
+  "final_reviews": {
+    "freeze_implementation": {
+      "p0": 0,
+      "p1": 0,
+      "p2": 0,
+      "verdict": "allow_v7_exact_source_lock"
+    },
+    "language_claims": {
+      "p0": 0,
+      "p1": 0,
+      "p2": 0,
+      "verdict": "allow_v7_exact_source_lock"
+    },
+    "metrics_controls": {
+      "p0": 0,
+      "p1": 0,
+      "p2": 0,
+      "verdict": "allow_v7_exact_source_lock"
+    }
+  },
+  "first_review_findings": [
+    {
+      "resolution": "Audit now derives the expected reference from the original negative candidate and independently verifies reference, product, difference, inactive rows, and preserved context.",
+      "severity": "P1",
+      "status": "fixed",
+      "title": "Identity-control integrity gate used same-source metadata and did not verify recomputed interactions"
+    },
+    {
+      "resolution": "Each V5 historical artifact is read once and the same bytes are hashed and parsed; the V5 base digest comes from one protocol read.",
+      "severity": "P1",
+      "status": "fixed",
+      "title": "V6 historical evidence verification reintroduced TOCTOU"
+    },
+    {
+      "resolution": "V5 and V6 protocol digests are now part of the fixed known-digest mapping.",
+      "severity": "P2",
+      "status": "fixed",
+      "title": "V5 and V6 protocol digests depended only on mutable sidecars"
+    },
+    {
+      "resolution": "The overview now distinguishes the V4 cross-episode control from the V6 row-local control.",
+      "severity": "P2",
+      "status": "fixed",
+      "title": "Experiment overview retained the V4 control description"
+    }
+  ],
+  "holdout": {
+    "authorized": false,
+    "inspected": false,
+    "run": false,
+    "v5_retry_forbidden": true,
+    "v7_tags_created": false
+  },
+  "protocol": {
+    "freeze_commit": "91491d044088d733f2cea8e21f10f9469ade29bd",
+    "path": "experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V6.json",
+    "sha256": "6742a36cc6b6b572ed89642fc154a2104c814ec1e348a9c7af5bfa691f3776aa",
+    "version": 6
+  },
+  "reviewed_archive_commit": "09c19e3f4a3e2f2c9de34a172cccbf43db77039f",
+  "schema_version": 1,
+  "test_evidence": {
+    "attack_regressions": [
+      "fake_row_local_metadata_rejected",
+      "incorrect_product_and_difference_rejected",
+      "inactive_row_modification_rejected"
+    ],
+    "full_suite_passed": true,
+    "targeted_test_count": 18,
+    "targeted_tests_passed": true
+  }
+}
