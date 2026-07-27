@@ -1,0 +1,80 @@
+{
+  "protocol_name": "V2-L0 row-local identity counterfactual after consumed V5 failure",
+  "protocol_version": 6,
+  "status": "frozen_after_v5_consumed_failure_before_row_local_control_implementation",
+  "date": "2026-07-27",
+  "base_protocol_path": "experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V5.json",
+  "base_protocol_sha256": "51a4f561bceb23de2c9c483895b82e2f5b1cd4168736b22b166e236be6ce1aae",
+  "amendment_record": {
+    "prior_development_result_path": "results/V2-L0-language-readout-development-v4.json",
+    "prior_development_result_sha256": "6af1883cbf163f551184ba5c1284c233e13648bde15c57d9cc168943def6ddb8",
+    "prior_development_passed": true,
+    "prior_development_decision": "authorize_review_and_source_lock",
+    "consumed_v5_failure_path": "results/V2-L0-language-readout-holdout-v5-failure.json",
+    "consumed_v5_failure_sha256": "4b527f911bcdd803e573308ec80f6a1cfa9ade2e43b93679993dd2c22f5f947d",
+    "consumed_v5_reservation_path": "results/V2-L0-language-readout-holdout-v5-reservation.json",
+    "consumed_v5_reservation_sha256": "bfdefd0185f74f114fe45880208d8c11f21596db4b3a6987144c9f354abbe2d7",
+    "v5_source_lock_commit": "d43651f4e06f513cddbb6dfe354dd9073f46b0a1",
+    "v5_authorization_tag": "calmodel-l0-v5-holdout-authorized",
+    "v5_consumption_tag": "calmodel-l0-v5-holdout-consumed",
+    "v5_evidence_created": false,
+    "holdout_attempts_before_amendment": 1,
+    "failed_v5_holdout_reused": false,
+    "algorithm_changed": true,
+    "fixed_existing_thresholds_lowered": false,
+    "development_seeds_changed": false,
+    "reason": "V5 was correctly authorized and consumed, then terminated before metrics because its cross-episode role-stratified identity scramble was not total on the unopened holdout event structure. Replace only that destructive control with a row-local counterfactual that is defined by every valid identity query. Preserve V5 as immutable negative evidence and allocate a new unopened holdout before implementation."
+  },
+  "control_amendment": {
+    "identity_scrambled_at_occlusion": "For every active identity-query row, replace both saved pre-occlusion reference blocks with the ID-invariant descriptor of the other uniquely visible distractor from that same row. The identity query already requires both distractors to be uniquely visible, so the counterfactual exists for every active row and does not depend on events from another episode. Preserve the current base state, learner action, candidate masks, current candidate descriptors, labels, training masks, episode membership, and all non-identity features. Recompute only the reference, product, and absolute-difference components of the two identity query blocks.",
+    "scientific_reason": "The fitted formal probe should match each current candidate to the correct saved pre-occlusion reference. Replacing that history with the other current actor's descriptor destroys the historical referent while keeping the evaluated row, candidates, labels, and learner state fixed.",
+    "cross_episode_source_required": false,
+    "holdout_structure_peek_required": false
+  },
+  "control_integrity_gates": {
+    "active_identity_reference_count_minimum": 1,
+    "all_active_reference_blocks_changed": true,
+    "row_local_counterfactual_fraction_minimum": 1.0,
+    "opposite_reference_role_fraction_minimum": 1.0,
+    "labels_masks_candidates_and_nonidentity_features_unchanged": true,
+    "counterfactual_defined_for_every_active_identity_row": true
+  },
+  "holdout_contamination_record": {
+    "consumed_and_invalidated_v5_seeds": [
+      33400,
+      33401,
+      33402,
+      33403
+    ],
+    "replacement_seeds_assigned_before_v6_control_implementation": [
+      33600,
+      33601,
+      33602,
+      33603
+    ],
+    "replacement_seeds_inspected": false,
+    "replacement_seeds_run": false
+  },
+  "split_amendment": {
+    "review_holdout": {
+      "seeds": [
+        33600,
+        33601,
+        33602,
+        33603
+      ],
+      "may_be_run": "once only after V6 development passes unchanged gates, independent review passes, a later V7 exact-source-lock protocol is frozen, its clean commit and source-lock tag are published, and the user separately authorizes the new holdout"
+    }
+  },
+  "result_paths": {
+    "development": "results/V2-L0-language-readout-development-v6.json",
+    "holdout": "results/V2-L0-language-readout-holdout-v7.json",
+    "holdout_reservation": "results/V2-L0-language-readout-holdout-v7-reservation.json"
+  },
+  "authorization": {
+    "development_may_be_run_repeatedly": true,
+    "holdout_authorized": false,
+    "v5_retry_forbidden": true,
+    "next_required_amendment": "A later V7 exact-source-lock protocol must bind the reviewed V6 evaluator and tests, all transitive I1 dependencies, this V6 protocol, its passing development result, complete source provenance, a clean reviewed commit, new V7 registry tags, local atomic reservation, origin CAS consumption, immutable result evidence, and failure evidence publication."
+  }
+}
