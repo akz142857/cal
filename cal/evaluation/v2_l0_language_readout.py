@@ -72,6 +72,8 @@ KNOWN_PROTOCOL_DIGESTS = {
     2: "bb70d7983621a4756bf8e1030eb729ccca776888f3ba0fad062ba319022c32e3",
     3: "35aa6458ce5b40bf788dd12394ab5736647f140dbbfc3f556916cfd63cd5daa9",
     4: "85aee950e9ff1c5ea5838112912350d90002683cce2d80b026a94dd2e748f6a9",
+    5: "51a4f561bceb23de2c9c483895b82e2f5b1cd4168736b22b166e236be6ce1aae",
+    6: "6742a36cc6b6b572ed89642fc154a2104c814ec1e348a9c7af5bfa691f3776aa",
 }
 PROPOSITION_NAMES = (
     "first_pointed_entity_is_self",
@@ -401,11 +403,10 @@ def _read_protocol_document(path: Path) -> tuple[dict[str, Any], str]:
     if source != _canonical_protocol_path(version):
         raise RuntimeError("V2-L0 protocol path is not canonical")
     digest = hashlib.sha256(raw).hexdigest()
-    if version <= 4:
-        if digest != KNOWN_PROTOCOL_DIGESTS[version]:
-            raise RuntimeError("V2-L0 protocol digest is not recognized")
-    elif version not in {5, 6}:
+    if version not in KNOWN_PROTOCOL_DIGESTS:
         raise RuntimeError("unsupported V2-L0 protocol version")
+    if digest != KNOWN_PROTOCOL_DIGESTS[version]:
+        raise RuntimeError("V2-L0 protocol digest is not recognized")
     sidecar = source.with_suffix(".sha256")
     recorded = sidecar.read_text(encoding="utf-8").split()[0]
     if recorded != digest:
@@ -615,13 +616,13 @@ def _merge_v5(document: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _merge_v6(document: Mapping[str, Any]) -> dict[str, Any]:
+    _, base_digest = _read_protocol_document(PROTOCOL_V5)
     if (
         document["base_protocol_path"]
         != str(PROTOCOL_V5.relative_to(PROJECT_ROOT))
-        or document["base_protocol_sha256"] != _sha256(PROTOCOL_V5)
+        or document["base_protocol_sha256"] != base_digest
     ):
         raise RuntimeError("V2-L0 V6 amendment base mismatch")
-    _read_protocol_document(PROTOCOL_V5)
     base_document, _ = _read_protocol_document(PROTOCOL_V4)
     payload = _merge_v4(base_document)
     amendment = document["amendment_record"]
@@ -640,18 +641,17 @@ def _merge_v6(document: Mapping[str, Any]) -> dict[str, Any]:
         or not all(prior_payload.get("gates", {}).values())
     ):
         raise RuntimeError("V2-L0 V6 prior development result is invalid")
+    evidence_payloads: dict[str, dict[str, Any]] = {}
     for path_key, sha_key in (
         ("consumed_v5_failure_path", "consumed_v5_failure_sha256"),
         ("consumed_v5_reservation_path", "consumed_v5_reservation_sha256"),
     ):
-        if _sha256(PROJECT_ROOT / amendment[path_key]) != amendment[sha_key]:
+        raw = (PROJECT_ROOT / amendment[path_key]).read_bytes()
+        if hashlib.sha256(raw).hexdigest() != amendment[sha_key]:
             raise RuntimeError(f"V2-L0 V5 evidence changed: {path_key}")
-    failure = json.loads(
-        (PROJECT_ROOT / amendment["consumed_v5_failure_path"]).read_bytes()
-    )
-    reservation = json.loads(
-        (PROJECT_ROOT / amendment["consumed_v5_reservation_path"]).read_bytes()
-    )
+        evidence_payloads[path_key] = json.loads(raw)
+    failure = evidence_payloads["consumed_v5_failure_path"]
+    reservation = evidence_payloads["consumed_v5_reservation_path"]
     if (
         failure.get("outcome") != "consumed_failed_before_result"
         or failure.get("retry_allowed") is not False
@@ -1723,15 +1723,60 @@ def identity_scramble_audit(
     descriptor_count = len(GRAPH_MAP_NAMES)
     arena_cells = (ARENA_HIGH - ARENA_LOW + 1) ** 2
     active = original.group_masks["identity"][:, 8:10].any(dim=1)
+    active_indices = torch.nonzero(active, as_tuple=False).flatten()
+    active_labels = original.labels[active, 8:10]
+    valid_label_pairs = bool(
+        len(active_indices)
+        and ((active_labels == 0.0).sum(dim=1) == 1).all()
+        and ((active_labels == 1.0).sum(dim=1) == 1).all()
+    )
+    negative_queries = torch.argmin(active_labels, dim=1)
+    expected_references = torch.empty(
+        (len(active_indices), descriptor_count),
+        dtype=original.graph_features.dtype,
+    )
+    for candidate_index, query_index in enumerate((4, 5)):
+        selected = negative_queries == candidate_index
+        current_start = (
+            original.graph_base_feature_count
+            + query_index * original.graph_query_block_size
+            + arena_cells
+        )
+        expected_references[selected] = original.graph_features[
+            active_indices[selected],
+            current_start : current_start + descriptor_count,
+        ]
+    metadata_matches = int(
+        torch.eq(
+            original.identity_opposite_control_references[active],
+            expected_references,
+        )
+        .all(dim=1)
+        .sum()
+    )
     changed = 0
     opposite_motion = 0
     row_local_matches = 0
+    recomputed_products = 0
+    recomputed_differences = 0
     count = 0
+    allowed_changes = torch.zeros(
+        original.graph_features.shape[1], dtype=torch.bool
+    )
+    inactive = ~active
     preserved = (
         torch.equal(original.labels, scrambled.labels)
         and torch.equal(original.training_mask, scrambled.training_mask)
         and torch.equal(original.episode_ids, scrambled.episode_ids)
         and torch.equal(original.raw_features, scrambled.raw_features)
+        and all(
+            torch.equal(original.group_masks[name], scrambled.group_masks[name])
+            for name in GROUP_NAMES
+        )
+        and torch.equal(
+            original.graph_features[inactive],
+            scrambled.graph_features[inactive],
+        )
     )
     for query_index in (4, 5):
         block_start = (
@@ -1740,6 +1785,11 @@ def identity_scramble_audit(
         )
         current_start = block_start + arena_cells
         reference_start = current_start + descriptor_count
+        product_start = reference_start + descriptor_count
+        difference_start = product_start + descriptor_count
+        allowed_changes[
+            reference_start : difference_start + descriptor_count
+        ] = True
         before = original.graph_features[
             active,
             reference_start : reference_start + descriptor_count,
@@ -1752,45 +1802,53 @@ def identity_scramble_audit(
         before_motion = torch.argmax(before[:, 8:10], dim=1)
         after_motion = torch.argmax(after[:, 8:10], dim=1)
         opposite_motion += int((before_motion != after_motion).sum())
-        expected = original.identity_opposite_control_references[active]
-        row_local_matches += int(torch.eq(after, expected).all(dim=1).sum())
-        count += int(before.shape[0])
-        preserved = (
-            preserved
-            and torch.equal(
-                original.graph_features[active, block_start:reference_start],
-                scrambled.graph_features[active, block_start:reference_start],
-            )
-            and torch.equal(
-                original.graph_features[
-                    active,
-                    reference_start + 3 * descriptor_count :
-                    block_start + original.graph_query_block_size,
-                ],
-                scrambled.graph_features[
-                    active,
-                    reference_start + 3 * descriptor_count :
-                    block_start + original.graph_query_block_size,
-                ],
-            )
+        row_local_matches += int(
+            torch.eq(after, expected_references).all(dim=1).sum()
         )
-    first_identity_block = (
-        original.graph_base_feature_count
-        + 4 * original.graph_query_block_size
-    )
+        current = scrambled.graph_features[
+            active, current_start : current_start + descriptor_count
+        ]
+        product = scrambled.graph_features[
+            active, product_start : product_start + descriptor_count
+        ]
+        difference = scrambled.graph_features[
+            active, difference_start : difference_start + descriptor_count
+        ]
+        recomputed_products += int(
+            torch.eq(product, current * after).all(dim=1).sum()
+        )
+        recomputed_differences += int(
+            torch.eq(difference, torch.abs(current - after)).all(dim=1).sum()
+        )
+        count += int(before.shape[0])
     preserved = (
         preserved
         and torch.equal(
-            original.graph_features[:, :first_identity_block],
-            scrambled.graph_features[:, :first_identity_block],
+            original.graph_features[:, ~allowed_changes],
+            scrambled.graph_features[:, ~allowed_changes],
         )
     )
+    active_row_count = len(active_indices)
     return {
+        "active_identity_row_count": active_row_count,
         "reference_block_count": count,
         "changed_reference_block_count": changed,
         "opposite_motion_reference_block_count": opposite_motion,
         "row_local_counterfactual_match_count": row_local_matches,
+        "metadata_matches_negative_candidate_current_count": metadata_matches,
+        "recomputed_product_block_count": recomputed_products,
+        "recomputed_difference_block_count": recomputed_differences,
         "all_references_changed": bool(count and changed == count),
+        "counterfactual_defined_for_every_active_identity_row": bool(
+            valid_label_pairs
+            and active_row_count
+            and metadata_matches == active_row_count
+        ),
+        "all_interactions_recomputed": bool(
+            count
+            and recomputed_products == count
+            and recomputed_differences == count
+        ),
         "preserved_labels_masks_candidates_and_nonidentity_features": bool(
             preserved
         ),
@@ -1799,6 +1857,11 @@ def identity_scramble_audit(
         ),
         "row_local_counterfactual_fraction": (
             float(row_local_matches / count) if count else 0.0
+        ),
+        "metadata_matches_negative_candidate_current_fraction": (
+            float(metadata_matches / active_row_count)
+            if active_row_count
+            else 0.0
         ),
         "opposite_reference_role_fraction": (
             float(
@@ -2386,7 +2449,13 @@ def _gates(
             and (
                 int(protocol["protocol_version"]) < 6
                 or (
-                    float(
+                    int(scramble_audit["active_identity_row_count"])
+                    >= int(
+                        protocol["control_integrity_gates"][
+                            "active_identity_reference_count_minimum"
+                        ]
+                    )
+                    and float(
                         scramble_audit[
                             "row_local_counterfactual_fraction"
                         ]
@@ -2395,6 +2464,20 @@ def _gates(
                         protocol["control_integrity_gates"][
                             "row_local_counterfactual_fraction_minimum"
                         ]
+                    )
+                    and float(
+                        scramble_audit[
+                            "metadata_matches_negative_candidate_current_fraction"
+                        ]
+                    )
+                    == 1.0
+                    and bool(
+                        scramble_audit[
+                            "counterfactual_defined_for_every_active_identity_row"
+                        ]
+                    )
+                    and bool(
+                        scramble_audit["all_interactions_recomputed"]
                     )
                     and bool(
                         scramble_audit[

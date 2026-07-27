@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import inspect
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -244,6 +245,63 @@ def test_paired_queries_require_real_sensor_occlusion_and_unique_boundaries() ->
     assert focused_audit["all_references_changed"] is True
     assert focused_audit["row_local_counterfactual_fraction"] == 1.0
 
+    fake_metadata = data.identity_opposite_control_references.clone()
+    fake_metadata[active] = 123.0
+    fake_data = replace(
+        data,
+        identity_opposite_control_references=fake_metadata,
+    )
+    fake_scrambled = language.identity_scramble_data(fake_data)
+    fake_audit = language.identity_scramble_audit(
+        fake_data, fake_scrambled
+    )
+    assert fake_audit["row_local_counterfactual_fraction"] == 0.0
+    assert (
+        fake_audit[
+            "counterfactual_defined_for_every_active_identity_row"
+        ]
+        is False
+    )
+
+    broken_interactions = scrambled.graph_features.clone()
+    descriptor_count = len(language.GRAPH_MAP_NAMES)
+    arena_cells = (language.ARENA_HIGH - language.ARENA_LOW + 1) ** 2
+    for query_index in (4, 5):
+        reference_start = (
+            data.graph_base_feature_count
+            + query_index * data.graph_query_block_size
+            + arena_cells
+            + descriptor_count
+        )
+        product_start = reference_start + descriptor_count
+        difference_start = product_start + descriptor_count
+        broken_interactions[
+            active,
+            product_start : difference_start + descriptor_count,
+        ] = 123.0
+    broken_audit = language.identity_scramble_audit(
+        data,
+        scrambled.with_graph_features(broken_interactions),
+    )
+    assert broken_audit["all_interactions_recomputed"] is False
+
+    inactive = torch.nonzero(
+        ~data.group_masks["identity"][:, 8:10].any(dim=1),
+        as_tuple=False,
+    ).flatten()
+    broken_inactive = scrambled.graph_features.clone()
+    broken_inactive[int(inactive[0]), -1] += 1.0
+    inactive_audit = language.identity_scramble_audit(
+        data,
+        scrambled.with_graph_features(broken_inactive),
+    )
+    assert (
+        inactive_audit[
+            "preserved_labels_masks_candidates_and_nonidentity_features"
+        ]
+        is False
+    )
+
 
 def test_query_heads_are_isolated_and_identity_hides_absolute_position() -> None:
     torch.manual_seed(4)
@@ -441,6 +499,38 @@ def test_v6_protocol_locks_v5_failure_and_new_unopened_holdout() -> None:
         ]
         is True
     )
+    assert language.KNOWN_PROTOCOL_DIGESTS[5] == (
+        "51a4f561bceb23de2c9c483895b82e2f5b1cd4168736b22b166e236be6ce1aae"
+    )
+    assert language.KNOWN_PROTOCOL_DIGESTS[6] == digest
+
+
+def test_v6_hashes_and_parses_each_historical_artifact_from_one_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    watched = {
+        language.PROTOCOL_V5.resolve(): 0,
+        (
+            language.PROJECT_ROOT
+            / "results/V2-L0-language-readout-holdout-v5-failure.json"
+        ).resolve(): 0,
+        (
+            language.PROJECT_ROOT
+            / "results/V2-L0-language-readout-holdout-v5-reservation.json"
+        ).resolve(): 0,
+    }
+    original_read_bytes = Path.read_bytes
+
+    def counted_read_bytes(path: Path) -> bytes:
+        resolved = path.resolve()
+        if resolved in watched:
+            watched[resolved] += 1
+        return original_read_bytes(path)
+
+    monkeypatch.setattr(Path, "read_bytes", counted_read_bytes)
+    language._load_protocol(language.PROTOCOL_V6)
+
+    assert set(watched.values()) == {1}
 
 
 def test_source_lock_publication_certificate_is_exact(

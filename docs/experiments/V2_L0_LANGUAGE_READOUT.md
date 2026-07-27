@@ -90,7 +90,7 @@ raw 对照 876 维；线性 probe 共 13102 个参数，低于冻结上限 50000
 | Random labels | 每列训练标签独立随机排列 |
 | No action | I1 不利用真实动作，其余条件不变 |
 | Assume all visible | 关闭 I1 遮挡推断，检验隐藏状态是否必要 |
-| Identity scrambled | 保持正式 probe 不变，仅在 validation 跨 episode 换成相反运动角色的错误参考 |
+| Identity scrambled | 保持正式 probe 不变；V4 跨 episode 换参考，V6 逐行换成负候选的当前描述 |
 
 最后两个对照直接回答“高分是不是由真正需要的机制带来”：持续性必须依赖遮挡
 推断；身份匹配必须依赖正确的遮挡前参考。
