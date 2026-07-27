@@ -8,7 +8,8 @@ P0/P1 阻塞；V5 exact source-lock 已发布。唯一一次 V5 review holdout �
 指标前终止。协议禁止重试，因此没有 V5 holdout 通过结论。后续 V6 已在实现前
 冻结逐行身份反事实，development 全部 24 门通过；首轮独立审查发现的两个 P1
 与两个 P2 已修复，三路最终复审均无 P0/P1/P2。当前允许进入 V7 exact
-source-lock，但新的 holdout 仍未授权、未运行。
+source-lock。V7 manifest、全新 registry 和消费后失败证据防线已经实现，等待
+clean source-lock commit/tag；新的 holdout 仍未授权、未运行。
 
 ## 1. 这个实验究竟验证什么
 
@@ -319,7 +320,42 @@ SHA-256 b6ef0c1150a1893d91fcc205753794253163389ce689391fdfce3097ba3945fc
 authorization/consumption tag，也不授权运行 holdout。V7 必须使用全新的 tag
 namespace，并继续等待用户另行明确授权。
 
-## 12. 如何重复已允许的部分
+## 12. V7 exact source-lock
+
+V7 协议：
+
+```text
+experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V7.json
+SHA-256 e028d301475f6137b73dfd934c2d292c3ac593c7f0a48566458e3644d4738437
+```
+
+V7 锁定最终 evaluator、22 项专项测试、I1 传递依赖、provenance、依赖清单、
+完整 V1–V6 协议链、V6 passing development、三路复审记录以及 V5 consumed
+failure/reservation。V5 失败 JSON 已发布为不可变 Git blob：
+
+```text
+tag calmodel-l0-v5-holdout-failure-evidence
+tag object 356a0199ffda6d4a96e48e009f5edeb5f2dd6182
+blob 5eff7486441eefe6f73bc5ef94cb71c92ff4c7ef
+```
+
+V7 使用全新 registry：
+
+- `calmodel-l0-v7-source-locked`
+- `calmodel-l0-v7-holdout-authorized`
+- `calmodel-l0-v7-holdout-consumed`
+- `calmodel-l0-v7-holdout-evidence`
+- `calmodel-l0-v7-holdout-failure-evidence`
+
+source-lock 只允许创建第一个 tag。authorization 必须等待用户另行明确授权；
+consumption 只能由 holdout runner 在第一条 episode 前原子创建。成功结果发布
+result evidence；消费后的任何运行异常都必须写入失败记录并发布 failure
+evidence，机会不会恢复。
+
+V7 exact source SHA：
+`bc86f58979a8453efedaf25135d907edb2de1e6a230e90e8e1b1edf473cf613b`
+
+## 13. 如何重复已允许的部分
 
 可重复 development：
 
@@ -333,5 +369,5 @@ uv run cal-v2-l0-language --split development
 uv run pytest tests/test_v2_l0_language_readout.py -q
 ```
 
-V5 holdout 已消费，不能再次运行。V6 当前只允许 development；新的 holdout
-已经通过审查，但仍必须先完成 V7 source-lock，并使用新的 tag 名称。
+V5 holdout 已消费，不能再次运行。新的 holdout 已通过 V6 development/review，
+但仍必须先完成 V7 source-lock，之后继续等待用户明确授权。
