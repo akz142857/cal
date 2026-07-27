@@ -23,5 +23,6 @@ results/*
 !results/V2-L0-language-readout-development-v4.json
 !results/V2-L0-language-readout-holdout-v5.json
 !results/V2-L0-language-readout-holdout-v5-reservation.json
+!results/V2-L0-language-readout-holdout-v5-failure.json
 !results/V2-M1-M3-integrated-v2-confirmation-summary.json
 !results/V2-M1-M3-integrated-confirmation-review-summary.json

@@ -1,0 +1,26 @@
+{
+  "attempt": 1,
+  "authorization_tag": {
+    "name": "calmodel-l0-v5-holdout-authorized",
+    "object_sha": "97e0d5d233f6355040f99189cd2f3dd6923a7753"
+  },
+  "consumption_tag": {
+    "name": "calmodel-l0-v5-holdout-consumed",
+    "object_sha": "5929c6955596d17653ce612008b91ee626bcc1e8",
+    "status": "consumed_before_first_episode"
+  },
+  "error": {
+    "message": "identity scramble requires both reference roles",
+    "stage": "identity_scramble_data(evaluation)",
+    "type": "RuntimeError"
+  },
+  "evidence_tag_created": false,
+  "git_commit": "d43651f4e06f513cddbb6dfe354dd9073f46b0a1",
+  "consumed_at": "2026-07-27T18:54:11+08:00",
+  "outcome": "consumed_failed_before_result",
+  "protocol_sha256": "51a4f561bceb23de2c9c483895b82e2f5b1cd4168736b22b166e236be6ce1aae",
+  "result_created": false,
+  "retry_allowed": false,
+  "source_sha256": "063888a18c098106780b82a141ba1785a2b4e4bb7b6f4785224016c3728d5246",
+  "split": "holdout"
+}

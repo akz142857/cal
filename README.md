@@ -244,7 +244,10 @@ about self, spatial relations, identity after reappearance, and hidden-object
 permanence are linearly readable from its entity state. Its shortcut-resistant
 V4 development run passes every frozen gate and three final independent
 reviews. Its V5 exact-source-lock and one-shot origin registry are implemented;
-the source-lock tag and unopened review holdout remain pending. See the
+the only V5 review-holdout attempt was authorized and consumed, but stopped
+before producing metrics because its frozen identity-scramble control could not
+be constructed from the holdout events. V5 therefore has no passing holdout
+claim and cannot be retried. See the
 [L0 language-readout report](docs/experiments/V2_L0_LANGUAGE_READOUT.md).
 
 The measured evidence, limitations, and M4 decision are documented in the

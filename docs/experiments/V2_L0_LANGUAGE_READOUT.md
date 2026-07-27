@@ -3,9 +3,9 @@
 日期：2026-07-27
 
 当前状态：V4 修复版 development 全部门通过，三路最终独立 review 均无
-P0/P1 阻塞；V5 exact source-lock 与一次性远端注册机制已实现，等待 clean
-source-lock commit 和 origin source-lock tag。新的 review holdout 尚未运行，
-也尚未授权。
+P0/P1 阻塞；V5 exact source-lock 已发布。唯一一次 V5 review holdout 已获得
+授权并被原子消费，但身份负对照无法在该 holdout 事件集合上构造，运行在产出
+指标前终止。协议禁止重试，因此当前没有 V5 holdout 通过结论。
 
 ## 1. 这个实验究竟验证什么
 
@@ -197,10 +197,55 @@ hash 所造成的循环依赖。
 5. run start/end commit 与 source digest 完全相同；
 6. 结果作为 Git blob 发布到 `calmodel-l0-v5-holdout-evidence`。
 
-consumption 一旦成功，即使运行中断也不会恢复机会。authorization、consumption
-和 evidence tag 当前均不应提前创建。
+consumption 一旦成功，即使运行中断也不会恢复机会。
 
-## 10. 如何运行与下一道门
+## 10. 唯一一次 V5 holdout 的最终状态
+
+2026-07-27，源码锁、显式授权与消费按冻结顺序成功发布：
+
+- `calmodel-l0-v5-source-locked`
+- `calmodel-l0-v5-holdout-authorized`
+- `calmodel-l0-v5-holdout-consumed`
+
+消费凭证和本地 reservation 都绑定到源码锁定提交
+`d43651f4e06f513cddbb6dfe354dd9073f46b0a1`、协议 SHA
+`51a4f561bceb23de2c9c483895b82e2f5b1cd4168736b22b166e236be6ce1aae`
+与 source SHA
+`063888a18c098106780b82a141ba1785a2b4e4bb7b6f4785224016c3728d5246`。
+
+运行随后在构造 `identity_scrambled_at_occlusion` 负对照时终止：
+
+```text
+ERROR: identity scramble requires both reference roles
+```
+
+这表示本次 holdout 收集出的 active identity 事件，不能满足冻结实现所要求的
+跨 episode、按运动角色替换参考的结构条件。它发生在完整结果与 gates 生成前，
+所以不是“模型通过”或“模型分数不及格”，而是实验设计对该 holdout 样本覆盖的
+前置条件没有满足。
+
+最终可审计状态为：
+
+- 本地 reservation：`consumed_before_first_episode`；
+- 正式 holdout result：未生成；
+- `calmodel-l0-v5-holdout-evidence`：未生成；
+- 唯一一次机会：已消费，按协议不可重试；
+- 结论：V5 holdout 未验证当前语言可读性主张。
+
+失败记录保存在：
+
+```text
+results/V2-L0-language-readout-holdout-v5-failure.json
+SHA-256 4b527f911bcdd803e573308ec80f6a1cfa9ade2e43b93679993dd2c22f5f947d
+
+results/V2-L0-language-readout-holdout-v5-reservation.json
+SHA-256 bfdefd0185f74f114fe45880208d8c11f21596db4b3a6987144c9f354abbe2d7
+```
+
+若要继续验证，必须把这次结果保留为不可变负证据，另行设计并审查新的协议、
+新的未见数据和新的独立一次性注册表；不能修改 V5 后复用本次 holdout。
+
+## 11. 如何重复已允许的部分
 
 可重复 development：
 
@@ -214,19 +259,5 @@ uv run cal-v2-l0-language --split development
 uv run pytest tests/test_v2_l0_language_readout.py -q
 ```
 
-当前命令会拒绝 holdout：
-
-```bash
-uv run cal-v2-l0-language --split holdout
-```
-
-发布 source-lock（只能在 V5 clean commit 上执行）：
-
-```bash
-uv run cal-v2-l0-language \
-  --protocol experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V5.json \
-  --publish-source-lock
-```
-
-source-lock 成功后仍不能运行 holdout。必须由用户另行明确授权，届时才能发布
-authorization tag，并执行唯一一次 V5 holdout。
+V5 holdout 已消费，不能再次运行。可以重复的只有 development 与机制回归测试；
+任何新的 holdout 都必须使用新的协议版本、未见数据和新的 tag 名称。
