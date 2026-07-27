@@ -355,7 +355,8 @@ V7 原设计中，source-lock 只允许创建第一个 tag，authorization 必�
 创建；成功或失败再分别发布 evidence。事后审查已经否决这套设计，因此 V7 的
 authorization、consumption、result 和 failure tags 现在永久禁止创建。V8
 候选改用唯一 attempt 身份和单一 terminal evidence CAS tag，使成功与失败
-只能有一个终态；跨机器恢复还必须由操作者明确确认原进程已经终止。
+只能有一个终态；跨机器恢复还必须等冻结的最短等待期结束，并由操作者明确
+确认原进程已经终止。
 
 V7 exact source SHA：
 `bc86f58979a8453efedaf25135d907edb2de1e6a230e90e8e1b1edf473cf613b`

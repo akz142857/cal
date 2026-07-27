@@ -631,6 +631,63 @@ def test_source_lock_publication_certificate_is_exact(
     ]
 
 
+def test_v8_source_lock_checks_v7_origin_before_publication(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    protocol = {
+        "protocol_version": 8,
+        "shared_git_registry": {
+            "remote": "origin",
+            "source_lock_tag": "v8-source",
+        },
+    }
+    monkeypatch.setattr(
+        language,
+        "_load_protocol",
+        lambda path: (protocol, "a" * 64),
+    )
+    monkeypatch.setattr(
+        language,
+        "capture_provenance",
+        lambda root: {
+            "git_dirty": False,
+            "git_commit": "b" * 40,
+            "source_sha256": "c" * 64,
+        },
+    )
+    monkeypatch.setattr(
+        language,
+        "_expected_source_lock_certificate",
+        lambda *args: {"certificate_type": "l0_exact_source_lock"},
+    )
+    monkeypatch.setattr(
+        language,
+        "_require_historical_v5_failure_evidence",
+        lambda current: {},
+    )
+    monkeypatch.setattr(
+        language,
+        "_require_superseded_v7_origin_state",
+        lambda current: (_ for _ in ()).throw(
+            RuntimeError("V7 state invalid")
+        ),
+    )
+    published = False
+
+    def capture_publish(**kwargs: object) -> None:
+        nonlocal published
+        published = True
+
+    monkeypatch.setattr(
+        language, "_publish_annotated_tag", capture_publish
+    )
+
+    with pytest.raises(RuntimeError, match="V7 state invalid"):
+        language.publish_v2_l0_source_lock()
+
+    assert published is False
+
+
 def test_v5_failure_evidence_publication_is_content_addressed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -715,6 +772,10 @@ def test_v8_owned_consumed_failure_is_recorded_and_published(
                     "attempt_id": "attempt-a",
                     "source_lock_tag_object_sha": "1" * 40,
                     "holdout_authorization_tag_object_sha": "2" * 40,
+                    "consumed_at_utc": "2000-01-01T00:00:00+00:00",
+                    "recovery_not_before_utc": (
+                        "2000-01-01T06:00:00+00:00"
+                    ),
                 },
                 "d" * 40,
                 "f" * 40,
@@ -753,6 +814,10 @@ def test_v8_owned_consumed_failure_is_recorded_and_published(
             "consumption_acquired": True,
             "consumption_tag_object_sha": "f" * 40,
             "phase": "consumed_before_local_reservation",
+            "locked_git_commit": "d" * 40,
+            "locked_source_sha256": "e" * 64,
+            "source_lock_tag_object_sha": "1" * 40,
+            "holdout_authorization_tag_object_sha": "2" * 40,
         },
     )
 
@@ -855,6 +920,8 @@ def test_v8_failure_records_result_written_pending_evidence(
                 "attempt_id": "attempt-a",
                 "source_lock_tag_object_sha": "1" * 40,
                 "holdout_authorization_tag_object_sha": "2" * 40,
+                "consumed_at_utc": "2000-01-01T00:00:00+00:00",
+                "recovery_not_before_utc": "2000-01-01T06:00:00+00:00",
             },
             "d" * 40,
             "f" * 40,
@@ -891,6 +958,10 @@ def test_v8_failure_records_result_written_pending_evidence(
             "consumption_tag_object_sha": "f" * 40,
             "phase": "result_written_pending_evidence",
             "result_sha256": result_sha,
+            "locked_git_commit": "d" * 40,
+            "locked_source_sha256": "e" * 64,
+            "source_lock_tag_object_sha": "1" * 40,
+            "holdout_authorization_tag_object_sha": "2" * 40,
         },
     )
 
@@ -948,7 +1019,11 @@ def test_v8_orphan_recovery_uses_origin_attempt_and_exact_tag_oid(
     monkeypatch.setattr(
         language,
         "_require_source_lock_registry",
-        lambda *args, **kwargs: {},
+        lambda *args, **kwargs: {
+            "source_lock": {"git_commit": "d" * 40},
+            "source_lock_tag_object_sha": "1" * 40,
+            "holdout_authorization_tag_object_sha": "2" * 40,
+        },
     )
     monkeypatch.setattr(
         language,
@@ -965,6 +1040,8 @@ def test_v8_orphan_recovery_uses_origin_attempt_and_exact_tag_oid(
                 "attempt_id": "origin-attempt",
                 "source_lock_tag_object_sha": "1" * 40,
                 "holdout_authorization_tag_object_sha": "2" * 40,
+                "consumed_at_utc": "2000-01-01T00:00:00+00:00",
+                "recovery_not_before_utc": "2000-01-01T06:00:00+00:00",
             },
             "d" * 40,
             consumption_oid,
@@ -1001,3 +1078,113 @@ def test_v8_orphan_recovery_uses_origin_attempt_and_exact_tag_oid(
     assert state["consumption_tag_object_sha"] == consumption_oid
     assert state["operator_recovery_confirmed"] is True
     assert recovered["terminal_evidence"]["outcome"] == "failure"
+
+
+def test_v8_orphan_recovery_rejects_wrong_registry_chain(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    digest = "a" * 64
+    protocol = {
+        "protocol_version": 8,
+        "exact_source_sha256": "c" * 64,
+        "shared_git_registry": {
+            "remote": "origin",
+            "holdout_consumption_tag": "v8-consumed",
+        },
+    }
+    monkeypatch.setattr(
+        language, "_load_protocol", lambda path: (protocol, digest)
+    )
+    monkeypatch.setattr(
+        language,
+        "_require_source_lock_registry",
+        lambda *args, **kwargs: {
+            "source_lock": {"git_commit": "d" * 40},
+            "source_lock_tag_object_sha": "1" * 40,
+            "holdout_authorization_tag_object_sha": "2" * 40,
+        },
+    )
+    monkeypatch.setattr(
+        language,
+        "_load_registry_certificate",
+        lambda **kwargs: (
+            {
+                "certificate_schema_version": 1,
+                "certificate_type": "one_shot_consumption",
+                "split": "holdout",
+                "protocol_sha256": digest,
+                "git_commit": "d" * 40,
+                "source_sha256": "c" * 64,
+                "status": "consumed_before_first_episode",
+                "attempt_id": "origin-attempt",
+                "source_lock_tag_object_sha": "9" * 40,
+                "holdout_authorization_tag_object_sha": "2" * 40,
+                "consumed_at_utc": "2000-01-01T00:00:00+00:00",
+                "recovery_not_before_utc": "2000-01-01T06:00:00+00:00",
+            },
+            "d" * 40,
+            "b" * 40,
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match="consumption evidence mismatch"):
+        language.recover_v2_l0_v8_orphaned_holdout(
+            expected_consumption_tag_object_sha="b" * 40,
+            reason="confirmed crash",
+            confirm_original_run_terminated=True,
+        )
+
+
+def test_v8_orphan_recovery_enforces_not_before_time(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    digest = "a" * 64
+    protocol = {
+        "protocol_version": 8,
+        "exact_source_sha256": "c" * 64,
+        "shared_git_registry": {
+            "remote": "origin",
+            "holdout_consumption_tag": "v8-consumed",
+        },
+    }
+    monkeypatch.setattr(
+        language, "_load_protocol", lambda path: (protocol, digest)
+    )
+    monkeypatch.setattr(
+        language,
+        "_require_source_lock_registry",
+        lambda *args, **kwargs: {
+            "source_lock": {"git_commit": "d" * 40},
+            "source_lock_tag_object_sha": "1" * 40,
+            "holdout_authorization_tag_object_sha": "2" * 40,
+        },
+    )
+    monkeypatch.setattr(
+        language,
+        "_load_registry_certificate",
+        lambda **kwargs: (
+            {
+                "certificate_schema_version": 1,
+                "certificate_type": "one_shot_consumption",
+                "split": "holdout",
+                "protocol_sha256": digest,
+                "git_commit": "d" * 40,
+                "source_sha256": "c" * 64,
+                "status": "consumed_before_first_episode",
+                "attempt_id": "origin-attempt",
+                "source_lock_tag_object_sha": "1" * 40,
+                "holdout_authorization_tag_object_sha": "2" * 40,
+                "consumed_at_utc": "2999-01-01T00:00:00+00:00",
+                "recovery_not_before_utc": "2999-01-01T06:00:00+00:00",
+            },
+            "d" * 40,
+            "b" * 40,
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match="minimum age"):
+        language.recover_v2_l0_v8_orphaned_holdout(
+            expected_consumption_tag_object_sha="b" * 40,
+            reason="confirmed crash",
+            confirm_original_run_terminated=True,
+        )

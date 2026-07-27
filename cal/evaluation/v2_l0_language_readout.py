@@ -13,6 +13,7 @@ import hashlib
 import inspect
 import json
 from dataclasses import asdict, dataclass, replace
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 from uuid import uuid4
@@ -2899,6 +2900,8 @@ def _load_v8_terminal_evidence(
     expected_consumption_tag_object_sha: str,
     expected_source_lock_tag_object_sha: str,
     expected_authorization_tag_object_sha: str,
+    expected_git_commit: str,
+    expected_source_sha256: str,
 ) -> dict[str, Any]:
     registry = protocol["shared_git_registry"]
     tag = _v8_terminal_evidence_tag(protocol)
@@ -2933,6 +2936,8 @@ def _load_v8_terminal_evidence(
         != expected_source_lock_tag_object_sha
         or certificate.get("holdout_authorization_tag_object_sha")
         != expected_authorization_tag_object_sha
+        or certificate.get("git_commit") != expected_git_commit
+        or certificate.get("source_sha256") != expected_source_sha256
         or certificate.get("git_blob") != blob
         or certificate.get(digest_key)
         != hashlib.sha256(raw).hexdigest()
@@ -3007,6 +3012,14 @@ def _require_superseded_v7_origin_state(
 ) -> None:
     predecessor = protocol["superseded_v7_source_lock"]
     registry = predecessor["registry"]
+    expected_forbidden = {
+        "calmodel-l0-v7-holdout-authorized",
+        "calmodel-l0-v7-holdout-consumed",
+        "calmodel-l0-v7-holdout-evidence",
+        "calmodel-l0-v7-holdout-failure-evidence",
+    }
+    if set(registry["permanently_forbidden_tags"]) != expected_forbidden:
+        raise RuntimeError("V7 permanently forbidden tag set mismatch")
     _, target, tag_object_sha = _load_registry_certificate(
         remote=registry["remote"],
         tag=predecessor["tag"],
@@ -3115,6 +3128,8 @@ def publish_v2_l0_source_lock(
     )
     if int(protocol["protocol_version"]) in {7, 8}:
         _require_historical_v5_failure_evidence(protocol)
+    if int(protocol["protocol_version"]) == 8:
+        _require_superseded_v7_origin_state(protocol)
     _publish_annotated_tag(
         remote=registry["remote"],
         tag=registry["source_lock_tag"],
@@ -3249,6 +3264,29 @@ def _run_v2_l0_language_readout(
             )
         if int(protocol["protocol_version"]) == 8 and attempt_state is None:
             raise RuntimeError("V2-L0 V8 holdout attempt state is absent")
+        consumed_at = datetime.now(timezone.utc)
+        if int(protocol["protocol_version"]) == 8:
+            attempt_state.update(
+                {
+                    "locked_git_commit": run_start["git_commit"],
+                    "locked_source_sha256": run_start["source_sha256"],
+                    "source_lock_tag_object_sha": registry_evidence[
+                        "source_lock_tag_object_sha"
+                    ],
+                    "holdout_authorization_tag_object_sha": (
+                        registry_evidence[
+                            "holdout_authorization_tag_object_sha"
+                        ]
+                    ),
+                }
+            )
+        recovery_not_before = consumed_at + timedelta(
+            seconds=int(
+                protocol["authorization"].get(
+                    "orphan_recovery_minimum_age_seconds", 0
+                )
+            )
+        )
         consumption = _reserve_shared_one_shot(
             remote=registry["remote"],
             tag=registry["holdout_consumption_tag"],
@@ -3270,6 +3308,10 @@ def _run_v2_l0_language_readout(
                         registry_evidence[
                             "holdout_authorization_tag_object_sha"
                         ]
+                    ),
+                    "consumed_at_utc": consumed_at.isoformat(),
+                    "recovery_not_before_utc": (
+                        recovery_not_before.isoformat()
                     ),
                 }
                 if int(protocol["protocol_version"]) == 8
@@ -3656,11 +3698,16 @@ def _record_v8_holdout_failure_if_owned(
         != attempt_state.get("attempt_id")
         or consumption_tag_object_sha
         != attempt_state.get("consumption_tag_object_sha")
+        or consumption_target != attempt_state.get("locked_git_commit")
+        or consumption.get("source_sha256")
+        != attempt_state.get("locked_source_sha256")
+        or consumption.get("source_lock_tag_object_sha")
+        != attempt_state.get("source_lock_tag_object_sha")
+        or consumption.get("holdout_authorization_tag_object_sha")
+        != attempt_state.get("holdout_authorization_tag_object_sha")
+        or not isinstance(consumption.get("consumed_at_utc"), str)
         or not isinstance(
-            consumption.get("source_lock_tag_object_sha"), str
-        )
-        or not isinstance(
-            consumption.get("holdout_authorization_tag_object_sha"), str
+            consumption.get("recovery_not_before_utc"), str
         )
     ):
         raise RuntimeError(
@@ -3698,6 +3745,8 @@ def _record_v8_holdout_failure_if_owned(
             expected_authorization_tag_object_sha=consumption[
                 "holdout_authorization_tag_object_sha"
             ],
+            expected_git_commit=consumption_target,
+            expected_source_sha256=consumption["source_sha256"],
         )
         return
     failure_path = PROJECT_ROOT / document["result_paths"]["holdout_failure"]
@@ -3786,6 +3835,8 @@ def _record_v8_holdout_failure_if_owned(
             expected_authorization_tag_object_sha=consumption[
                 "holdout_authorization_tag_object_sha"
             ],
+            expected_git_commit=consumption_target,
+            expected_source_sha256=consumption["source_sha256"],
         )
         return
     try:
@@ -3829,6 +3880,8 @@ def _record_v8_holdout_failure_if_owned(
             expected_authorization_tag_object_sha=consumption[
                 "holdout_authorization_tag_object_sha"
             ],
+            expected_git_commit=consumption_target,
+            expected_source_sha256=consumption["source_sha256"],
         )
 
 
@@ -3859,7 +3912,7 @@ def recover_v2_l0_v8_orphaned_holdout(
     protocol, protocol_digest = _load_protocol(protocol_path)
     if int(protocol["protocol_version"]) != 8:
         raise RuntimeError("orphan recovery requires V2-L0 V8")
-    _require_source_lock_registry(
+    registry_evidence = _require_source_lock_registry(
         protocol, protocol_digest, require_authorization=True
     )
     registry = protocol["shared_git_registry"]
@@ -3874,18 +3927,35 @@ def recover_v2_l0_v8_orphaned_holdout(
         or consumption.get("split") != "holdout"
         or consumption.get("protocol_sha256") != protocol_digest
         or consumption.get("git_commit") != target
+        or target
+        != registry_evidence["source_lock"]["git_commit"]
         or consumption.get("source_sha256")
         != protocol["exact_source_sha256"]
+        or consumption.get("source_lock_tag_object_sha")
+        != registry_evidence["source_lock_tag_object_sha"]
+        or consumption.get("holdout_authorization_tag_object_sha")
+        != registry_evidence[
+            "holdout_authorization_tag_object_sha"
+        ]
         or consumption.get("status") != "consumed_before_first_episode"
         or not isinstance(consumption.get("attempt_id"), str)
-        or not isinstance(
-            consumption.get("source_lock_tag_object_sha"), str
-        )
-        or not isinstance(
-            consumption.get("holdout_authorization_tag_object_sha"), str
-        )
+        or not isinstance(consumption.get("consumed_at_utc"), str)
+        or not isinstance(consumption.get("recovery_not_before_utc"), str)
     ):
         raise RuntimeError("orphan recovery consumption evidence mismatch")
+    try:
+        recovery_not_before = datetime.fromisoformat(
+            consumption["recovery_not_before_utc"]
+        )
+    except ValueError as exc:
+        raise RuntimeError(
+            "invalid orphan recovery not-before timestamp"
+        ) from exc
+    if (
+        recovery_not_before.tzinfo is None
+        or datetime.now(timezone.utc) < recovery_not_before
+    ):
+        raise RuntimeError("orphan recovery minimum age has not elapsed")
     attempt_state = {
         "attempt_id": consumption["attempt_id"],
         "consumption_acquired": True,
@@ -3893,6 +3963,14 @@ def recover_v2_l0_v8_orphaned_holdout(
         "operator_recovery_confirmed": True,
         "operator_recovery_reason": reason.strip(),
         "phase": "origin_consumed_process_terminated_before_terminal_evidence",
+        "locked_git_commit": target,
+        "locked_source_sha256": consumption["source_sha256"],
+        "source_lock_tag_object_sha": registry_evidence[
+            "source_lock_tag_object_sha"
+        ],
+        "holdout_authorization_tag_object_sha": registry_evidence[
+            "holdout_authorization_tag_object_sha"
+        ],
     }
     _record_v8_holdout_failure_if_owned(
         protocol_path=protocol_path,
@@ -3913,6 +3991,8 @@ def recover_v2_l0_v8_orphaned_holdout(
         expected_authorization_tag_object_sha=consumption[
             "holdout_authorization_tag_object_sha"
         ],
+        expected_git_commit=target,
+        expected_source_sha256=consumption["source_sha256"],
     )
     return {
         "consumption_tag_object_sha": tag_object_sha,
