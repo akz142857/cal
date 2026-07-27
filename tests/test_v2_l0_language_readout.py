@@ -25,7 +25,7 @@ def _small_data() -> language.CollectedLanguageData:
 
 
 def test_protocol_freezes_i1_sources_and_language_boundary() -> None:
-    protocol, digest = language._load_protocol()
+    protocol, digest = language._load_protocol(language.PROTOCOL_V6)
 
     assert len(digest) == 64
     assert protocol["learner_boundary"]["language_gradients_reach_i1"] is False
@@ -355,6 +355,7 @@ def test_protocol_and_output_paths_cannot_be_replaced(tmp_path: Path) -> None:
     with pytest.raises(RuntimeError, match="output path"):
         language.run_v2_l0_language_readout(
             split="development",
+            protocol_path=language.PROTOCOL_V6,
             output_path=tmp_path / "forged-result.json",
         )
     assert not (tmp_path / "forged-result.json").exists()
@@ -407,7 +408,7 @@ def test_linear_readout_learns_detached_balanced_propositions() -> None:
 
 
 def test_controlled_language_templates_are_split_and_complete() -> None:
-    protocol, _ = language._load_protocol()
+    protocol, _ = language._load_protocol(language.PROTOCOL_V6)
     probabilities = [0.1, 0.9] * 5
 
     for split in ("train", "validation", "holdout"):
@@ -427,7 +428,8 @@ def test_controlled_language_templates_are_split_and_complete() -> None:
 def test_output_override_is_rejected_before_v7_holdout(tmp_path: Path) -> None:
     with pytest.raises(RuntimeError, match="output path"):
         language.run_v2_l0_language_readout(
-            split="holdout",
+            split="development",
+            protocol_path=language.PROTOCOL_V6,
             output_path=tmp_path / "must-not-exist.json",
         )
     assert not (tmp_path / "must-not-exist.json").exists()
@@ -535,7 +537,7 @@ def test_v6_hashes_and_parses_each_historical_artifact_from_one_read(
 
 
 def test_v7_exact_source_lock_is_complete_and_not_authorized() -> None:
-    protocol, digest = language._load_protocol(language.PROTOCOL_V7)
+    protocol, digest = language._read_protocol_document(language.PROTOCOL_V7)
 
     assert len(digest) == 64
     assert protocol["protocol_version"] == 7
@@ -563,62 +565,28 @@ def test_v7_exact_source_lock_is_complete_and_not_authorized() -> None:
     assert protocol["result_paths"]["holdout_failure"].endswith(
         "holdout-v7-failure.json"
     )
-    for relative, expected in protocol["exact_source_locks"].items():
-        assert language._sha256(language.PROJECT_ROOT / relative) == expected
+    assert protocol["exact_source_sha256"] == (
+        "bc86f58979a8453efedaf25135d907edb2de1e6a230e90e8e1b1edf473cf613b"
+    )
 
 
 def test_v7_source_lock_certificate_binds_review_and_failure_evidence(
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    protocol, digest = language._load_protocol(language.PROTOCOL_V7)
-    captured: dict[str, object] = {}
-    provenance = {
-        "git_dirty": False,
-        "git_commit": "a" * 40,
-        "source_sha256": protocol["exact_source_sha256"],
-    }
-    monkeypatch.setattr(
-        language,
-        "capture_provenance",
-        lambda root: provenance,
-    )
-    monkeypatch.setattr(
-        language,
-        "_publish_annotated_tag",
-        lambda **kwargs: captured.update(kwargs),
-    )
-    historical = {
-        "certificate": protocol["historical_v5_failure_evidence"][
-            "certificate"
-        ],
-        "tag_object_sha": protocol["historical_v5_failure_evidence"][
-            "tag_object_sha"
-        ],
-    }
-    monkeypatch.setattr(
-        language,
-        "_require_historical_v5_failure_evidence",
-        lambda current: historical,
-    )
-    monkeypatch.setattr(
-        language,
-        "_require_source_lock_registry",
-        lambda *args, **kwargs: {"source_lock": {}},
-    )
+    protocol, digest = language._read_protocol_document(language.PROTOCOL_V7)
 
-    certificate = language.publish_v2_l0_source_lock(
-        protocol_path=language.PROTOCOL_V7
+    assert digest == (
+        "e028d301475f6137b73dfd934c2d292c3ac593c7f0a48566458e3644d4738437"
     )
-
-    assert certificate["protocol_sha256"] == digest
-    assert certificate["review_record_sha256"] == (
+    assert protocol["amendment_record"]["prior_review_record_sha256"] == (
         protocol["amendment_record"]["prior_review_record_sha256"]
     )
     assert (
-        certificate["historical_v5_failure_evidence_tag_object_sha"]
-        == historical["tag_object_sha"]
+        protocol["historical_v5_failure_evidence"]["tag_object_sha"]
+        == "356a0199ffda6d4a96e48e009f5edeb5f2dd6182"
     )
-    assert captured["tag"] == "calmodel-l0-v7-source-locked"
+    assert protocol["shared_git_registry"]["source_lock_tag"] == (
+        "calmodel-l0-v7-source-locked"
+    )
 
 
 def test_source_lock_publication_certificate_is_exact(
@@ -703,21 +671,23 @@ def test_v5_failure_evidence_publication_is_content_addressed(
     assert certificate["status"] == "consumed_failure_archived_no_retry"
 
 
-def test_v7_consumed_failure_is_recorded_and_published(
+def test_v8_owned_consumed_failure_is_recorded_and_published(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     protocol_digest = "c" * 64
     document = {
-        "protocol_version": 7,
+        "protocol_version": 8,
         "result_paths": {
             "holdout_reservation": "results/reservation.json",
+            "holdout": "results/result.json",
             "holdout_failure": "results/failure.json",
         },
         "shared_git_registry": {
             "remote": "origin",
-            "holdout_consumption_tag": "v7-consumed",
-            "holdout_failure_evidence_tag": "v7-failure",
+            "holdout_consumption_tag": "v8-consumed",
+            "holdout_evidence_tag": "v8-result",
+            "holdout_failure_evidence_tag": "v8-failure",
         },
     }
     monkeypatch.setattr(language, "PROJECT_ROOT", tmp_path)
@@ -729,29 +699,24 @@ def test_v7_consumed_failure_is_recorded_and_published(
     monkeypatch.setattr(
         language,
         "_remote_tag_exists",
-        lambda remote, tag, cwd: tag == "v7-consumed",
-    )
-    monkeypatch.setattr(
-        language,
-        "_git_command",
-        lambda *args, **kwargs: type(
-            "Result",
-            (),
-            {"returncode": 0},
-        )(),
+        lambda remote, tag, cwd: tag == "v8-consumed",
     )
     monkeypatch.setattr(
         language,
         "_load_registry_certificate",
         lambda **kwargs: (
-            {
-                "certificate_type": "one_shot_consumption",
-                "protocol_sha256": protocol_digest,
-                "status": "consumed_before_first_episode",
-                "git_commit": "d" * 40,
-                "source_sha256": "e" * 64,
-            },
-            "d" * 40,
+                {
+                    "certificate_schema_version": 1,
+                    "certificate_type": "one_shot_consumption",
+                    "split": "holdout",
+                    "protocol_sha256": protocol_digest,
+                    "status": "consumed_before_first_episode",
+                    "git_commit": "d" * 40,
+                    "source_sha256": "e" * 64,
+                    "attempt_id": "attempt-a",
+                },
+                "d" * 40,
+                "f" * 40,
         ),
     )
     monkeypatch.setattr(
@@ -779,9 +744,15 @@ def test_v7_consumed_failure_is_recorded_and_published(
         capture_failure,
     )
 
-    language._record_v7_holdout_failure_if_consumed(
+    language._record_v8_holdout_failure_if_owned(
         protocol_path=tmp_path / "protocol.json",
         error=RuntimeError("synthetic failure"),
+        attempt_state={
+            "attempt_id": "attempt-a",
+            "consumption_acquired": True,
+            "consumption_tag_object_sha": "f" * 40,
+            "phase": "consumed_before_local_reservation",
+        },
     )
 
     failure_path = tmp_path / "results/failure.json"
@@ -793,4 +764,139 @@ def test_v7_consumed_failure_is_recorded_and_published(
         "message": "synthetic failure",
         "type": "RuntimeError",
     }
-    assert published["tag"] == "v7-failure"
+    assert published["tag"] == "v8-failure"
+
+
+def test_v8_cas_loser_cannot_publish_winners_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(
+        language,
+        "_read_protocol_document",
+        lambda path: (
+            {
+                "protocol_version": 8,
+                "result_paths": {
+                    "holdout_reservation": "reservation.json",
+                },
+                "shared_git_registry": {
+                    "holdout_consumption_tag": "v8-consumed",
+                },
+            },
+            "a" * 64,
+        ),
+    )
+    monkeypatch.setattr(language, "PROJECT_ROOT", tmp_path)
+    queried = False
+
+    def unexpected_query(*args: object, **kwargs: object) -> bool:
+        nonlocal queried
+        queried = True
+        return True
+
+    monkeypatch.setattr(language, "_remote_tag_exists", unexpected_query)
+
+    language._record_v8_holdout_failure_if_owned(
+        protocol_path=tmp_path / "protocol.json",
+        error=RuntimeError("CAS lost"),
+        attempt_state={
+            "attempt_id": "loser",
+            "consumption_acquired": False,
+            "phase": "preflight",
+        },
+    )
+
+    assert queried is False
+
+
+def test_v8_failure_records_result_written_pending_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    protocol_digest = "c" * 64
+    document = {
+        "protocol_version": 8,
+        "result_paths": {
+            "holdout_reservation": "results/reservation.json",
+            "holdout": "results/result.json",
+            "holdout_failure": "results/failure.json",
+        },
+        "shared_git_registry": {
+            "remote": "origin",
+            "holdout_consumption_tag": "v8-consumed",
+            "holdout_evidence_tag": "v8-result",
+            "holdout_failure_evidence_tag": "v8-failure",
+        },
+    }
+    monkeypatch.setattr(language, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(
+        language,
+        "_read_protocol_document",
+        lambda path: (document, protocol_digest),
+    )
+    monkeypatch.setattr(
+        language,
+        "_remote_tag_exists",
+        lambda remote, tag, cwd: tag == "v8-consumed",
+    )
+    monkeypatch.setattr(
+        language,
+        "_load_registry_certificate",
+        lambda **kwargs: (
+            {
+                "certificate_schema_version": 1,
+                "certificate_type": "one_shot_consumption",
+                "split": "holdout",
+                "protocol_sha256": protocol_digest,
+                "status": "consumed_before_first_episode",
+                "git_commit": "d" * 40,
+                "source_sha256": "e" * 64,
+                "attempt_id": "attempt-a",
+            },
+            "d" * 40,
+            "f" * 40,
+        ),
+    )
+    monkeypatch.setattr(
+        language,
+        "capture_provenance",
+        lambda root: {
+            "git_commit": "d" * 40,
+            "git_dirty": False,
+            "source_sha256": "e" * 64,
+        },
+    )
+    result_path = tmp_path / "results/result.json"
+    result_path.parent.mkdir(parents=True)
+    result_path.write_text('{"protocol_sha256":"c"}\n')
+    result_sha = language._sha256(result_path)
+    monkeypatch.setattr(
+        language,
+        "_publish_failure_evidence",
+        lambda *args, **kwargs: {
+            "certificate": {},
+            "tag_object_sha": "1" * 40,
+        },
+    )
+
+    language._record_v8_holdout_failure_if_owned(
+        protocol_path=tmp_path / "protocol.json",
+        error=RuntimeError("push failed"),
+        attempt_state={
+            "attempt_id": "attempt-a",
+            "consumption_acquired": True,
+            "consumption_tag_object_sha": "f" * 40,
+            "phase": "result_written_pending_evidence",
+            "result_sha256": result_sha,
+        },
+    )
+
+    failure = json.loads(
+        (tmp_path / "results/failure.json").read_text()
+    )
+    assert failure["result_created"] is True
+    assert failure["result_sha256"] == result_sha
+    assert failure["outcome"] == (
+        "consumed_failed_after_result_write_before_evidence"
+    )

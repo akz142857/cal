@@ -250,9 +250,12 @@ be constructed from the holdout events. V5 therefore has no passing holdout
 claim and cannot be retried. A preregistered V6 row-local counterfactual removes
 that structural dependency and passes all 24 development gates on a clean
 implementation commit. After review hardening, three independent final reviews
-report no P0/P1/P2 findings. Its V7 exact-source manifest, independent registry,
-and consumed-failure evidence path are implemented; the new holdout remains
-unopened and unauthorized. See the
+report no P0/P1/P2 findings. Its V7 exact-source lock was published as tag
+object `b8b391abc5b54aa7acbf58bef6a6cdf2c7d32664`, targeting
+`db524a3d1b65a232c2159541a79d7098227848f5`. Post-lock independent review found
+one-shot crash-recovery defects, so V7 remains unopened and unauthorized and
+must never be consumed. Those defects are being repaired under a new immutable
+V8 protocol and tag namespace. See the
 [L0 language-readout report](docs/experiments/V2_L0_LANGUAGE_READOUT.md).
 
 The measured evidence, limitations, and M4 decision are documented in the

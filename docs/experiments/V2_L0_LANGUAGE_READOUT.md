@@ -7,9 +7,12 @@ P0/P1 阻塞；V5 exact source-lock 已发布。唯一一次 V5 review holdout �
 授权并被原子消费，但身份负对照无法在该 holdout 事件集合上构造，运行在产出
 指标前终止。协议禁止重试，因此没有 V5 holdout 通过结论。后续 V6 已在实现前
 冻结逐行身份反事实，development 全部 24 门通过；首轮独立审查发现的两个 P1
-与两个 P2 已修复，三路最终复审均无 P0/P1/P2。当前允许进入 V7 exact
-source-lock。V7 manifest、全新 registry 和消费后失败证据防线已经实现，等待
-clean source-lock commit/tag；新的 holdout 仍未授权、未运行。
+与两个 P2 已修复，三路最终复审均无 P0/P1/P2。V7 exact source-lock 已发布：
+tag object 为 `b8b391abc5b54aa7acbf58bef6a6cdf2c7d32664`，目标提交为
+`db524a3d1b65a232c2159541a79d7098227848f5`。发布后的三路独立攻击审查发现
+消费所有权、崩溃恢复、结果阶段标记、run-start 复核和证据字节一致性问题，
+因此 V7 被否决，永不授权、永不消费，也绝不移动原 tag。修复进入全新的 V8
+协议与 tag 命名空间；新的 holdout 仍未授权、未运行。
 
 ## 1. 这个实验究竟验证什么
 
@@ -369,5 +372,6 @@ uv run cal-v2-l0-language --split development
 uv run pytest tests/test_v2_l0_language_readout.py -q
 ```
 
-V5 holdout 已消费，不能再次运行。新的 holdout 已通过 V6 development/review，
-但仍必须先完成 V7 source-lock，之后继续等待用户明确授权。
+V5 holdout 已消费，不能再次运行。V7 source-lock 已发布，但事后审查否决了
+授权，因此也不能运行。新的 holdout 已通过 V6 development/review；必须先
+完成 V8 修复、独立复审和全新 source-lock，之后仍要等待用户另行明确授权。

@@ -414,6 +414,21 @@ def test_shared_git_registry_is_cross_clone_and_result_is_immutable(
     winner = next(
         worktree for worktree, success in attempts if success
     )
+    loser = next(
+        worktree for worktree, success in attempts if not success
+    )
+    loser_local_tag = subprocess.run(
+        (
+            "git",
+            "rev-parse",
+            "--verify",
+            "refs/tags/validation-consumed",
+        ),
+        cwd=loser,
+        capture_output=True,
+        check=False,
+    )
+    assert loser_local_tag.returncode != 0
 
     result_path = winner / "result.json"
     result_path.write_text('{"passed": true}\n', encoding="utf-8")

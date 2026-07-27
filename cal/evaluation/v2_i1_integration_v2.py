@@ -12,7 +12,7 @@ from pathlib import Path
 from statistics import mean
 import subprocess
 from time import perf_counter
-from typing import Any, Sequence
+from typing import Any, Mapping, Sequence
 from uuid import uuid4
 
 import numpy as np
@@ -601,12 +601,14 @@ def _git_command(
     cwd: str | Path | None = None,
     check: bool = True,
     text: bool = True,
+    input_data: bytes | str | None = None,
 ) -> subprocess.CompletedProcess[Any]:
     result = subprocess.run(
         ("git", *arguments),
         cwd=cwd,
         capture_output=True,
         text=text,
+        input=input_data,
         check=False,
     )
     if check and result.returncode != 0:
@@ -653,7 +655,7 @@ def _publish_annotated_tag(
     target: str,
     certificate: dict[str, Any],
     cwd: str | Path | None = None,
-) -> None:
+) -> dict[str, Any]:
     local = _git_command(
         "rev-parse",
         "--verify",
@@ -683,13 +685,39 @@ def _publish_annotated_tag(
         f"refs/tags/{tag}",
         cwd=cwd,
     ).stdout.strip()
-    _git_command(
-        "push",
-        f"--force-with-lease=refs/tags/{tag}:",
-        remote,
-        f"refs/tags/{tag}",
-        cwd=cwd,
-    )
+    try:
+        _git_command(
+            "push",
+            f"--force-with-lease=refs/tags/{tag}:",
+            remote,
+            f"refs/tags/{tag}",
+            cwd=cwd,
+        )
+    except RuntimeError as error:
+        remote_result = _git_command(
+            "ls-remote",
+            "--tags",
+            remote,
+            f"refs/tags/{tag}",
+            cwd=cwd,
+        )
+        remote_entries = {
+            reference: oid
+            for oid, reference in (
+                line.split(maxsplit=1)
+                for line in remote_result.stdout.splitlines()
+                if line.strip()
+            )
+        }
+        if remote_entries.get(f"refs/tags/{tag}") == local_oid:
+            return {
+                "certificate": unique_certificate,
+                "tag_object_sha": local_oid,
+            }
+        _git_command("tag", "-d", tag, cwd=cwd, check=False)
+        raise RuntimeError(
+            f"shared one-shot I1-V4 tag CAS was not acquired: {tag}"
+        ) from error
     remote_result = _git_command(
         "ls-remote",
         "--tags",
@@ -706,9 +734,14 @@ def _publish_annotated_tag(
         )
     }
     if remote_entries.get(f"refs/tags/{tag}") != local_oid:
+        _git_command("tag", "-d", tag, cwd=cwd, check=False)
         raise RuntimeError(
             f"shared one-shot I1-V4 tag CAS was not acquired: {tag}"
         )
+    return {
+        "certificate": unique_certificate,
+        "tag_object_sha": local_oid,
+    }
 
 
 def _reserve_shared_one_shot(
@@ -719,21 +752,25 @@ def _reserve_shared_one_shot(
     protocol_digest: str,
     git_commit: str,
     source_sha256: str,
+    attempt_id: str | None = None,
     cwd: str | Path | None = None,
-) -> None:
-    _publish_annotated_tag(
+) -> dict[str, Any]:
+    certificate = {
+        "certificate_schema_version": 1,
+        "certificate_type": "one_shot_consumption",
+        "split": split,
+        "protocol_sha256": protocol_digest,
+        "git_commit": git_commit,
+        "source_sha256": source_sha256,
+        "status": "consumed_before_first_episode",
+    }
+    if attempt_id is not None:
+        certificate["attempt_id"] = attempt_id
+    return _publish_annotated_tag(
         remote=remote,
         tag=tag,
         target=git_commit,
-        certificate={
-            "certificate_schema_version": 1,
-            "certificate_type": "one_shot_consumption",
-            "split": split,
-            "protocol_sha256": protocol_digest,
-            "git_commit": git_commit,
-            "source_sha256": source_sha256,
-            "status": "consumed_before_first_episode",
-        },
+        certificate=certificate,
         cwd=cwd,
     )
 
@@ -747,22 +784,26 @@ def _publish_result_evidence(
     protocol_digest: str,
     git_commit: str,
     source_sha256: str,
+    extra_certificate: Mapping[str, Any] | None = None,
     cwd: str | Path | None = None,
-) -> None:
+) -> dict[str, Any]:
     source = Path(path)
     raw = source.read_bytes()
     result_sha256 = hashlib.sha256(raw).hexdigest()
     blob = _git_command(
         "hash-object",
         "-w",
-        str(source),
+        "--stdin",
         cwd=cwd,
-    ).stdout.strip()
-    _publish_annotated_tag(
+        text=False,
+        input_data=raw,
+    ).stdout.decode().strip()
+    publication = _publish_annotated_tag(
         remote=remote,
         tag=tag,
         target=blob,
         certificate={
+            **dict(extra_certificate or {}),
             "certificate_schema_version": 1,
             "certificate_type": "immutable_result_evidence",
             "split": split,
@@ -774,6 +815,11 @@ def _publish_result_evidence(
         },
         cwd=cwd,
     )
+    return {
+        **publication,
+        "git_blob": blob,
+        "result_sha256": result_sha256,
+    }
 
 
 def _load_result_evidence(
@@ -847,17 +893,26 @@ def _reserve_one_shot(
     split: str,
     protocol_digest: str,
     git_commit: str,
+    attempt_id: str | None = None,
+    consumption_tag_object_sha: str | None = None,
 ) -> None:
     destination = Path(path)
     destination.parent.mkdir(parents=True, exist_ok=True)
+    reservation = {
+        "split": split,
+        "protocol_sha256": protocol_digest,
+        "git_commit": git_commit,
+        "status": "consumed_before_first_episode",
+    }
+    if attempt_id is not None:
+        reservation["attempt_id"] = attempt_id
+    if consumption_tag_object_sha is not None:
+        reservation["consumption_tag_object_sha"] = (
+            consumption_tag_object_sha
+        )
     payload = (
         json.dumps(
-            {
-                "split": split,
-                "protocol_sha256": protocol_digest,
-                "git_commit": git_commit,
-                "status": "consumed_before_first_episode",
-            },
+            reservation,
             indent=2,
             sort_keys=True,
         )

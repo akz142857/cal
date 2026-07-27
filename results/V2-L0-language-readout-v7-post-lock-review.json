@@ -1,0 +1,51 @@
+{
+  "decision": "reject_v7_authorization_and_supersede_with_v8",
+  "holdout_authorization_published": false,
+  "holdout_consumption_published": false,
+  "holdout_data_inspected": false,
+  "holdout_data_run": false,
+  "reviewed_source_lock": {
+    "protocol_sha256": "e028d301475f6137b73dfd934c2d292c3ac593c7f0a48566458e3644d4738437",
+    "source_sha256": "bc86f58979a8453efedaf25135d907edb2de1e6a230e90e8e1b1edf473cf613b",
+    "tag": "calmodel-l0-v7-source-locked",
+    "tag_object_sha": "b8b391abc5b54aa7acbf58bef6a6cdf2c7d32664",
+    "target_commit": "db524a3d1b65a232c2159541a79d7098227848f5"
+  },
+  "reviews": {
+    "freeze_implementation": {
+      "p0": 0,
+      "p1": 3,
+      "p2": 2,
+      "summary": [
+        "CAS losers can retain a local consumption tag and be mistaken for the winner.",
+        "A result written before evidence publication is recorded with the wrong failure phase.",
+        "The second run-start provenance capture is not rechecked against the exact source lock.",
+        "Runtime certificate verification is incomplete.",
+        "Result and failure blobs are hashed from a second path read."
+      ]
+    },
+    "language_claims": {
+      "p0": 0,
+      "p1": 0,
+      "p2": 1,
+      "summary": [
+        "The documentation still described the already-published V7 lock as pending."
+      ]
+    },
+    "metrics_controls": {
+      "p0": 0,
+      "p1": 1,
+      "p2": 1,
+      "summary": [
+        "A fresh clone can miss origin-only consumption because failure recovery checks local state first.",
+        "The runtime verifier does not bind the annotated source-lock tag object SHA."
+      ]
+    }
+  },
+  "required_disposition": [
+    "Never move, delete, or overwrite the published V7 source-lock tag.",
+    "Never publish V7 holdout authorization or consumption tags.",
+    "Fix the control plane and publish a new V8 protocol and tag namespace."
+  ],
+  "schema_version": 1
+}
