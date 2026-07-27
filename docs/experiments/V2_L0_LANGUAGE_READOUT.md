@@ -3,8 +3,9 @@
 日期：2026-07-27
 
 当前状态：V4 修复版 development 全部门通过，三路最终独立 review 均无
-P0/P1 阻塞；等待后续 clean commit 与 exact source-lock。新的 review holdout
-尚未运行，也尚未授权。
+P0/P1 阻塞；V5 exact source-lock 与一次性远端注册机制已实现，等待 clean
+source-lock commit 和 origin source-lock tag。新的 review holdout 尚未运行，
+也尚未授权。
 
 ## 1. 这个实验究竟验证什么
 
@@ -146,7 +147,7 @@ development，不授权 holdout。
 `results/V2-L0-language-readout-development-v4.json`
 
 当前结果 SHA-256：
-`e081d84cb3a235aee7c918c040aa9edb65bf38539409a887ee09526763035edd`
+`5ea020c4fbdc7ef8da4d632b5c996dd91a449271cebcd84f6df54dfb61e588c8`
 
 | 条件 | Macro | Self | Spatial | Permanence | Identity |
 |---|---:|---:|---:|---:|---:|
@@ -173,7 +174,33 @@ authorize_review_and_source_lock
 
 这仍是可重复 development 证据，不是 holdout 结论。
 
-## 9. 如何运行与下一道门
+## 9. V5 exact source-lock 与一次性边界
+
+V5 协议：
+
+```text
+experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V5.json
+SHA-256 6b7548bd3218e42ce1d17f7a0e07d66021a4f07188671661dbfda784455276db
+```
+
+V5 锁定最终 evaluator、测试、I1 传递依赖、provenance、环境清单、passing
+development-v4 结果以及完整 source digest。协议本身由 clean commit 和 origin
+annotated source-lock CAS tag 共同绑定，避免在协议中写入包含自身的 commit
+hash 所造成的循环依赖。
+
+未来 holdout 必须依次满足：
+
+1. clean commit 与 origin `calmodel-l0-v5-source-locked` 完全一致；
+2. 用户另行授权后，存在 `calmodel-l0-v5-holdout-authorized`；
+3. 第一条 episode 前 CAS 创建 `calmodel-l0-v5-holdout-consumed`；
+4. 第一条 episode 前原子创建本地 reservation；
+5. run start/end commit 与 source digest 完全相同；
+6. 结果作为 Git blob 发布到 `calmodel-l0-v5-holdout-evidence`。
+
+consumption 一旦成功，即使运行中断也不会恢复机会。authorization、consumption
+和 evidence tag 当前均不应提前创建。
+
+## 10. 如何运行与下一道门
 
 可重复 development：
 
@@ -193,8 +220,13 @@ uv run pytest tests/test_v2_l0_language_readout.py -q
 uv run cal-v2-l0-language --split holdout
 ```
 
-只有最终 review 无阻塞问题、全部修复完成，并生成锁定 evaluator、测试、I1
-传递依赖、development 结果、完整 provenance 和 clean commit 的后续协议后，
-才可以另行请求一次性 holdout 授权。正式 holdout 还必须先原子创建本地
-reservation 和 origin CAS consumption tag，运行前后源码一致，并把结果发布为
-不可变 evidence tag。
+发布 source-lock（只能在 V5 clean commit 上执行）：
+
+```bash
+uv run cal-v2-l0-language \
+  --protocol experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V5.json \
+  --publish-source-lock
+```
+
+source-lock 成功后仍不能运行 holdout。必须由用户另行明确授权，届时才能发布
+authorization tag，并执行唯一一次 V5 holdout。

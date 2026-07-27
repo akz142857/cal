@@ -243,7 +243,8 @@ The next L0 probe freezes I1 and tests whether controlled Chinese propositions
 about self, spatial relations, identity after reappearance, and hidden-object
 permanence are linearly readable from its entity state. Its shortcut-resistant
 V4 development run passes every frozen gate and three final independent
-reviews; the clean source lock and unopened review holdout remain pending. See the
+reviews. Its V5 exact-source-lock and one-shot origin registry are implemented;
+the source-lock tag and unopened review holdout remain pending. See the
 [L0 language-readout report](docs/experiments/V2_L0_LANGUAGE_READOUT.md).
 
 The measured evidence, limitations, and M4 decision are documented in the

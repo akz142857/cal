@@ -1078,35 +1078,17 @@
   "protocol_path": "experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V4.json",
   "protocol_sha256": "85aee950e9ff1c5ea5838112912350d90002683cce2d80b026a94dd2e748f6a9",
   "provenance": {
-    "captured_at_utc": "2026-07-27T10:21:39.003789+00:00",
-    "git_commit": "d6064e9b686039545734d260b58b40700576f662",
+    "captured_at_utc": "2026-07-27T10:35:59.373772+00:00",
+    "git_commit": "60f412108ea98b567a760171d466d6f4ba56c1dc",
     "git_dirty": true,
     "git_status": [
-      "M .gitignore",
-      " M README.md",
-      " M docs/experiments/V2_I1_NEXT_ARCHITECTURE_RESULT.md",
-      " M pyproject.toml",
-      "?? cal/evaluation/v2_i1_replay.py",
-      "?? cal/evaluation/v2_i1_replay_template.py",
-      "?? cal/evaluation/v2_l0_language_readout.py",
-      "?? docs/experiments/V2_I1_IMPLEMENTATION_AND_REAL_SCENE_VALIDATION.md",
-      "?? docs/experiments/V2_I1_REPLAY_GUIDE.md",
-      "?? docs/experiments/V2_L0_LANGUAGE_READOUT.md",
-      "?? docs/experiments/assets/v2_i1_v4_replay_seed30000.html",
-      "?? experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL.json",
-      "?? experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL.sha256",
-      "?? experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V2.json",
-      "?? experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V2.sha256",
-      "?? experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V3.json",
-      "?? experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V3.sha256",
-      "?? experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V4.json",
-      "?? experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V4.sha256",
-      "?? results/V2-L0-language-readout-development-v2.json",
-      "?? results/V2-L0-language-readout-development-v3.json",
-      "?? results/V2-L0-language-readout-development-v4.json",
-      "?? results/V2-L0-language-readout-development.json",
-      "?? tests/test_v2_i1_replay.py",
-      "?? tests/test_v2_l0_language_readout.py"
+      "M README.md",
+      " M cal/evaluation/v2_l0_language_readout.py",
+      " M docs/experiments/V2_L0_LANGUAGE_READOUT.md",
+      " M results/V2-L0-language-readout-development-v4.json",
+      " M tests/test_v2_l0_language_readout.py",
+      "?? experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V5.json",
+      "?? experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V5.sha256"
     ],
     "runtime": {
       "numpy": "2.5.1",
@@ -1156,7 +1138,7 @@
       "cal/evaluation/v2_i1_integration_v2.py": "c27f0527616fc14b6d16b022373e18323976f3cd7d844f6e49a89a6b27c8db84",
       "cal/evaluation/v2_i1_replay.py": "a2a8d0e8fa4d0d158d7240ffabe671228316e2df623c164e717037c6c3f99dfa",
       "cal/evaluation/v2_i1_replay_template.py": "9188454cf66f50ddca67919ada0035f86826219cf9c2e953ea69661a3f63bc1d",
-      "cal/evaluation/v2_l0_language_readout.py": "0d9b8abbf1b78368e4842487cd899e9796920790589b86c57a8d41c28dbbff60",
+      "cal/evaluation/v2_l0_language_readout.py": "0d8df91a2fa34316f7a9164e2d0f6db22289f7ae736e0208784112722aff64b0",
       "cal/evaluation/v2_m1.py": "01e98e40392f9cfd8c9f26a02984eff3aaa1c4049070e965325e5c27fd6cc121",
       "cal/evaluation/v2_m1_m3_confirmation.py": "50b6ca24092c262eb62e331f4961bb7e17dcd54acb1634594874c813b30d2ec7",
       "cal/evaluation/v2_m1_m3_confirmation_review.py": "f61ab7374f225554e8b7882effbacbe69add4e98163693343f143ceafd73729d",
@@ -1294,7 +1276,7 @@
       "tests/test_v2_i1_integration.py": "397fd518c25537ed0759d953acb575883d60196b151708515ad937d84933ba6f",
       "tests/test_v2_i1_integration_v2.py": "e3dd91c08abf3e24891430e63652b6b8777e82d2bd73e499a7d5479d5729be38",
       "tests/test_v2_i1_replay.py": "186561e7b5e4643e20b05665d5cc8bf6fd3916225511c719e8f32c8cdedfa042",
-      "tests/test_v2_l0_language_readout.py": "e03787a451df4b8ceeccad22dfa8f1ecb3f53ab93377c09e648614bfd691e024",
+      "tests/test_v2_l0_language_readout.py": "f1684270b4aec78413135e491e8d86bf4dc9da53429e24b610416fa934755d66",
       "tests/test_v2_m1.py": "7627b76cb747a810551932219217e738175b9d95889e829200070168f080b5a0",
       "tests/test_v2_m1_m3_confirmation.py": "77fcbc958f6c0cdbc7afe6cd6470d195fc6b270381b17bc78f2a3ee33d3de8e4",
       "tests/test_v2_m1_m3_confirmation_review.py": "4b1006947bd367e0fdc709ab703bd1cf532a78e3384b4e56f3ce0153ecebbb14",
@@ -1309,10 +1291,11 @@
       "tests/test_world.py": "3bffe606920b65944c9fba9b2d0888bc9a4dea39151e82f89484b03200b344ab",
       "uv.lock": "2de3588e7f7dff466a6927b7f093f6de352fdd4a4dbcbd8562031ea0cb7206c3"
     },
-    "source_sha256": "20d9320d41bf67526b714ae1a2be301b5024c69c4ca62b4564ecb408275daa61",
+    "source_sha256": "063888a18c098106780b82a141ba1785a2b4e4bb7b6f4785224016c3728d5246",
     "workspace": "/Users/ziy/Code/ClayCosmos/CalModel"
   },
   "result_schema_version": 2,
+  "run_start": null,
   "runtime_audits": {
     "frozen_i1_source_hashes_match": true,
     "identity_scramble_integrity": {
@@ -1456,6 +1439,7 @@
     "evaluation": 756,
     "train": 1512
   },
+  "source_lock_registry_evidence": null,
   "split": "development",
   "train_seeds": [
     33000,

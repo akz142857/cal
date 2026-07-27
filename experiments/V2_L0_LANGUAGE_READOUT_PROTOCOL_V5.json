@@ -1,0 +1,65 @@
+{
+  "protocol_name": "V2-L0 exact source lock and one-shot holdout registry",
+  "protocol_version": 5,
+  "status": "source_locked_awaiting_explicit_holdout_authorization",
+  "date": "2026-07-27",
+  "base_protocol_path": "experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V4.json",
+  "base_protocol_sha256": "85aee950e9ff1c5ea5838112912350d90002683cce2d80b026a94dd2e748f6a9",
+  "amendment_record": {
+    "prior_development_result_path": "results/V2-L0-language-readout-development-v4.json",
+    "prior_development_result_sha256": "5ea020c4fbdc7ef8da4d632b5c996dd91a449271cebcd84f6df54dfb61e588c8",
+    "prior_development_passed": true,
+    "prior_development_decision": "authorize_review_and_source_lock",
+    "reviewed_v4_commit": "60f412108ea98b567a760171d466d6f4ba56c1dc",
+    "implementation_commit": "60f412108ea98b567a760171d466d6f4ba56c1dc",
+    "holdout_runs": 0,
+    "formal_algorithm_changed_since_passing_development": false,
+    "fixed_existing_thresholds_lowered": false,
+    "development_seeds_changed": false,
+    "holdout_seeds_changed": false,
+    "reason": "Bind the reviewed V4 formal algorithm, final holdout enforcement code, tests, transitive I1 dependencies, passing development result and complete source digest. The clean source-lock commit is bound externally by an origin annotated CAS tag to avoid a self-referential commit hash inside this protocol."
+  },
+  "exact_source_locks": {
+    "cal/evaluation/v2_l0_language_readout.py": "0d8df91a2fa34316f7a9164e2d0f6db22289f7ae736e0208784112722aff64b0",
+    "tests/test_v2_l0_language_readout.py": "f1684270b4aec78413135e491e8d86bf4dc9da53429e24b610416fa934755d66",
+    "cal/model/entity_belief_graph.py": "5bd030a3dc175af3c9d0318a16210df340603cf45c93caa92865162e8a951fc8",
+    "cal/evaluation/v2_i1_integration.py": "a7cf13b4561d71c066ca2b03fd7b2bc9462981609a947b38770f5a5d2ccb0376",
+    "cal/evaluation/v2_i1_integration_v2.py": "c27f0527616fc14b6d16b022373e18323976f3cd7d844f6e49a89a6b27c8db84",
+    "cal/model/occupancy.py": "ec98ab531022f09fe6297bc2f53cff75b835ae998044a87766ee4e6eeda3e8b3",
+    "cal/model/integrated_agent.py": "f405a29d26acca77fdd701cc6d9e8a62f666f559791ccaa43e6eb8d106e7790f",
+    "cal/infra/provenance.py": "32d6c19839f97131c7d7c396a5026bafbc99fea82190b0829ad52bfc43dc232f",
+    "pyproject.toml": "08177e29a087db3c20c53f61bef463392ab08d127963bca3e67f8dc7d00a5716",
+    "uv.lock": "2de3588e7f7dff466a6927b7f093f6de352fdd4a4dbcbd8562031ea0cb7206c3"
+  },
+  "exact_source_sha256": "063888a18c098106780b82a141ba1785a2b4e4bb7b6f4785224016c3728d5246",
+  "review_attestations": {
+    "review_language_claims": "final V4 review: no P0/P1 blockers",
+    "review_metrics_controls": "final V4 review: all gates and controls independently reproduced",
+    "review_freeze_implementation": "final V4 development review: no blockers; V5 source-lock/CAS required before holdout",
+    "holdout_seeds_inspected": false,
+    "holdout_seeds_run": false
+  },
+  "shared_git_registry": {
+    "remote": "origin",
+    "source_lock_tag": "calmodel-l0-v5-source-locked",
+    "holdout_authorization_tag": "calmodel-l0-v5-holdout-authorized",
+    "holdout_consumption_tag": "calmodel-l0-v5-holdout-consumed",
+    "holdout_evidence_tag": "calmodel-l0-v5-holdout-evidence"
+  },
+  "result_paths": {
+    "development": "results/V2-L0-language-readout-development-v4.json",
+    "holdout": "results/V2-L0-language-readout-holdout-v5.json",
+    "holdout_reservation": "results/V2-L0-language-readout-holdout-v5-reservation.json"
+  },
+  "authorization": {
+    "holdout_authorized": false,
+    "source_lock_publication_required": true,
+    "explicit_origin_authorization_tag_required": true,
+    "consumption_before_first_episode": true,
+    "local_atomic_reservation_required": true,
+    "origin_cas_consumption_required": true,
+    "immutable_result_evidence_required": true,
+    "run_start_end_source_match_required": true,
+    "failure_after_consumption_does_not_restore_attempt": true
+  }
+}

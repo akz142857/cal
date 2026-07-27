@@ -345,3 +345,93 @@ def test_v1_protocol_refuses_holdout_before_review(tmp_path: Path) -> None:
             output_path=tmp_path / "must-not-exist.json",
         )
     assert not (tmp_path / "must-not-exist.json").exists()
+
+
+def test_v5_protocol_exactly_locks_sources_and_waits_for_authorization() -> None:
+    protocol, digest = language._load_protocol(language.PROTOCOL_V5)
+
+    assert len(digest) == 64
+    assert protocol["protocol_version"] == 5
+    assert (
+        protocol["status"]
+        == "source_locked_awaiting_explicit_holdout_authorization"
+    )
+    assert protocol["authorization"]["holdout_authorized"] is False
+    for relative, expected in protocol["exact_source_locks"].items():
+        assert language._sha256(language.PROJECT_ROOT / relative) == expected
+
+
+def test_v5_holdout_requires_remote_authorization_before_collection(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+
+    monkeypatch.setattr(
+        language,
+        "_remote_tag_exists",
+        lambda *args, **kwargs: False,
+    )
+
+    def reject_authorization(*args: object, **kwargs: object) -> object:
+        calls.append("authorization")
+        raise RuntimeError("authorization tag absent")
+
+    def forbidden_collection(*args: object, **kwargs: object) -> object:
+        calls.append("collection")
+        raise AssertionError("holdout collection started before authorization")
+
+    monkeypatch.setattr(
+        language, "_require_source_lock_registry", reject_authorization
+    )
+    monkeypatch.setattr(
+        language, "collect_language_data", forbidden_collection
+    )
+
+    with pytest.raises(RuntimeError, match="authorization tag absent"):
+        language.run_v2_l0_language_readout(
+            split="holdout",
+            protocol_path=language.PROTOCOL_V5,
+        )
+    assert calls == ["authorization"]
+
+
+def test_source_lock_publication_certificate_is_exact(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    protocol, digest = language._load_protocol(language.PROTOCOL_V5)
+    captured: dict[str, object] = {}
+    provenance = {
+        "git_dirty": False,
+        "git_commit": "a" * 40,
+        "source_sha256": protocol["exact_source_sha256"],
+    }
+    monkeypatch.setattr(
+        language,
+        "_load_protocol",
+        lambda path: (protocol, digest),
+    )
+    monkeypatch.setattr(
+        language,
+        "capture_provenance",
+        lambda root: provenance,
+    )
+
+    def capture_publish(**kwargs: object) -> None:
+        captured.update(kwargs)
+
+    monkeypatch.setattr(language, "_publish_annotated_tag", capture_publish)
+    monkeypatch.setattr(
+        language,
+        "_require_source_lock_registry",
+        lambda *args, **kwargs: {"source_lock": {}},
+    )
+    certificate = language.publish_v2_l0_source_lock(
+        protocol_path=language.PROTOCOL_V5
+    )
+
+    assert certificate["protocol_sha256"] == digest
+    assert certificate["source_sha256"] == protocol["exact_source_sha256"]
+    assert certificate["git_commit"] == "a" * 40
+    assert captured["tag"] == protocol["shared_git_registry"][
+        "source_lock_tag"
+    ]
