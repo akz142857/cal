@@ -424,8 +424,8 @@ def test_controlled_language_templates_are_split_and_complete() -> None:
         assert rendered[1]["predicted_true"] is True
 
 
-def test_v1_protocol_refuses_holdout_before_review(tmp_path: Path) -> None:
-    with pytest.raises(RuntimeError, match="reviewed source-locked"):
+def test_output_override_is_rejected_before_v7_holdout(tmp_path: Path) -> None:
+    with pytest.raises(RuntimeError, match="output path"):
         language.run_v2_l0_language_readout(
             split="holdout",
             output_path=tmp_path / "must-not-exist.json",
@@ -532,6 +532,93 @@ def test_v6_hashes_and_parses_each_historical_artifact_from_one_read(
     language._load_protocol(language.PROTOCOL_V6)
 
     assert set(watched.values()) == {1}
+
+
+def test_v7_exact_source_lock_is_complete_and_not_authorized() -> None:
+    protocol, digest = language._load_protocol(language.PROTOCOL_V7)
+
+    assert len(digest) == 64
+    assert protocol["protocol_version"] == 7
+    assert (
+        protocol["status"]
+        == "source_locked_awaiting_explicit_holdout_authorization_v7"
+    )
+    assert protocol["authorization"]["holdout_authorized"] is False
+    assert (
+        protocol["authorization"][
+            "immutable_failure_evidence_required_after_consumption"
+        ]
+        is True
+    )
+    assert protocol["shared_git_registry"] == {
+        "remote": "origin",
+        "source_lock_tag": "calmodel-l0-v7-source-locked",
+        "holdout_authorization_tag": "calmodel-l0-v7-holdout-authorized",
+        "holdout_consumption_tag": "calmodel-l0-v7-holdout-consumed",
+        "holdout_evidence_tag": "calmodel-l0-v7-holdout-evidence",
+        "holdout_failure_evidence_tag": (
+            "calmodel-l0-v7-holdout-failure-evidence"
+        ),
+    }
+    assert protocol["result_paths"]["holdout_failure"].endswith(
+        "holdout-v7-failure.json"
+    )
+    for relative, expected in protocol["exact_source_locks"].items():
+        assert language._sha256(language.PROJECT_ROOT / relative) == expected
+
+
+def test_v7_source_lock_certificate_binds_review_and_failure_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    protocol, digest = language._load_protocol(language.PROTOCOL_V7)
+    captured: dict[str, object] = {}
+    provenance = {
+        "git_dirty": False,
+        "git_commit": "a" * 40,
+        "source_sha256": protocol["exact_source_sha256"],
+    }
+    monkeypatch.setattr(
+        language,
+        "capture_provenance",
+        lambda root: provenance,
+    )
+    monkeypatch.setattr(
+        language,
+        "_publish_annotated_tag",
+        lambda **kwargs: captured.update(kwargs),
+    )
+    historical = {
+        "certificate": protocol["historical_v5_failure_evidence"][
+            "certificate"
+        ],
+        "tag_object_sha": protocol["historical_v5_failure_evidence"][
+            "tag_object_sha"
+        ],
+    }
+    monkeypatch.setattr(
+        language,
+        "_require_historical_v5_failure_evidence",
+        lambda current: historical,
+    )
+    monkeypatch.setattr(
+        language,
+        "_require_source_lock_registry",
+        lambda *args, **kwargs: {"source_lock": {}},
+    )
+
+    certificate = language.publish_v2_l0_source_lock(
+        protocol_path=language.PROTOCOL_V7
+    )
+
+    assert certificate["protocol_sha256"] == digest
+    assert certificate["review_record_sha256"] == (
+        protocol["amendment_record"]["prior_review_record_sha256"]
+    )
+    assert (
+        certificate["historical_v5_failure_evidence_tag_object_sha"]
+        == historical["tag_object_sha"]
+    )
+    assert captured["tag"] == "calmodel-l0-v7-source-locked"
 
 
 def test_source_lock_publication_certificate_is_exact(
@@ -643,6 +730,15 @@ def test_v7_consumed_failure_is_recorded_and_published(
         language,
         "_remote_tag_exists",
         lambda remote, tag, cwd: tag == "v7-consumed",
+    )
+    monkeypatch.setattr(
+        language,
+        "_git_command",
+        lambda *args, **kwargs: type(
+            "Result",
+            (),
+            {"returncode": 0},
+        )(),
     )
     monkeypatch.setattr(
         language,

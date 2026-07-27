@@ -69,7 +69,7 @@ PROTOCOL_V6 = (
 PROTOCOL_V7 = (
     PROJECT_ROOT / "experiments" / "V2_L0_LANGUAGE_READOUT_PROTOCOL_V7.json"
 )
-DEFAULT_PROTOCOL = PROTOCOL_V6
+DEFAULT_PROTOCOL = PROTOCOL_V7
 KNOWN_PROTOCOL_DIGESTS = {
     1: "39026a8ef6c1253ea40e830356504741636532fa7fcecbefadff4fabd8199493",
     2: "bb70d7983621a4756bf8e1030eb729ccca776888f3ba0fad062ba319022c32e3",
@@ -2836,7 +2836,7 @@ def _require_source_lock_registry(
 
 def publish_v2_l0_source_lock(
     *,
-    protocol_path: Path = PROTOCOL_V5,
+    protocol_path: Path = PROTOCOL_V7,
 ) -> dict[str, Any]:
     protocol, protocol_digest = _load_protocol(protocol_path)
     if protocol["protocol_version"] not in {5, 7}:
@@ -2886,7 +2886,7 @@ def publish_v2_l0_source_lock(
 
 def publish_v2_l0_holdout_authorization(
     *,
-    protocol_path: Path = PROTOCOL_V5,
+    protocol_path: Path = PROTOCOL_V7,
 ) -> dict[str, Any]:
     """Publish only after the user explicitly authorizes one-shot holdout."""
 
@@ -3268,6 +3268,18 @@ def _record_v7_holdout_failure_if_consumed(
         return
     registry = document["shared_git_registry"]
     consumption_tag = registry["holdout_consumption_tag"]
+    reservation_path = (
+        PROJECT_ROOT / document["result_paths"]["holdout_reservation"]
+    )
+    local_consumption = _git_command(
+        "rev-parse",
+        "--verify",
+        f"refs/tags/{consumption_tag}",
+        cwd=PROJECT_ROOT,
+        check=False,
+    )
+    if local_consumption.returncode != 0 and not reservation_path.exists():
+        return
     if not _remote_tag_exists(
         registry["remote"], consumption_tag, cwd=PROJECT_ROOT
     ):
@@ -3283,9 +3295,6 @@ def _record_v7_holdout_failure_if_consumed(
         or consumption.get("git_commit") != consumption_target
     ):
         raise RuntimeError("invalid V7 consumption evidence during failure")
-    reservation_path = (
-        PROJECT_ROOT / document["result_paths"]["holdout_reservation"]
-    )
     reservation_present = reservation_path.exists()
     if reservation_present:
         reservation = json.loads(reservation_path.read_bytes())
