@@ -66,6 +66,9 @@ PROTOCOL_V5 = (
 PROTOCOL_V6 = (
     PROJECT_ROOT / "experiments" / "V2_L0_LANGUAGE_READOUT_PROTOCOL_V6.json"
 )
+PROTOCOL_V7 = (
+    PROJECT_ROOT / "experiments" / "V2_L0_LANGUAGE_READOUT_PROTOCOL_V7.json"
+)
 DEFAULT_PROTOCOL = PROTOCOL_V6
 KNOWN_PROTOCOL_DIGESTS = {
     1: "39026a8ef6c1253ea40e830356504741636532fa7fcecbefadff4fabd8199493",
@@ -388,6 +391,7 @@ def _canonical_protocol_path(version: int) -> Path:
         4: PROTOCOL_V4,
         5: PROTOCOL_V5,
         6: PROTOCOL_V6,
+        7: PROTOCOL_V7,
     }
     try:
         return paths[version].resolve()
@@ -403,9 +407,12 @@ def _read_protocol_document(path: Path) -> tuple[dict[str, Any], str]:
     if source != _canonical_protocol_path(version):
         raise RuntimeError("V2-L0 protocol path is not canonical")
     digest = hashlib.sha256(raw).hexdigest()
-    if version not in KNOWN_PROTOCOL_DIGESTS:
+    if version not in {*KNOWN_PROTOCOL_DIGESTS, 7}:
         raise RuntimeError("unsupported V2-L0 protocol version")
-    if digest != KNOWN_PROTOCOL_DIGESTS[version]:
+    if (
+        version in KNOWN_PROTOCOL_DIGESTS
+        and digest != KNOWN_PROTOCOL_DIGESTS[version]
+    ):
         raise RuntimeError("V2-L0 protocol digest is not recognized")
     sidecar = source.with_suffix(".sha256")
     recorded = sidecar.read_text(encoding="utf-8").split()[0]
@@ -685,6 +692,68 @@ def _merge_v6(document: Mapping[str, Any]) -> dict[str, Any]:
     return payload
 
 
+def _merge_v7(document: Mapping[str, Any]) -> dict[str, Any]:
+    base_document, base_digest = _read_protocol_document(PROTOCOL_V6)
+    if (
+        document["base_protocol_path"]
+        != str(PROTOCOL_V6.relative_to(PROJECT_ROOT))
+        or document["base_protocol_sha256"] != base_digest
+    ):
+        raise RuntimeError("V2-L0 V7 amendment base mismatch")
+    payload = _merge_v6(base_document)
+    amendment = document["amendment_record"]
+    locked_payloads: dict[str, dict[str, Any]] = {}
+    for path_key, sha_key in (
+        ("prior_development_result_path", "prior_development_result_sha256"),
+        ("prior_review_record_path", "prior_review_record_sha256"),
+    ):
+        raw = (PROJECT_ROOT / amendment[path_key]).read_bytes()
+        if hashlib.sha256(raw).hexdigest() != amendment[sha_key]:
+            raise RuntimeError(f"V2-L0 V7 locked evidence changed: {path_key}")
+        locked_payloads[path_key] = json.loads(raw)
+    development = locked_payloads["prior_development_result_path"]
+    review = locked_payloads["prior_review_record_path"]
+    if (
+        development.get("passed") is not True
+        or development.get("decision") != "authorize_review_and_source_lock"
+        or not all(development.get("gates", {}).values())
+        or review.get("decision") != "authorize_v7_exact_source_lock"
+        or any(
+            int(review["final_reviews"][name][severity]) != 0
+            for name in review["final_reviews"]
+            for severity in ("p0", "p1", "p2")
+        )
+    ):
+        raise RuntimeError("V2-L0 V7 review evidence does not authorize locking")
+    for relative, expected in document["exact_source_locks"].items():
+        if _sha256(PROJECT_ROOT / relative) != expected:
+            raise RuntimeError(f"V2-L0 exact source changed: {relative}")
+    provenance = capture_provenance(PROJECT_ROOT)
+    if provenance["source_sha256"] != document["exact_source_sha256"]:
+        raise RuntimeError("V2-L0 full source digest changed")
+    payload.update(
+        {
+            "protocol_name": document["protocol_name"],
+            "protocol_version": 7,
+            "status": document["status"],
+            "amendment_record_v6": payload["amendment_record"],
+            "amendment_record": amendment,
+            "base_protocol_path": document["base_protocol_path"],
+            "base_protocol_sha256": document["base_protocol_sha256"],
+            "exact_source_locks": document["exact_source_locks"],
+            "exact_source_sha256": document["exact_source_sha256"],
+            "historical_v5_failure_evidence": document[
+                "historical_v5_failure_evidence"
+            ],
+            "review_attestations": document["review_attestations"],
+            "shared_git_registry": document["shared_git_registry"],
+            "authorization": document["authorization"],
+            "result_paths": document["result_paths"],
+        }
+    )
+    return payload
+
+
 def _load_protocol(path: Path = DEFAULT_PROTOCOL) -> tuple[dict[str, Any], str]:
     document, digest = _read_protocol_document(path)
     version = int(document["protocol_version"])
@@ -700,6 +769,8 @@ def _load_protocol(path: Path = DEFAULT_PROTOCOL) -> tuple[dict[str, Any], str]:
         payload = _merge_v5(document)
     elif version == 6:
         payload = _merge_v6(document)
+    elif version == 7:
+        payload = _merge_v7(document)
     else:
         raise RuntimeError("unsupported V2-L0 protocol version")
     if payload.get("status") not in {
@@ -710,6 +781,7 @@ def _load_protocol(path: Path = DEFAULT_PROTOCOL) -> tuple[dict[str, Any], str]:
         "source_locked_awaiting_explicit_holdout_authorization",
         "frozen_after_language_readout_review_before_holdout",
         "frozen_after_v5_consumed_failure_before_row_local_control_implementation",
+        "source_locked_awaiting_explicit_holdout_authorization_v7",
     }:
         raise RuntimeError("V2-L0 protocol is not frozen")
 
@@ -2529,6 +2601,132 @@ def _gates(
     }
 
 
+def _publish_failure_evidence(
+    path: Path,
+    *,
+    remote: str,
+    tag: str,
+    certificate: Mapping[str, Any],
+) -> dict[str, Any]:
+    raw = path.read_bytes()
+    failure_sha256 = hashlib.sha256(raw).hexdigest()
+    blob = _git_command(
+        "hash-object",
+        "-w",
+        str(path),
+        cwd=PROJECT_ROOT,
+    ).stdout.strip()
+    payload = {
+        **certificate,
+        "certificate_schema_version": 1,
+        "certificate_type": "immutable_failure_evidence",
+        "failure_sha256": failure_sha256,
+        "git_blob": blob,
+    }
+    _publish_annotated_tag(
+        remote=remote,
+        tag=tag,
+        target=blob,
+        certificate=payload,
+        cwd=PROJECT_ROOT,
+    )
+    verified, tag_object_sha = _load_failure_evidence(
+        remote=remote,
+        tag=tag,
+        expected_failure_sha256=failure_sha256,
+    )
+    return {
+        "certificate": verified,
+        "tag_object_sha": tag_object_sha,
+    }
+
+
+def _load_failure_evidence(
+    *,
+    remote: str,
+    tag: str,
+    expected_failure_sha256: str,
+) -> tuple[dict[str, Any], str]:
+    certificate, blob = _load_registry_certificate(remote=remote, tag=tag)
+    raw = _git_command(
+        "cat-file",
+        "-p",
+        blob,
+        cwd=PROJECT_ROOT,
+        text=False,
+    ).stdout
+    if (
+        certificate.get("certificate_schema_version") != 1
+        or certificate.get("certificate_type")
+        != "immutable_failure_evidence"
+        or certificate.get("failure_sha256") != expected_failure_sha256
+        or certificate.get("failure_sha256")
+        != hashlib.sha256(raw).hexdigest()
+        or certificate.get("git_blob") != blob
+    ):
+        raise RuntimeError("invalid V2-L0 immutable failure evidence")
+    try:
+        json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("invalid V2-L0 failure evidence JSON") from exc
+    tag_object_sha = _git_command(
+        "rev-parse",
+        f"refs/tags/{tag}",
+        cwd=PROJECT_ROOT,
+    ).stdout.strip()
+    return certificate, tag_object_sha
+
+
+def publish_v2_l0_v5_failure_evidence() -> dict[str, Any]:
+    protocol, _ = _load_protocol(PROTOCOL_V6)
+    provenance = capture_provenance(PROJECT_ROOT)
+    if provenance["git_dirty"] or not provenance["git_commit"]:
+        raise RuntimeError("failure evidence publication requires a clean commit")
+    amendment = protocol["amendment_record"]
+    failure_path = PROJECT_ROOT / amendment["consumed_v5_failure_path"]
+    reservation_path = PROJECT_ROOT / amendment[
+        "consumed_v5_reservation_path"
+    ]
+    failure_raw = failure_path.read_bytes()
+    reservation_raw = reservation_path.read_bytes()
+    if (
+        hashlib.sha256(failure_raw).hexdigest()
+        != amendment["consumed_v5_failure_sha256"]
+        or hashlib.sha256(reservation_raw).hexdigest()
+        != amendment["consumed_v5_reservation_sha256"]
+    ):
+        raise RuntimeError("V5 consumed failure evidence changed")
+    failure = json.loads(failure_raw)
+    reservation = json.loads(reservation_raw)
+    if (
+        failure.get("outcome") != "consumed_failed_before_result"
+        or failure.get("retry_allowed") is not False
+        or reservation.get("status") != "consumed_before_first_episode"
+        or failure.get("protocol_sha256")
+        != KNOWN_PROTOCOL_DIGESTS[5]
+        or reservation.get("protocol_sha256")
+        != KNOWN_PROTOCOL_DIGESTS[5]
+    ):
+        raise RuntimeError("V5 consumed failure evidence is invalid")
+    return _publish_failure_evidence(
+        failure_path,
+        remote="origin",
+        tag="calmodel-l0-v5-holdout-failure-evidence",
+        certificate={
+            "split": "holdout",
+            "protocol_sha256": KNOWN_PROTOCOL_DIGESTS[5],
+            "git_commit": failure["git_commit"],
+            "source_sha256": failure["source_sha256"],
+            "reservation_sha256": amendment[
+                "consumed_v5_reservation_sha256"
+            ],
+            "archive_commit": "7b5042f9af1dd60e52017fb2eca213c1f0d604d0",
+            "status": "consumed_failure_archived_no_retry",
+            "publication_commit": provenance["git_commit"],
+        },
+    )
+
+
 def _load_registry_certificate(
     *,
     remote: str,
@@ -2561,6 +2759,26 @@ def _load_registry_certificate(
     return certificate, target
 
 
+def _require_historical_v5_failure_evidence(
+    protocol: Mapping[str, Any],
+) -> dict[str, Any]:
+    expected = protocol["historical_v5_failure_evidence"]
+    certificate, tag_object_sha = _load_failure_evidence(
+        remote=expected["remote"],
+        tag=expected["tag"],
+        expected_failure_sha256=expected["failure_sha256"],
+    )
+    if (
+        tag_object_sha != expected["tag_object_sha"]
+        or certificate != expected["certificate"]
+    ):
+        raise RuntimeError("V2-L0 historical V5 failure evidence mismatch")
+    return {
+        "certificate": certificate,
+        "tag_object_sha": tag_object_sha,
+    }
+
+
 def _require_source_lock_registry(
     protocol: Mapping[str, Any],
     protocol_digest: str,
@@ -2588,6 +2806,10 @@ def _require_source_lock_registry(
     ):
         raise RuntimeError("V2-L0 source-lock certificate mismatch")
     result = {"source_lock": source_certificate}
+    if int(protocol["protocol_version"]) == 7:
+        result["historical_v5_failure_evidence"] = (
+            _require_historical_v5_failure_evidence(protocol)
+        )
     if require_authorization:
         authorization_certificate, authorization_target = (
             _load_registry_certificate(
@@ -2617,8 +2839,8 @@ def publish_v2_l0_source_lock(
     protocol_path: Path = PROTOCOL_V5,
 ) -> dict[str, Any]:
     protocol, protocol_digest = _load_protocol(protocol_path)
-    if protocol["protocol_version"] != 5:
-        raise RuntimeError("source lock publication requires V2-L0 V5")
+    if protocol["protocol_version"] not in {5, 7}:
+        raise RuntimeError("source lock publication requires V2-L0 V5 or V7")
     provenance = capture_provenance(PROJECT_ROOT)
     if provenance["git_dirty"] or not provenance["git_commit"]:
         raise RuntimeError("source lock publication requires a clean commit")
@@ -2635,8 +2857,20 @@ def publish_v2_l0_source_lock(
         "development_result_sha256": protocol["amendment_record"][
             "prior_development_result_sha256"
         ],
-        "status": "source_locked_awaiting_explicit_holdout_authorization",
+        "status": protocol["status"],
     }
+    if int(protocol["protocol_version"]) == 7:
+        historical = _require_historical_v5_failure_evidence(protocol)
+        certificate.update(
+            {
+                "review_record_sha256": protocol["amendment_record"][
+                    "prior_review_record_sha256"
+                ],
+                "historical_v5_failure_evidence_tag_object_sha": historical[
+                    "tag_object_sha"
+                ],
+            }
+        )
     _publish_annotated_tag(
         remote=registry["remote"],
         tag=registry["source_lock_tag"],
@@ -2681,7 +2915,7 @@ def publish_v2_l0_holdout_authorization(
     return certificate
 
 
-def run_v2_l0_language_readout(
+def _run_v2_l0_language_readout(
     *,
     split: str,
     protocol_path: Path = DEFAULT_PROTOCOL,
@@ -2693,9 +2927,12 @@ def run_v2_l0_language_readout(
     if (
         split == "holdout"
         and (
-            protocol["protocol_version"] != 5
+            protocol["protocol_version"] not in {5, 7}
             or protocol["status"]
-            != "source_locked_awaiting_explicit_holdout_authorization"
+            not in {
+                "source_locked_awaiting_explicit_holdout_authorization",
+                "source_locked_awaiting_explicit_holdout_authorization_v7",
+            }
         )
     ):
         raise RuntimeError(
@@ -3021,6 +3258,136 @@ def run_v2_l0_language_readout(
     return result
 
 
+def _record_v7_holdout_failure_if_consumed(
+    *,
+    protocol_path: Path,
+    error: Exception,
+) -> None:
+    document, protocol_digest = _read_protocol_document(protocol_path)
+    if int(document["protocol_version"]) != 7:
+        return
+    registry = document["shared_git_registry"]
+    consumption_tag = registry["holdout_consumption_tag"]
+    if not _remote_tag_exists(
+        registry["remote"], consumption_tag, cwd=PROJECT_ROOT
+    ):
+        return
+    consumption, consumption_target = _load_registry_certificate(
+        remote=registry["remote"],
+        tag=consumption_tag,
+    )
+    if (
+        consumption.get("certificate_type") != "one_shot_consumption"
+        or consumption.get("protocol_sha256") != protocol_digest
+        or consumption.get("status") != "consumed_before_first_episode"
+        or consumption.get("git_commit") != consumption_target
+    ):
+        raise RuntimeError("invalid V7 consumption evidence during failure")
+    reservation_path = (
+        PROJECT_ROOT / document["result_paths"]["holdout_reservation"]
+    )
+    reservation_present = reservation_path.exists()
+    if reservation_present:
+        reservation = json.loads(reservation_path.read_bytes())
+        if (
+            reservation.get("split") != "holdout"
+            or reservation.get("protocol_sha256") != protocol_digest
+            or reservation.get("git_commit") != consumption_target
+            or reservation.get("status") != "consumed_before_first_episode"
+        ):
+            raise RuntimeError("invalid V7 local reservation during failure")
+    failure_path = PROJECT_ROOT / document["result_paths"]["holdout_failure"]
+    if failure_path.exists():
+        failure = json.loads(failure_path.read_bytes())
+        if (
+            failure.get("protocol_sha256") != protocol_digest
+            or failure.get("outcome") != "consumed_failed_before_result"
+        ):
+            raise RuntimeError("invalid existing V7 holdout failure record")
+    else:
+        run_end = capture_provenance(PROJECT_ROOT)
+        failure = {
+            "attempt": 1,
+            "consumption_tag": consumption_tag,
+            "error": {
+                "message": str(error),
+                "type": type(error).__name__,
+            },
+            "failure_evidence_tag": registry[
+                "holdout_failure_evidence_tag"
+            ],
+            "git_commit": consumption_target,
+            "local_reservation_present": reservation_present,
+            "outcome": "consumed_failed_before_result",
+            "protocol_sha256": protocol_digest,
+            "result_created": False,
+            "retry_allowed": False,
+            "run_end": {
+                "git_commit": run_end["git_commit"],
+                "git_dirty": run_end["git_dirty"],
+                "source_sha256": run_end["source_sha256"],
+            },
+            "source_sha256": consumption["source_sha256"],
+            "split": "holdout",
+        }
+        failure_path.parent.mkdir(parents=True, exist_ok=True)
+        failure_path.write_text(
+            json.dumps(failure, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+    evidence_tag = registry["holdout_failure_evidence_tag"]
+    if _remote_tag_exists(
+        registry["remote"], evidence_tag, cwd=PROJECT_ROOT
+    ):
+        _load_failure_evidence(
+            remote=registry["remote"],
+            tag=evidence_tag,
+            expected_failure_sha256=hashlib.sha256(
+                failure_path.read_bytes()
+            ).hexdigest(),
+        )
+        return
+    _publish_failure_evidence(
+        failure_path,
+        remote=registry["remote"],
+        tag=evidence_tag,
+        certificate={
+            "split": "holdout",
+            "protocol_sha256": protocol_digest,
+            "git_commit": consumption_target,
+            "source_sha256": consumption["source_sha256"],
+            "status": "consumed_failure_archived_no_retry",
+        },
+    )
+
+
+def run_v2_l0_language_readout(
+    *,
+    split: str,
+    protocol_path: Path = DEFAULT_PROTOCOL,
+    output_path: Path | None = None,
+) -> dict[str, Any]:
+    try:
+        return _run_v2_l0_language_readout(
+            split=split,
+            protocol_path=protocol_path,
+            output_path=output_path,
+        )
+    except Exception as error:
+        if split == "holdout":
+            try:
+                _record_v7_holdout_failure_if_consumed(
+                    protocol_path=protocol_path,
+                    error=error,
+                )
+            except Exception as evidence_error:
+                raise RuntimeError(
+                    f"{error}; failure evidence publication also failed: "
+                    f"{evidence_error}"
+                ) from error
+        raise
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -3033,6 +3400,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     actions.add_argument("--publish-source-lock", action="store_true")
     actions.add_argument(
         "--publish-holdout-authorization", action="store_true"
+    )
+    actions.add_argument(
+        "--publish-v5-failure-evidence", action="store_true"
     )
     arguments = parser.parse_args(argv)
     try:
@@ -3052,6 +3422,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(
                 "holdout_authorized="
                 f"{certificate['git_commit']}"
+            )
+            return 0
+        if arguments.publish_v5_failure_evidence:
+            evidence = publish_v2_l0_v5_failure_evidence()
+            print(
+                "v5_failure_evidence_published="
+                f"{evidence['tag_object_sha']}"
             )
             return 0
         if arguments.split is None:

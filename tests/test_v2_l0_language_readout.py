@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import inspect
+import json
 from dataclasses import replace
 from pathlib import Path
 
@@ -573,3 +574,127 @@ def test_source_lock_publication_certificate_is_exact(
     assert captured["tag"] == protocol["shared_git_registry"][
         "source_lock_tag"
     ]
+
+
+def test_v5_failure_evidence_publication_is_content_addressed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+    monkeypatch.setattr(
+        language,
+        "capture_provenance",
+        lambda root: {
+            "git_dirty": False,
+            "git_commit": "a" * 40,
+        },
+    )
+
+    def capture_publish(
+        path: Path,
+        **kwargs: object,
+    ) -> dict[str, object]:
+        captured["path"] = path
+        captured.update(kwargs)
+        return {
+            "certificate": {},
+            "tag_object_sha": "b" * 40,
+        }
+
+    monkeypatch.setattr(
+        language,
+        "_publish_failure_evidence",
+        capture_publish,
+    )
+    evidence = language.publish_v2_l0_v5_failure_evidence()
+
+    assert evidence["tag_object_sha"] == "b" * 40
+    assert captured["tag"] == "calmodel-l0-v5-holdout-failure-evidence"
+    certificate = captured["certificate"]
+    assert certificate["protocol_sha256"] == (
+        language.KNOWN_PROTOCOL_DIGESTS[5]
+    )
+    assert certificate["status"] == "consumed_failure_archived_no_retry"
+
+
+def test_v7_consumed_failure_is_recorded_and_published(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    protocol_digest = "c" * 64
+    document = {
+        "protocol_version": 7,
+        "result_paths": {
+            "holdout_reservation": "results/reservation.json",
+            "holdout_failure": "results/failure.json",
+        },
+        "shared_git_registry": {
+            "remote": "origin",
+            "holdout_consumption_tag": "v7-consumed",
+            "holdout_failure_evidence_tag": "v7-failure",
+        },
+    }
+    monkeypatch.setattr(language, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(
+        language,
+        "_read_protocol_document",
+        lambda path: (document, protocol_digest),
+    )
+    monkeypatch.setattr(
+        language,
+        "_remote_tag_exists",
+        lambda remote, tag, cwd: tag == "v7-consumed",
+    )
+    monkeypatch.setattr(
+        language,
+        "_load_registry_certificate",
+        lambda **kwargs: (
+            {
+                "certificate_type": "one_shot_consumption",
+                "protocol_sha256": protocol_digest,
+                "status": "consumed_before_first_episode",
+                "git_commit": "d" * 40,
+                "source_sha256": "e" * 64,
+            },
+            "d" * 40,
+        ),
+    )
+    monkeypatch.setattr(
+        language,
+        "capture_provenance",
+        lambda root: {
+            "git_commit": "d" * 40,
+            "git_dirty": True,
+            "source_sha256": "e" * 64,
+        },
+    )
+    published: dict[str, object] = {}
+
+    def capture_failure(
+        path: Path,
+        **kwargs: object,
+    ) -> dict[str, object]:
+        published["path"] = path
+        published.update(kwargs)
+        return {"certificate": {}, "tag_object_sha": "f" * 40}
+
+    monkeypatch.setattr(
+        language,
+        "_publish_failure_evidence",
+        capture_failure,
+    )
+
+    language._record_v7_holdout_failure_if_consumed(
+        protocol_path=tmp_path / "protocol.json",
+        error=RuntimeError("synthetic failure"),
+    )
+
+    failure_path = tmp_path / "results/failure.json"
+    failure = json.loads(failure_path.read_text())
+    assert failure["outcome"] == "consumed_failed_before_result"
+    assert failure["retry_allowed"] is False
+    assert failure["local_reservation_present"] is False
+    assert failure["error"] == {
+        "message": "synthetic failure",
+        "type": "RuntimeError",
+    }
+    assert published["tag"] == "v7-failure"
