@@ -1,0 +1,22 @@
+{
+  "protocol_name": "V2-I1 unified entity belief graph integration prerequisite portability amendment",
+  "protocol_version": 3,
+  "status": "frozen_after_prerequisite_portability_fix_before_any_i1_v2_development_run",
+  "base_protocol_path": "experiments/V2_I1_INTEGRATION_PROTOCOL_V2.json",
+  "base_protocol_sha256": "739d468e4bd010c031da7c2cf0da54edca6f2e9c8613c5adc64e5e69c5af7e5c",
+  "amendment_record": {
+    "prior_protocol_path": "experiments/V2_I1_INTEGRATION_PROTOCOL_V2.json",
+    "prior_protocol_sha256": "739d468e4bd010c031da7c2cf0da54edca6f2e9c8613c5adc64e5e69c5af7e5c",
+    "i1_v2_development_runs_before_amendment": 0,
+    "i1_v2_holdout_runs_before_amendment": 0,
+    "model_or_stage_algorithm_changed": false,
+    "fixed_gates_changed": false,
+    "development_or_holdout_seeds_changed": false,
+    "reason": "The V2 prerequisite pointed directly to results/V2-M4-unprivileged-holdout-summary.json, an ignored machine-local one-shot artifact that was not present in a clean checkout. Re-running or fabricating that already-consumed holdout would violate the scientific record. V3 changes only the prerequisite to the tracked V2-stage-summary.json, whose chain_validation already verifies the same M4 holdout and authorize_reconnection_design_review decision. No I1-V2 development result existed before this amendment; architecture, algorithm, gates, runtime, resources, and all seeds are byte-inherited from V2."
+  },
+  "prerequisite": {
+    "artifact": "results/V2-stage-summary.json",
+    "expected_name": "V2-stage",
+    "expected_decision": "authorize_reconnection_design_review"
+  }
+}

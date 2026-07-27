@@ -9,5 +9,8 @@ checkpoints/
 results/*
 !results/INDEX.json
 !results/V2-stage-summary.json
+!results/V2-M1-M3-integrated-development-summary.json
+!results/V2-M1-M3-integrated-v2-development-summary.json
+!results/V2-I1-v2-development-v3-review-baseline.json
 !results/V2-M1-M3-integrated-v2-confirmation-summary.json
 !results/V2-M1-M3-integrated-confirmation-review-summary.json

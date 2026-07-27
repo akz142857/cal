@@ -1,0 +1,118 @@
+{
+  "protocol_name": "V2-I1 unified entity belief graph integration",
+  "protocol_version": 2,
+  "status": "frozen_before_unified_entity_belief_graph_implementation",
+  "research_question": "Can one bounded online entity-belief system jointly retain identity, infer self from action-conditioned motion, and preserve occluded distractors from one unlabeled visual-action stream?",
+  "scope_statement": "This is a new implementation after the V1 development failure. It preserves every V1 metric threshold and the untouched one-shot holdout seeds, but replaces the two-tracker composition with one bounded global hypothesis bank. It does not revise or erase the V1 negative result.",
+  "amendment_record": {
+    "prior_protocol_path": "experiments/V2_I1_INTEGRATION_PROTOCOL.json",
+    "prior_protocol_sha256": "062235d3f0b9fdcc847f3493422a9a07969b912235e771260c7d554bd406e89f",
+    "prior_development_result_path": "results/V2-I1-integration-development-summary.json",
+    "prior_development_passed": false,
+    "holdout_runs_before_amendment": 0,
+    "model_or_stage_algorithm_changed": true,
+    "fixed_gates_changed": false,
+    "holdout_seeds_changed": false,
+    "reason": "Three post-failure oracle diagnostics separated the bottlenecks. Perfect association raised identity consistency to 0.9691 but self F1 only to 0.6517, proving both association and hard self-locking were limiting. Truth visibility changed distractor hidden probability only from 0.2595 to 0.2641, proving the visibility-agnostic reachable-floor motion model was the permanence bottleneck. V2 therefore replaces the two independent trackers, hard self lock, and reachable-floor painting with one bounded multi-hypothesis entity belief graph and entity-conditioned occupancy posterior."
+  },
+  "prerequisite": {
+    "artifact": "results/V2-M4-unprivileged-holdout-summary.json",
+    "expected_name": "V2-M4-unprivileged",
+    "expected_decision": "authorize_reconnection_design_review"
+  },
+  "formal_agent_contract": {
+    "inputs": [
+      "sensed_visible_occupancy",
+      "executed_action_copy"
+    ],
+    "forbidden_inputs": [
+      "self_label",
+      "entity_identity",
+      "body_mask",
+      "object_mask",
+      "ground_truth_visibility",
+      "ground_truth_position"
+    ],
+    "single_update_per_step": true,
+    "experience_replay_count": 0,
+    "shared_entity_store_for_all_outputs": true,
+    "maximum_global_hypotheses": 8,
+    "maximum_entities_per_hypothesis": 16
+  },
+  "fixed_runtime": {
+    "steps_per_seed": 200,
+    "hardware": "CPU",
+    "maximum_replays_per_experience": 0
+  },
+  "fixed_gates": {
+    "self_identification_f1_minimum": 0.9,
+    "distractor_hidden_probability_minimum": 0.55,
+    "identity_consistency_minimum": 0.9,
+    "no_action_self_f1_drop_minimum": 0.15,
+    "time_shuffled_self_f1_drop_minimum": 0.15,
+    "assume_all_visible_hidden_probability_maximum": 0.55,
+    "paired_formal_beats_visible_control_fraction_minimum": 0.75,
+    "single_agent_single_stream": true,
+    "labels_absent_from_learner": true
+  },
+  "development": {
+    "calibration_seeds": [
+      30000,
+      30001,
+      30002,
+      30003,
+      30004,
+      30005,
+      30006,
+      30007
+    ],
+    "validation_seeds": [
+      30008,
+      30009,
+      30010,
+      30011,
+      30012,
+      30013,
+      30014,
+      30015
+    ],
+    "may_be_run_repeatedly": true,
+    "result_path": "results/V2-I1-v2-development-summary.json",
+    "authorization_rule": "Both the validation subset and the complete 16-seed development set must pass every fixed gate."
+  },
+  "holdout": {
+    "seeds": [
+      31000,
+      31001,
+      31002,
+      31003,
+      31004,
+      31005,
+      31006,
+      31007,
+      31008,
+      31009,
+      31010,
+      31011,
+      31012,
+      31013,
+      31014,
+      31015
+    ],
+    "may_be_run": "once_after_v2_development_validation_and_full_gates_pass_and_tests_are_green",
+    "result_path": "results/V2-I1-v2-holdout-summary.json"
+  },
+  "resource_limits": {
+    "learnable_parameters": 100000,
+    "active_state_bytes": 65536,
+    "mac_per_step": 5000000,
+    "steps_per_seed": 100000,
+    "maximum_replays_per_experience": 4,
+    "wall_seconds": 7200
+  },
+  "failure_policy": {
+    "development_failure": "Stop before holdout, diagnose by calibration/validation and mechanism-level traces, and amend before changing the formal algorithm.",
+    "holdout_failure": "Record the one-shot failure and do not tune or rerun on the same holdout seeds.",
+    "threshold_change_after_results": "Forbidden."
+  }
+}

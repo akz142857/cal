@@ -1,0 +1,119 @@
+{
+  "protocol_name": "V2-I1 unified entity belief graph post-review correction",
+  "protocol_version": 4,
+  "status": "frozen_after_subagent_review_before_corrected_calibration_or_new_validation",
+  "base_protocol_path": "experiments/V2_I1_INTEGRATION_PROTOCOL_V3.json",
+  "base_protocol_sha256": "463c3a9ab6e3744b83320c1da2cbd37e2d5d871f053178d515178ec458bc4601",
+  "amendment_record": {
+    "prior_protocol_path": "experiments/V2_I1_INTEGRATION_PROTOCOL_V3.json",
+    "prior_protocol_sha256": "463c3a9ab6e3744b83320c1da2cbd37e2d5d871f053178d515178ec458bc4601",
+    "prior_development_result_path": "results/V2-I1-v2-development-v3-review-baseline.json",
+    "prior_development_result_sha256": "8f7f24928fde91bca87302af12a2e468d4bec80858594647527489cbe2d7b0c3",
+    "prior_development_result_valid_for_holdout_authorization": false,
+    "corrected_calibration_runs_before_amendment": 0,
+    "new_validation_runs_before_amendment": 0,
+    "i1_v2_holdout_runs_before_amendment": 0,
+    "model_or_stage_algorithm_changed": true,
+    "fixed_gates_changed": true,
+    "development_or_holdout_seeds_changed": false,
+    "new_validation_seeds_assigned": true,
+    "reason": "Three independent post-development sub-agent reviews found that the apparent V3 pass could not authorize holdout. Position-only hypothesis dedup collapsed distinct identity histories; self softmax discarded sub-threshold competitors; the static front end swallowed paused established entities; occupancy added co-located existence probabilities; active-state and MAC accounting were too low; identity consistency omitted misses and duplicate assignments; the prerequisite artifact was not hash-pinned; and development/validation plus one-shot authorization were not isolated. V4 freezes all corrections before running them. The original holdout remains untouched. Previously exposed 30000-30015 seeds become repeatable calibration only; fresh 32000-32007 seeds are assigned as one-shot validation. The original 0.90 identity intent is preserved and strengthened with visible identity coverage >=0.90; no existing threshold is lowered."
+  },
+  "prerequisite": {
+    "artifact": "results/V2-stage-summary.json",
+    "artifact_sha256": "8e509aaa5ce49266efe7205edc61d5d40232bf3d0b3ab442c1b0de633059e301",
+    "expected_name": "V2-stage",
+    "expected_decision": "authorize_reconnection_design_review"
+  },
+  "architecture_limits": {
+    "maximum_global_hypotheses": 5,
+    "maximum_entities_per_hypothesis": 11,
+    "maximum_raw_detections_per_frame_for_mac_accounting": 121
+  },
+  "fixed_gates": {
+    "self_identification_f1_minimum": 0.9,
+    "distractor_hidden_probability_minimum": 0.55,
+    "identity_consistency_minimum": 0.9,
+    "visible_identity_coverage_minimum": 0.9,
+    "no_action_self_f1_drop_minimum": 0.15,
+    "time_shuffled_self_f1_drop_minimum": 0.15,
+    "assume_all_visible_hidden_probability_maximum": 0.55,
+    "paired_formal_beats_visible_control_fraction_minimum": 0.75,
+    "single_agent_single_stream": true,
+    "labels_absent_from_learner": true
+  },
+  "calibration": {
+    "seeds": [
+      30000,
+      30001,
+      30002,
+      30003,
+      30004,
+      30005,
+      30006,
+      30007,
+      30008,
+      30009,
+      30010,
+      30011,
+      30012,
+      30013,
+      30014,
+      30015
+    ],
+    "may_be_run_repeatedly": true,
+    "result_path": "results/V2-I1-v4-calibration-summary.json"
+  },
+  "validation": {
+    "seeds": [
+      32000,
+      32001,
+      32002,
+      32003,
+      32004,
+      32005,
+      32006,
+      32007
+    ],
+    "may_be_run": "once_after_reviewed_implementation_is_committed_clean_and_calibration_passes",
+    "result_path": "results/V2-I1-v4-validation-summary.json",
+    "reservation_path": "results/V2-I1-v4-validation-reservation.json"
+  },
+  "holdout": {
+    "seeds": [
+      31000,
+      31001,
+      31002,
+      31003,
+      31004,
+      31005,
+      31006,
+      31007,
+      31008,
+      31009,
+      31010,
+      31011,
+      31012,
+      31013,
+      31014,
+      31015
+    ],
+    "may_be_run": "once_after_one_shot_validation_passes_on_the_same_reviewed_commit",
+    "result_path": "results/V2-I1-v4-holdout-summary.json",
+    "reservation_path": "results/V2-I1-v4-holdout-reservation.json"
+  },
+  "authorization_rules": {
+    "prerequisite": "Require the exact frozen SHA-256 of the tracked V2 stage authorization artifact before every split.",
+    "calibration_to_validation": "Strictly validate schema, experiment, split, V4 protocol digest, exact calibration seeds, decision, every gate, provenance, source digest, and clean reviewed commit.",
+    "validation_to_holdout": "Apply the same strict validation to the one-shot validation artifact and require the identical reviewed git commit.",
+    "one_shot_reservation": "Before the first episode, atomically push a new annotated consumption tag to the shared origin remote, then write the local reservation. A concurrent second push is rejected. An interrupted run consumes the remote tag and requires a new protocol amendment rather than deletion and rerun.",
+    "immutable_result_evidence": "A passing validation or completed holdout result is stored as a Git blob and published through a new annotated remote tag. The next stage reads the remote blob, verifies its certificate and SHA-256, and independently recomputes all gates."
+  },
+  "shared_git_registry": {
+    "remote": "origin",
+    "validation_consumption_tag": "calmodel-i1-v4-validation-consumed",
+    "validation_evidence_tag": "calmodel-i1-v4-validation-result",
+    "holdout_consumption_tag": "calmodel-i1-v4-holdout-consumed",
+    "holdout_evidence_tag": "calmodel-i1-v4-holdout-result"
+  }
+}
