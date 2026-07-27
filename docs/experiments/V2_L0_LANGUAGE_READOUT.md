@@ -263,15 +263,15 @@ V6 在实现前由提交 `91491d044088d733f2cea8e21f10f9469ade29bd`
 身份查询本身已经要求两个干扰者在当帧唯一可见，因此该反事实对每个 active row
 都有定义，不需要从另一个 episode 寻找配对，也不需要预看 holdout 结构。
 
-干净实现提交：
-`515a20dbcf7da761468efe16c5a5eacd161f4844`
+审查加固后的干净实现提交：
+`b023cc4420938f75c8a2030fae7f67a07096b5ae`
 
 development 结果：
 
 ```text
 results/V2-L0-language-readout-development-v6.json
-SHA-256 c02b370ad4d3dd712afd929d91d4ad0ee08a37225f2e095f687b018733139b42
-source SHA-256 30230659f14e2146c17694db2727e649b96537d5c18d35c08f1f6bded3b55cee
+SHA-256 a2582e058d83264ef4284a02e19d296b31ee44b20ada022fa9b4b97f128de0dd
+source SHA-256 da803e27f6bc62f9649ad436c7dc606a4ae7ebb053a3550399e041fdb1878ceb
 ```
 
 结果绑定到上述干净实现提交，`git_dirty=false`。全部 24 个 gates 通过，
@@ -287,6 +287,15 @@ decision 为 `authorize_review_and_source_lock`。关键指标：
 逐行反事实使 identity 从 `1.0000` 降到 `0.0625`。296/296 个 active
 reference blocks 全部改变，反事实逐行匹配率与角色切换率均为 `1.0`；标签、
 mask、当前候选和非身份特征保持不变。
+
+首轮独立审查发现旧 audit 从变换使用的同一 metadata 字段读取“期望参考”，
+而且没有验证 product/difference 重算，因此错误 metadata 或篡改交互项仍可能
+通过完整性 gate。加固版改为从原始 query 的负候选 current descriptor 独立
+推导期望值，并逐块验证 reference、product、absolute difference、inactive rows
+及所有禁止改变的上下文。它同时修复 V5 历史证据的重复读取 TOCTOU，并把 V5/V6
+protocol digest 加入固定映射。新增攻击回归能够拒绝伪 metadata、错误交互项和
+inactive-row 修改。加固后 148/148 行 metadata 与独立推导一致，296/296 个
+product 和 difference 块均正确重算。
 
 V6 在实现前登记了新的候选 holdout `33600–33603`。这些 seed 当前未检查、
 未运行，也不因 development 通过而自动获得授权。下一步必须先完成独立审查，
