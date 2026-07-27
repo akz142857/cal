@@ -1078,18 +1078,10 @@
   "protocol_path": "experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V4.json",
   "protocol_sha256": "85aee950e9ff1c5ea5838112912350d90002683cce2d80b026a94dd2e748f6a9",
   "provenance": {
-    "captured_at_utc": "2026-07-27T10:35:59.373772+00:00",
-    "git_commit": "60f412108ea98b567a760171d466d6f4ba56c1dc",
-    "git_dirty": true,
-    "git_status": [
-      "M README.md",
-      " M cal/evaluation/v2_l0_language_readout.py",
-      " M docs/experiments/V2_L0_LANGUAGE_READOUT.md",
-      " M results/V2-L0-language-readout-development-v4.json",
-      " M tests/test_v2_l0_language_readout.py",
-      "?? experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V5.json",
-      "?? experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V5.sha256"
-    ],
+    "captured_at_utc": "2026-07-27T10:38:00.586948+00:00",
+    "git_commit": "38489a3a10265bf207e9ccc626f7ad8a982cecc9",
+    "git_dirty": false,
+    "git_status": [],
     "runtime": {
       "numpy": "2.5.1",
       "platform": "macOS-26.6-arm64-arm-64bit",

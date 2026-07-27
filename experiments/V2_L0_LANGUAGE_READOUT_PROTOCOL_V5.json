@@ -7,11 +7,11 @@
   "base_protocol_sha256": "85aee950e9ff1c5ea5838112912350d90002683cce2d80b026a94dd2e748f6a9",
   "amendment_record": {
     "prior_development_result_path": "results/V2-L0-language-readout-development-v4.json",
-    "prior_development_result_sha256": "5ea020c4fbdc7ef8da4d632b5c996dd91a449271cebcd84f6df54dfb61e588c8",
+    "prior_development_result_sha256": "6af1883cbf163f551184ba5c1284c233e13648bde15c57d9cc168943def6ddb8",
     "prior_development_passed": true,
     "prior_development_decision": "authorize_review_and_source_lock",
     "reviewed_v4_commit": "60f412108ea98b567a760171d466d6f4ba56c1dc",
-    "implementation_commit": "60f412108ea98b567a760171d466d6f4ba56c1dc",
+    "implementation_commit": "38489a3a10265bf207e9ccc626f7ad8a982cecc9",
     "holdout_runs": 0,
     "formal_algorithm_changed_since_passing_development": false,
     "fixed_existing_thresholds_lowered": false,

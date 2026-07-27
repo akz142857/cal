@@ -147,7 +147,7 @@ development，不授权 holdout。
 `results/V2-L0-language-readout-development-v4.json`
 
 当前结果 SHA-256：
-`5ea020c4fbdc7ef8da4d632b5c996dd91a449271cebcd84f6df54dfb61e588c8`
+`6af1883cbf163f551184ba5c1284c233e13648bde15c57d9cc168943def6ddb8`
 
 | 条件 | Macro | Self | Spatial | Permanence | Identity |
 |---|---:|---:|---:|---:|---:|
@@ -180,7 +180,7 @@ V5 协议：
 
 ```text
 experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V5.json
-SHA-256 6b7548bd3218e42ce1d17f7a0e07d66021a4f07188671661dbfda784455276db
+SHA-256 51a4f561bceb23de2c9c483895b82e2f5b1cd4168736b22b166e236be6ce1aae
 ```
 
 V5 锁定最终 evaluator、测试、I1 传递依赖、provenance、环境清单、passing
