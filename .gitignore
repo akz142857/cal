@@ -17,5 +17,11 @@ results/*
 !results/V2-I1-v4-validation-reservation.json
 !results/V2-I1-v4-holdout-summary.json
 !results/V2-I1-v4-holdout-reservation.json
+!results/V2-L0-language-readout-development.json
+!results/V2-L0-language-readout-development-v2.json
+!results/V2-L0-language-readout-development-v3.json
+!results/V2-L0-language-readout-development-v4.json
+!results/V2-L0-language-readout-holdout-v5.json
+!results/V2-L0-language-readout-holdout-v5-reservation.json
 !results/V2-M1-M3-integrated-v2-confirmation-summary.json
 !results/V2-M1-M3-integrated-confirmation-review-summary.json

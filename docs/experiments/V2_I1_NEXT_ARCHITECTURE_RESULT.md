@@ -107,3 +107,36 @@ review。所有阻断发现均在运行新 validation 和 holdout 之前修复�
 
 这些本地文件与远端证据的 SHA 一致。Validation 和 holdout 已消费，不得
 删除 tag、调参后重跑或把同一 seed 集重新解释为新的未见验证。
+
+## 7. 可重复交互式解释页
+
+为了让后续维护者能直观看到 self 识别、身份连续性和遮挡下对象永久性如何
+随时间变化，仓库增加了 calibration-only 交互式回放：
+
+- 参考页面：
+  `docs/experiments/assets/v2_i1_v4_replay_seed30000.html`
+- 生成器：
+  `cal/evaluation/v2_i1_replay.py`
+- 使用与复现记录：
+  `docs/experiments/V2_I1_REPLAY_GUIDE.md`
+- 自动检查：
+  `tests/test_v2_i1_replay.py`
+
+回放只允许协议登记的 `30000–30015` calibration seeds。它会在仿真开始前
+拒绝 validation、holdout 和未登记 seed，不会重新消费一次性证据。
+
+seed 30000 参考页面包含 Formal、No action、Shuffled action 和
+Assume all visible 四种条件。四者共享完全相同的世界轨迹和实际动作序列；
+录制指标已逐字段对账冻结 runner。页面中的世界真值只供人类解释和离线
+评分，始终在 agent 更新后读取，不进入 learner。
+
+参考页在 `2026-07-27` 的逐字节 SHA-256 为：
+
+```text
+6445f0bda0263f9c25df621d0f64168a7f0f4b1b6fb87fbd38c6d83e304824f2
+```
+
+生成、校验、指标明细、文件大小及更新流程以
+`V2_I1_REPLAY_GUIDE.md` 的“当前仓库参考页记录”为准。这个页面只解释已有
+结论；正式结论仍以第 4、6 节列出的冻结 JSON、远端 evidence tags 和
+immutable Git blobs 为准。

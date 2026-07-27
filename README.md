@@ -224,7 +224,29 @@ chain, fresh M1–M3 confirmation, mechanism controls, protocol audit, resource
 budget, and per-seed confirmation episodes; it does not rerun experiments or
 rewrite frozen protocols.
 
-The measured evidence, limitations, and decision to stop at M4's visual-only gate are documented in the
+The next I1 architecture, a unified entity belief graph, subsequently passed
+its reviewed calibration, one-shot validation, and one-shot holdout with all
+13 gates true. Generate its presentation-only interactive replay with:
+
+```bash
+uv run cal-v2-i1-replay --seed 30000
+uv run cal-v2-i1-replay --seed 30000 \
+  --check docs/experiments/assets/v2_i1_v4_replay_seed30000.html
+```
+
+The replay is restricted to repeatable calibration seeds and never consumes
+validation or holdout seeds. See the
+[I1 final report](docs/experiments/V2_I1_NEXT_ARCHITECTURE_RESULT.md) and
+[replay guide](docs/experiments/V2_I1_REPLAY_GUIDE.md).
+
+The next L0 probe freezes I1 and tests whether controlled Chinese propositions
+about self, spatial relations, identity after reappearance, and hidden-object
+permanence are linearly readable from its entity state. Its shortcut-resistant
+V4 development run passes every frozen gate and three final independent
+reviews; the clean source lock and unopened review holdout remain pending. See the
+[L0 language-readout report](docs/experiments/V2_L0_LANGUAGE_READOUT.md).
+
+The measured evidence, limitations, and M4 decision are documented in the
 [V2 audit report](docs/experiments/V2_AUDIT_REPORT.md) and
 [V2 stage report](docs/experiments/V2_STAGE_REPORT.md). The one-shot reviews
 are documented separately in the

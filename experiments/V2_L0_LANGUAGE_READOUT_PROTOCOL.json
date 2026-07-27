@@ -1,0 +1,195 @@
+{
+  "protocol_name": "V2-L0 frozen entity-language readability",
+  "protocol_version": 1,
+  "status": "frozen_before_language_readout_implementation",
+  "date": "2026-07-27",
+  "research_question": "Does the frozen I1 entity belief graph make grounded self, identity, permanence, and spatial propositions more linearly readable than the current learner-facing occupancy grid and the prespecified broken-synchrony controls?",
+  "scope": {
+    "claim": "language_readability_from_frozen_entity_state",
+    "not_claimed": [
+      "natural_language_acquisition",
+      "free-form_language_understanding",
+      "instruction_following",
+      "language_conditioned_action",
+      "raw_pixel_language_grounding"
+    ]
+  },
+  "prerequisite": {
+    "artifact": "results/V2-I1-v4-holdout-summary.json",
+    "artifact_sha256": "855fd1ec29b05efbe3ef2e35e263a3db8d6dc54611dd881db21e8e3416c313a8",
+    "expected_decision": "i1_next_generation_architecture_verified",
+    "expected_passed": true,
+    "reviewed_implementation_commit": "395f22402e6706f262e3e34e1266b5e2b165462a",
+    "formal_source_sha256": "474071f6853288c7f49d6a0a027c03f393beac119b6d9bedcc5d80c2aee86550"
+  },
+  "frozen_i1_sources": {
+    "cal/model/entity_belief_graph.py": "5bd030a3dc175af3c9d0318a16210df340603cf45c93caa92865162e8a951fc8",
+    "cal/evaluation/v2_i1_integration.py": "a7cf13b4561d71c066ca2b03fd7b2bc9462981609a947b38770f5a5d2ccb0376",
+    "experiments/V2_I1_INTEGRATION_PROTOCOL_V4.json": "f85dcd58787c697d424eae5efcd9a5cf4d98d523d61294707c31e11048c99b83"
+  },
+  "learner_boundary": {
+    "i1_update_inputs": [
+      "local_binary_occupancy",
+      "executed_action_copy"
+    ],
+    "language_gradients_reach_i1": false,
+    "evaluation_truth_reaches_i1": false,
+    "numeric_entity_ids_enter_probe_features": false,
+    "probe_training_inputs": [
+      "detached_frozen_representation"
+    ],
+    "probe_training_targets": [
+      "evaluator_only_binary_propositions"
+    ]
+  },
+  "semantic_schema": {
+    "propositions": [
+      "self_left_of_camera",
+      "self_above_camera",
+      "horizontal_mover_left_of_self",
+      "horizontal_mover_above_self",
+      "vertical_mover_left_of_self",
+      "vertical_mover_above_self",
+      "horizontal_mover_visible",
+      "vertical_mover_visible"
+    ],
+    "concept_groups": {
+      "self": [
+        "self_left_of_camera",
+        "self_above_camera"
+      ],
+      "spatial": [
+        "horizontal_mover_left_of_self",
+        "horizontal_mover_above_self",
+        "vertical_mover_left_of_self",
+        "vertical_mover_above_self"
+      ],
+      "permanence": [
+        "horizontal_mover_left_of_self_when_hidden",
+        "horizontal_mover_above_self_when_hidden",
+        "vertical_mover_left_of_self_when_hidden",
+        "vertical_mover_above_self_when_hidden"
+      ],
+      "identity": [
+        "horizontal_mover_relation_after_reappearance",
+        "vertical_mover_relation_after_reappearance"
+      ]
+    },
+    "surface_language_role": "Predicted proposition truth values are rendered through split-specific controlled Chinese templates. L0 evaluates semantic readability, not parsing or free-form generation.",
+    "templates": {
+      "train": [
+        "我在摄像中心的左侧",
+        "我在摄像中心的上方",
+        "横向运动者在我的左侧",
+        "横向运动者在我的上方",
+        "纵向运动者在我的左侧",
+        "纵向运动者在我的上方",
+        "横向运动者当前可见",
+        "纵向运动者当前可见"
+      ],
+      "validation": [
+        "相对摄像中心，我位于左边",
+        "相对摄像中心，我位于上边",
+        "相对我，横向运动者位于左边",
+        "相对我，横向运动者位于上边",
+        "相对我，纵向运动者位于左边",
+        "相对我，纵向运动者位于上边",
+        "现在能够看到横向运动者",
+        "现在能够看到纵向运动者"
+      ],
+      "holdout": [
+        "摄像中心左侧的是我",
+        "摄像中心上方的是我",
+        "我的左侧是横向运动者",
+        "我的上方是横向运动者",
+        "我的左侧是纵向运动者",
+        "我的上方是纵向运动者",
+        "横向运动者没有被遮挡",
+        "纵向运动者没有被遮挡"
+      ]
+    }
+  },
+  "fixed_execution": {
+    "steps_per_seed": 200,
+    "warmup_steps": 12,
+    "reappearance_window_steps": 5,
+    "training_epochs": 120,
+    "batch_size": 256,
+    "learning_rate": 0.03,
+    "weight_decay": 0.001,
+    "probe_seed": 34000,
+    "time_shuffle_lag": 17,
+    "random_label_seed": 34001,
+    "device": "cpu"
+  },
+  "splits": {
+    "development_train": {
+      "seeds": [
+        33000,
+        33001,
+        33002,
+        33003,
+        33004,
+        33005,
+        33006,
+        33007
+      ],
+      "may_be_run_repeatedly": true
+    },
+    "development_validation": {
+      "seeds": [
+        33100,
+        33101,
+        33102,
+        33103
+      ],
+      "may_be_run_repeatedly": true
+    },
+    "review_holdout": {
+      "seeds": [
+        33200,
+        33201,
+        33202,
+        33203
+      ],
+      "may_be_run": "once_after_implementation_tests_and_independent_subagent_review_on_a_source-locked_protocol_amendment"
+    }
+  },
+  "representations": {
+    "formal_entity_graph": "detached ID-invariant spatial maps rendered from the frozen I1 graph",
+    "raw_sensor": "current learner-facing 11x11 binary occupancy plus executed action one-hot",
+    "no_action_entity_graph": "the same frozen I1 architecture with use_action=false"
+  },
+  "controls": {
+    "raw_sensor": "tests whether the entity representation adds readability beyond the current input",
+    "time_shuffled": "shifts frozen entity features by 17 steps within each episode",
+    "referent_swapped": "swaps horizontal-mover and vertical-mover proposition targets during probe fitting",
+    "random_labels": "independently permutes every proposition target during probe fitting",
+    "no_action": "removes true action use inside I1 while keeping the readout protocol unchanged"
+  },
+  "fixed_gates": {
+    "formal_macro_balanced_accuracy_minimum": 0.7,
+    "formal_self_balanced_accuracy_minimum": 0.8,
+    "formal_spatial_balanced_accuracy_minimum": 0.7,
+    "formal_permanence_balanced_accuracy_minimum": 0.65,
+    "formal_identity_balanced_accuracy_minimum": 0.65,
+    "formal_minus_raw_macro_minimum": 0.05,
+    "time_shuffle_macro_drop_minimum": 0.05,
+    "referent_swap_spatial_identity_drop_minimum": 0.05,
+    "random_label_macro_maximum": 0.6,
+    "no_action_self_drop_minimum": 0.1,
+    "all_i1_parameters_frozen": true,
+    "labels_absent_from_i1": true,
+    "numeric_entity_ids_absent_from_probe": true,
+    "probe_parameter_count_maximum": 50000
+  },
+  "result_paths": {
+    "development": "results/V2-L0-language-readout-development.json",
+    "holdout": "results/V2-L0-language-readout-holdout.json"
+  },
+  "review_requirement": [
+    "language-grounding and claim-validity review",
+    "probability, split, and control-integrity review",
+    "freeze-boundary, leakage, and implementation review"
+  ]
+}

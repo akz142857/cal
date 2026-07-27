@@ -1,0 +1,181 @@
+{
+  "protocol_name": "V2-L0 post-review paired-query correction",
+  "protocol_version": 3,
+  "status": "frozen_after_initial_subagent_review_before_paired_query_implementation",
+  "date": "2026-07-27",
+  "base_protocol_path": "experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V2.json",
+  "base_protocol_sha256": "bb70d7983621a4756bf8e1030eb729ccca776888f3ba0fad062ba319022c32e3",
+  "amendment_record": {
+    "prior_development_result_path": "results/V2-L0-language-readout-development-v2.json",
+    "prior_development_result_sha256": "f36bda4d95318f1a6e49f3d974a1f4e1501ba01ea94586dff19bdc1ac176ffe4",
+    "prior_development_decision": "authorize_review_and_source_lock",
+    "prior_result_valid_for_holdout_authorization": false,
+    "prior_holdout_runs": 0,
+    "algorithm_changed": true,
+    "fixed_existing_thresholds_lowered": false,
+    "development_seeds_changed": false,
+    "reason": "Three independent reviews found that the V2 permanence score silently skipped both horizontal-mover hidden propositions, while identity measured current spatial relations under a reappearance-window mask rather than matching a post-occlusion candidate to a pre-occlusion reference. Reviews also found that the future holdout path lacked source locks and one-shot origin CAS protection. Replace permanence with balanced hidden-cell occupancy queries, replace identity with balanced pre-occlusion-reference/current-candidate pair queries, add matched destructive controls and strict coverage evidence, and require a later source-locked protocol before any holdout."
+  },
+  "review_record": {
+    "reviewers": [
+      "review_language_claims",
+      "review_metrics_controls",
+      "review_freeze_implementation"
+    ],
+    "blocking_findings": [
+      "permanence_columns_without_both_classes_were_silently_skipped",
+      "identity_labels_did_not_match_post_occlusion_candidates_to_pre_occlusion_references",
+      "holdout_protocol_path_status_output_and_source_authorization_were_forgeable",
+      "holdout_had_no_atomic_local_or_shared_origin_consumption",
+      "frozen_i1_transitive_dependencies_were_incomplete",
+      "integrity_gates_were_partly_self_attested",
+      "per_seed_and_per_proposition_evidence_was_absent"
+    ]
+  },
+  "holdout_contamination_record": {
+    "invalidated_seeds": [
+      33200,
+      33201,
+      33202,
+      33203
+    ],
+    "event": "During read-only review, a diagnostic script accidentally simulated world/action trajectories and printed event/mask structure counts for these seeds. It did not instantiate I1 or a readout, train a model, calculate model metrics, or write a formal result. The structural peek nevertheless invalidates their unseen status.",
+    "replacement_seeds_assigned_before_paired_query_implementation": [
+      33400,
+      33401,
+      33402,
+      33403
+    ]
+  },
+  "semantic_schema_replacement": {
+    "propositions": [
+      "first_pointed_entity_is_self",
+      "second_pointed_entity_is_self",
+      "horizontal_mover_left_of_self",
+      "horizontal_mover_above_self",
+      "vertical_mover_left_of_self",
+      "vertical_mover_above_self",
+      "first_hidden_cell_contains_entity",
+      "second_hidden_cell_contains_entity",
+      "first_reappeared_candidate_matches_reference",
+      "second_reappeared_candidate_matches_reference"
+    ],
+    "concept_groups": {
+      "self": [
+        "first_pointed_entity_is_self",
+        "second_pointed_entity_is_self"
+      ],
+      "spatial": [
+        "horizontal_mover_left_of_self",
+        "horizontal_mover_above_self",
+        "vertical_mover_left_of_self",
+        "vertical_mover_above_self"
+      ],
+      "permanence": [
+        "first_hidden_cell_contains_entity",
+        "second_hidden_cell_contains_entity"
+      ],
+      "identity": [
+        "first_reappeared_candidate_matches_reference",
+        "second_reappeared_candidate_matches_reference"
+      ]
+    },
+    "templates": {
+      "train": [
+        "第一个被指向的目标是我",
+        "第二个被指向的目标是我",
+        "横向运动者在我的左侧",
+        "横向运动者在我的上方",
+        "纵向运动者在我的左侧",
+        "纵向运动者在我的上方",
+        "第一个被指向的遮挡位置仍有目标",
+        "第二个被指向的遮挡位置仍有目标",
+        "第一个重现候选是遮挡前被指向的那个目标",
+        "第二个重现候选是遮挡前被指向的那个目标"
+      ],
+      "validation": [
+        "第一处标记指着我",
+        "第二处标记指着我",
+        "相对我，横向运动者位于左边",
+        "相对我，横向运动者位于上边",
+        "相对我，纵向运动者位于左边",
+        "相对我，纵向运动者位于上边",
+        "遮挡区标记一的位置仍被实体占据",
+        "遮挡区标记二的位置仍被实体占据",
+        "重现标记一与遮挡前的指称相同",
+        "重现标记二与遮挡前的指称相同"
+      ],
+      "holdout": [
+        "标记一对应的是我",
+        "标记二对应的是我",
+        "我的左侧是横向运动者",
+        "我的上方是横向运动者",
+        "我的左侧是纵向运动者",
+        "我的上方是纵向运动者",
+        "隐藏位置一依然有目标",
+        "隐藏位置二依然有目标",
+        "候选一就是先前隐藏的目标",
+        "候选二就是先前隐藏的目标"
+      ]
+    }
+  },
+  "paired_query_protocol": {
+    "self": "Two visible non-merged actor cells are selected by seed and step. Each query asks whether its pointed candidate is evaluator-truth self.",
+    "permanence": "After at least two continuously hidden steps, one query points to a hidden true dynamic cell and one to a hidden evaluator-empty non-static cell. Query order rotates deterministically, making both output columns balanced.",
+    "identity": "Immediately before an actor becomes hidden, save an ID-invariant detached descriptor at its unique visible cell. After at least two continuously hidden steps and unique reappearance, pair the saved reference with two same-frame unique visible candidates: the same truth actor and the other distractor. Query order rotates, making both outputs balanced. Numeric internal IDs never enter features.",
+    "query_interactions": "For identity only, the readout receives current candidate descriptor, saved pre-occlusion descriptor, elementwise product, and absolute difference. Other heads cannot read identity query blocks.",
+    "minimum_continuous_hidden_steps": 2,
+    "reappearance_window_steps": 5
+  },
+  "control_amendment": {
+    "assume_all_visible_entity_graph": "Runs the frozen I1 architecture with infer_occlusion=false. Formal permanence must beat this hidden-state erasure control.",
+    "identity_scrambled_at_occlusion": "Within each episode, rotate only saved pre-occlusion reference descriptors across identity-query events and recompute pair interactions. Current base state, action, candidate position, candidate descriptor, query mask, and labels remain unchanged."
+  },
+  "coverage_and_evidence": {
+    "balanced_accuracy_must_not_skip_registered_columns": true,
+    "development_validation_minimum_positive_per_proposition": 20,
+    "development_validation_minimum_negative_per_proposition": 20,
+    "holdout_minimum_positive_per_proposition": 10,
+    "holdout_minimum_negative_per_proposition": 10,
+    "emit_per_proposition_metrics": true,
+    "emit_per_seed_metrics": true,
+    "formal_per_seed_macro_balanced_accuracy_minimum": 0.6
+  },
+  "additional_fixed_gates": {
+    "formal_minus_raw_permanence_minimum": 0.08,
+    "formal_minus_raw_identity_minimum": 0.08,
+    "formal_minus_assume_all_visible_permanence_minimum": 0.1,
+    "formal_minus_identity_scrambled_identity_minimum": 0.1,
+    "all_registered_columns_covered": true,
+    "all_formal_per_seed_macro_pass": true,
+    "runtime_input_audit_pass": true,
+    "runtime_numeric_id_permutation_audit_pass": true
+  },
+  "split_amendment": {
+    "review_holdout": {
+      "seeds": [
+        33400,
+        33401,
+        33402,
+        33403
+      ],
+      "may_be_run": "once only after corrected development passes, all review findings are fixed and re-reviewed, a new exact-source-lock amendment is frozen, a clean reviewed commit is checked out, and an origin CAS consumption tag is created before the first episode"
+    }
+  },
+  "result_paths": {
+    "development": "results/V2-L0-language-readout-development-v3.json",
+    "holdout": "results/V2-L0-language-readout-holdout-v4.json",
+    "holdout_reservation": "results/V2-L0-language-readout-holdout-v4-reservation.json"
+  },
+  "required_final_source_locks": [
+    "cal/evaluation/v2_l0_language_readout.py",
+    "tests/test_v2_l0_language_readout.py",
+    "cal/model/entity_belief_graph.py",
+    "cal/evaluation/v2_i1_integration.py",
+    "cal/model/occupancy.py",
+    "cal/model/integrated_agent.py",
+    "corrected development result",
+    "full source provenance digest",
+    "reviewed clean git commit"
+  ]
+}

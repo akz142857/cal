@@ -1,0 +1,40 @@
+{
+  "protocol_name": "V2-L0 shortcut-resistant identity and self correction",
+  "protocol_version": 4,
+  "status": "frozen_before_cross_episode_identity_control_implementation",
+  "date": "2026-07-27",
+  "base_protocol_path": "experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V3.json",
+  "base_protocol_sha256": "35aa6458ce5b40bf788dd12394ab5736647f140dbbfc3f556916cfd63cd5daa9",
+  "amendment_record": {
+    "prior_development_result_path": "results/V2-L0-language-readout-development-v3.json",
+    "prior_development_result_sha256": "6a8c718afeb5cf71deb69d41688272bd2611632ba084431968bc01c4b4e6d047",
+    "prior_development_passed": false,
+    "prior_development_decision": "stop_and_report",
+    "holdout_runs": 0,
+    "fixed_existing_thresholds_lowered": false,
+    "development_seeds_changed": false,
+    "holdout_seeds_changed": false,
+    "reason": "After separating sensor invisibility from actor uniqueness, development exposed two remaining shortcuts. Absolute query position and generic motion descriptors let current-frame features answer identity and self without the intended historical reference/action evidence. In addition, V3's within-episode identity-reference rotation usually substituted another descriptor of the same actor because most episodes contain a valid occlusion for only one motion role. Freeze a role-stratified cross-development-episode destructive control and restricted semantic heads before implementing the final correction."
+  },
+  "query_and_head_amendment": {
+    "self_candidate_sampling": "Each valid row points once to evaluator self and once to one distractor. Output order is deterministic and balanced. The self head receives only the two candidates' ID-invariant self_evidence, self_posterior, and selected_self channels; it receives neither absolute query masks nor the global base maps nor generic motion channels.",
+    "identity_query_sampling": "A valid identity row still uses one reference saved at the unique sensor-visible frame immediately before at least two continuously sensor-hidden steps, followed by a unique reappearance. It pairs that reference with the same actor and the other uniquely visible distractor. Output order alternates by an episode-local valid identity-event counter.",
+    "identity_head_inputs": "The identity head receives only the two current/reference descriptor interaction blocks. It receives neither absolute query masks nor global base maps. Numeric entity IDs remain absent.",
+    "scientific_reason": "The restrictions remove absolute-position, global reappearance-state, and generic-motion shortcuts while preserving the preregistered question: whether explicit I1 self channels and candidate/reference descriptor correspondence are linearly readable."
+  },
+  "control_amendment": {
+    "identity_scrambled_at_occlusion": "For every identity-query row in a development dataset, replace only its saved reference descriptor with a deterministic reference drawn from a different episode and the opposite horizontal/vertical motion role. Preserve current base state, action, candidate masks, current candidate descriptors, labels, and episode membership. Recompute product and absolute-difference interactions.",
+    "scramble_integrity_gate": "Every active reference block must change and at least 90 percent must switch horizontal/vertical reference role. The exact counts and fraction must be emitted in runtime evidence.",
+    "scope": "Cross-episode substitution is allowed only within the same repeatable development split. It never crosses train/evaluation, and no holdout data may be inspected to construct or calibrate it."
+  },
+  "result_paths": {
+    "development": "results/V2-L0-language-readout-development-v4.json",
+    "holdout": "results/V2-L0-language-readout-holdout-v5.json",
+    "holdout_reservation": "results/V2-L0-language-readout-holdout-v5-reservation.json"
+  },
+  "authorization": {
+    "development_may_be_run_repeatedly": true,
+    "holdout_authorized": false,
+    "next_required_amendment": "A later exact-source-lock protocol must bind the final evaluator, tests, transitive I1 dependencies, this V4 protocol, passing development-v4 result, complete provenance digest, clean reviewed commit, local atomic reservation, origin CAS consumption tag, and immutable result evidence tag."
+  }
+}

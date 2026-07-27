@@ -51,6 +51,8 @@ cal-v2-m4 = "cal.evaluation.v2_m4:main"
 cal-v2-m4-unprivileged = "cal.evaluation.v2_m4_unprivileged:main"
 cal-v2-i1 = "cal.evaluation.v2_i1_integration:main"
 cal-v2-i1-v2 = "cal.evaluation.v2_i1_integration_v2:main"
+cal-v2-i1-replay = "cal.evaluation.v2_i1_replay:main"
+cal-v2-l0-language = "cal.evaluation.v2_l0_language_readout:main"
 cal-v2-stage-summary = "cal.evaluation.v2_stage_summary:main"
 
 [tool.setuptools.packages.find]

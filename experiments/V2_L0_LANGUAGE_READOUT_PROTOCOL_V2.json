@@ -1,0 +1,72 @@
+{
+  "protocol_name": "V2-L0 deictic self-reference correction",
+  "protocol_version": 2,
+  "status": "frozen_before_deictic_self_correction_implementation",
+  "date": "2026-07-27",
+  "base_protocol_path": "experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL.json",
+  "base_protocol_sha256": "39026a8ef6c1253ea40e830356504741636532fa7fcecbefadff4fabd8199493",
+  "amendment_record": {
+    "prior_development_result_path": "results/V2-L0-language-readout-development.json",
+    "prior_development_result_sha256": "240c8d0a2b85649311cd472575c15b4d8befb19fced75e8ebdabc09f2fe495e5",
+    "prior_development_decision": "stop_and_report",
+    "prior_failed_gate": "no_action_self_fails",
+    "prior_formal_self_balanced_accuracy": 0.8639047704637051,
+    "prior_no_action_self_balanced_accuracy": 0.8967440960928799,
+    "holdout_runs_before_amendment": 0,
+    "fixed_thresholds_changed": false,
+    "development_or_holdout_seeds_changed": false,
+    "reason": "The original self propositions asked whether the true self was left or above the fixed camera. The no-action graph and even raw spatial priors could decode those scene regularities without identifying a candidate as self, so the proposition did not isolate grounded self-reference. Replace both self propositions with balanced deictic candidate queries. The evaluator points to two currently visible, non-merged occupied cells after the normal I1 update; the readout must judge whether each pointed entity is self. Query masks and values sampled from the detached representation enter only the separate readout. They never enter I1. All thresholds, seeds, other concepts, controls, and the unopened holdout remain unchanged."
+  },
+  "learner_boundary_amendment": {
+    "i1_inputs_changed": false,
+    "probe_training_inputs": [
+      "detached_frozen_representation",
+      "two_evaluator_side_deictic_query_masks"
+    ],
+    "deictic_queries_reach_i1": false,
+    "numeric_entity_ids_enter_probe_features": false
+  },
+  "semantic_schema_amendment": {
+    "replace_propositions": {
+      "self_left_of_camera": "first_pointed_entity_is_self",
+      "self_above_camera": "second_pointed_entity_is_self"
+    },
+    "replace_concept_group": {
+      "self": [
+        "first_pointed_entity_is_self",
+        "second_pointed_entity_is_self"
+      ]
+    },
+    "replace_templates": {
+      "train": [
+        "第一个被指向的目标是我",
+        "第二个被指向的目标是我"
+      ],
+      "validation": [
+        "第一处标记指着我",
+        "第二处标记指着我"
+      ],
+      "holdout": [
+        "标记一对应的是我",
+        "标记二对应的是我"
+      ]
+    }
+  },
+  "deictic_query_protocol": {
+    "candidate_actors": [
+      "self",
+      "horizontal_mover",
+      "vertical_mover"
+    ],
+    "selection": "two_distinct_actor_indices_determined_only_by_seed_and_step",
+    "validity": "candidate truth cell is visible and no other truth actor occupies that cell",
+    "graph_query_features": "binary query mask plus each ID-invariant graph map sampled at the query cell",
+    "raw_query_features": "the identical binary query mask plus raw occupancy sampled at the query cell",
+    "labels": "whether each selected candidate actor is evaluator truth self",
+    "balance": "candidate actor roles rotate deterministically across every episode"
+  },
+  "result_paths": {
+    "development": "results/V2-L0-language-readout-development-v2.json",
+    "holdout": "results/V2-L0-language-readout-holdout-v2.json"
+  }
+}
