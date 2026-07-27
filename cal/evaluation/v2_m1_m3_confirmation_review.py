@@ -34,6 +34,9 @@ def build_v2_m1_m3_confirmation_review(
     v6_protocol_path: str | Path = (
         "experiments/V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL_V6.json"
     ),
+    v7_protocol_path: str | Path = (
+        "experiments/V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL_V7.json"
+    ),
     v2_development_path: str | Path = (
         "results/V2-M1-M3-integrated-v2-development-summary.json"
     ),
@@ -55,6 +58,7 @@ def build_v2_m1_m3_confirmation_review(
         "v4_protocol": Path(v4_protocol_path),
         "v5_protocol": Path(v5_protocol_path),
         "v6_protocol": Path(v6_protocol_path),
+        "v7_protocol": Path(v7_protocol_path),
         "v2_development": Path(v2_development_path),
         "v2_confirmation": Path(confirmation_path),
     }
@@ -73,6 +77,7 @@ def build_v2_m1_m3_confirmation_review(
     v4_protocol = payloads["v4_protocol"]
     v5_protocol = payloads["v5_protocol"]
     v6_protocol = payloads["v6_protocol"]
+    v7_protocol = payloads["v7_protocol"]
     development = payloads["v2_development"]
     confirmation = payloads["v2_confirmation"]
     v1_failed_gates = sorted(
@@ -207,8 +212,29 @@ def build_v2_m1_m3_confirmation_review(
             ]
             is True
         ),
+        "v7_amendment_preserves_v6_protocol": (
+            v7_protocol["amendment_record"]["prior_protocol_sha256"]
+            == digests["v6_protocol"]
+        ),
+        "v7_amendment_preserves_confirmation": (
+            v7_protocol["amendment_record"][
+                "prior_confirmation_result_sha256"
+            ]
+            == digests["v2_confirmation"]
+        ),
+        "v7_extension_kept_thresholds_and_verified_equivalence": (
+            v7_protocol["fixed_gates"] == v6_protocol["fixed_gates"]
+            and v7_protocol["amendment_record"][
+                "model_or_stage_algorithm_changed"
+            ]
+            is False
+            and v7_protocol["amendment_record"][
+                "default_parameter_equivalence_verified"
+            ]
+            is True
+        ),
         "current_protocol_hash_matches_development": (
-            development["protocol_sha256"] == digests["v6_protocol"]
+            development["protocol_sha256"] == digests["v7_protocol"]
         ),
         "current_development_passes": (
             development["passed"] is True
@@ -244,6 +270,7 @@ def build_v2_m1_m3_confirmation_review(
         "protocol_v4_sha256": digests["v4_protocol"],
         "protocol_v5_sha256": digests["v5_protocol"],
         "protocol_v6_sha256": digests["v6_protocol"],
+        "protocol_v7_sha256": digests["v7_protocol"],
         "v1_development_regenerated_from_historical_source": True,
         "confirmation": {
             "m1": {
@@ -379,6 +406,20 @@ docs/experiments/V2_I1_INTEGRATION_REPORT.md 的 V6 节）。同样是
 （含无因果似然消融）开发集产物，除 `cpu_wall_seconds` 外逐字段
 完全一致。v6 的修订记录同样保留 v5 协议与一次性确认结果的哈希，
 本审计逐项验证该链条。开发集结果在 v6 下重新生成并全部通过。
+
+随后发布的 v7 修订（SHA-256 `{summary['protocol_v7_sha256']}`）给
+`OnlineEntityGraph` 加了一个默认值为 0.0（无操作）的
+`confidence_adaptive_gating_weight` 构造参数——用 RLS 已经算出来的
+`action @ track.covariance @ action`（预测置信度，本来就存在，只是
+没被用于关联门控）替换写死的 `0.32` 距离尺度，让置信度更高的 track
+在关联时容忍度更低、置信度更低的 track 容忍度更高；M1/M2/M3/本
+确认脚本均未传入该参数，行为不变。这个改动不引入任何新的可变
+状态,只读现有字段，因此不需要像 v6 那样检查新状态与
+`_propagate_membership`/`_edges`/剪枝逻辑的交互。同样是逐字段重跑
+验证而非论证：v7 修改前后的 M2（三种关联模式）、M3（含无因果似然
+消融）开发集产物，除 `cpu_wall_seconds` 外逐字段完全一致。v7 的
+修订记录同样保留 v6 协议与一次性确认结果的哈希，本审计逐项验证该
+链条。开发集结果在 v7 下重新生成并全部通过。
 
 ## 确认结果
 

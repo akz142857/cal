@@ -182,6 +182,19 @@ class IntegratedSelfWorldAgent:
         # biased predictions afterward), which is why the self_f1 gate
         # (>=0.90) still fails by a wide margin. See "第六处摩擦" and its
         # follow-up in docs/experiments/V2_I1_INTEGRATION_REPORT.md.
+        # confidence_adaptive_gating_weight (protocol V7) is deliberately
+        # NOT enabled here (left at its 0.0 default). A calibration-set
+        # sweep found every tested nonzero weight trades identity_consistency
+        # gains for a self_f1 regression that violates this investigation's
+        # own pre-registered "must not regress" requirement - even the
+        # smallest tested weight (0.02) drops self_f1 from 0.326 to 0.292
+        # for a negligible identity_consistency gain (0.2325 -> 0.2310),
+        # and the trade only gets worse from there (weight=0.2:
+        # self_f1 0.227, identity_consistency 0.288). The mechanism itself
+        # is real, verified, and kept available (see cal/model/entity_graph.py
+        # and docs/experiments/V2_I1_INTEGRATION_REPORT.md) - it just isn't
+        # a net win for this specific composition of gates, so it stays
+        # off, the same way V6's drift_reset_after does.
         self.graph = OnlineEntityGraph(
             4,
             association_mode="probabilistic",

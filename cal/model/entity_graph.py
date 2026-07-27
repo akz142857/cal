@@ -55,6 +55,7 @@ class OnlineEntityGraph:
         reacquisition_window: int = 6,
         identity_switch_penalty_weight: float = 0.0,
         drift_reset_after: int | None = None,
+        confidence_adaptive_gating_weight: float = 0.0,
     ) -> None:
         self.action_dimensions = action_dimensions
         self.maximum_tracks = maximum_tracks
@@ -72,6 +73,11 @@ class OnlineEntityGraph:
         if drift_reset_after is not None and drift_reset_after < 1:
             raise ValueError("drift_reset_after must be positive")
         self.drift_reset_after = drift_reset_after
+        if confidence_adaptive_gating_weight < 0.0:
+            raise ValueError(
+                "confidence_adaptive_gating_weight must be non-negative"
+            )
+        self.confidence_adaptive_gating_weight = confidence_adaptive_gating_weight
         if association_mode not in {"probabilistic", "hard_map", "nearest"}:
             raise ValueError("invalid association mode")
         self.association_mode = association_mode
@@ -438,7 +444,9 @@ class OnlineEntityGraph:
                         assignments,
                         detections,
                     )
-                    motion_cost = (distance / 0.32) ** 2
+                    motion_cost = (
+                        distance / self._motion_cost_scale(track, action)
+                    ) ** 2
                     switch_penalty = self._identity_switch_penalty(
                         track.index,
                         detections[detection_index],
@@ -533,6 +541,63 @@ class OnlineEntityGraph:
         action: np.ndarray,
     ) -> np.ndarray:
         return track.position + track.theta @ action + track.autonomous_velocity
+
+    # Reference prediction-variance level: action @ covariance @ action for
+    # a unit-norm (one-hot) action against _new_track's own initial
+    # covariance (eye(action_dimensions) * 6.0). A track at exactly this
+    # variance - i.e. exactly as confident as a brand-new track - gets
+    # exactly the disabled-path scale (0.32); less confident tracks get a
+    # tighter scale, more confident ones a wider one (see the direction
+    # note on _motion_cost_scale below for why). Chosen this way so
+    # "just created" behaves identically whether or not the mechanism is
+    # enabled, rather than picking an arbitrary unrelated reference point.
+    _MOTION_COST_SCALE_REFERENCE_VARIANCE = 6.0
+
+    def _motion_cost_scale(self, track: GraphTrack, action: np.ndarray) -> float:
+        """The distance scale motion_cost normalizes against for this track.
+
+        Disabled by default (confidence_adaptive_gating_weight == 0.0):
+        returns exactly 0.32 (the fixed scale every existing caller has
+        always used), a hard no-op rather than a numerically-close one.
+
+        When enabled, widens or tightens that scale per track using
+        `action @ track.covariance @ action` - the same RLS-derived
+        prediction-variance term already computed inline during the
+        theta update (as `denominator - forgetting`), just not
+        previously used for anything at candidate-scoring time.
+
+        Direction (empirically corrected, not the first guess): a
+        well-established, confident track (lower variance than the
+        reference) gets a WIDER tolerance, and a still-uncertain one
+        (freshly created, long unmatched, or otherwise less confident)
+        gets a TIGHTER one. The original hypothesis was the opposite -
+        tighten confident tracks so a rival can't steal a close
+        encounter - reasoning by analogy from Kalman-filter gating,
+        where the state covariance IS the position uncertainty. Here
+        `track.covariance` is uncertainty in theta (the control-effect
+        estimate), not in position, so that analogy doesn't transfer
+        directly; a pre-registered calibration-set sweep (see
+        docs/experiments/V2_I1_INTEGRATION_REPORT.md) measured the
+        originally-hypothesized direction making identity_consistency
+        WORSE at every tested weight, and the opposite direction
+        measurably better. The likely mechanism: a still-uncertain
+        track is the one most at risk of being prematurely fragmented
+        (a single ordinary detection jitter read as a miss, killing a
+        track that was still learning) - loosening its tolerance lets
+        it survive to become well-established, rather than protecting
+        already-stable tracks that were not the source of the churn.
+        Exponential in the variance gap (rather than linear) keeps the
+        scale positive and bounded for any covariance value, including
+        the degenerate prediction_variance == 0 case a "stay" action
+        produces for every track uniformly (no discrimination that
+        step, but no blow-up either).
+        """
+
+        if self.confidence_adaptive_gating_weight <= 0.0:
+            return 0.32
+        prediction_variance = float(action @ track.covariance @ action)
+        gap = self._MOTION_COST_SCALE_REFERENCE_VARIANCE - prediction_variance
+        return 0.32 * exp(self.confidence_adaptive_gating_weight * gap)
 
     def _geometry_assignment_cost(
         self,

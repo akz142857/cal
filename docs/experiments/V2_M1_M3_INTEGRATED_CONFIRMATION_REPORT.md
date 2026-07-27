@@ -56,6 +56,20 @@ docs/experiments/V2_I1_INTEGRATION_REPORT.md 的 V6 节）。同样是
 完全一致。v6 的修订记录同样保留 v5 协议与一次性确认结果的哈希，
 本审计逐项验证该链条。开发集结果在 v6 下重新生成并全部通过。
 
+随后发布的 v7 修订（SHA-256 `f1591fadd46895b4f7425ac96a82b52c5c0fa2c04869f2ee4ddaaa3a94f3eda1`）给
+`OnlineEntityGraph` 加了一个默认值为 0.0（无操作）的
+`confidence_adaptive_gating_weight` 构造参数——用 RLS 已经算出来的
+`action @ track.covariance @ action`（预测置信度，本来就存在，只是
+没被用于关联门控）替换写死的 `0.32` 距离尺度，让置信度更高的 track
+在关联时容忍度更低、置信度更低的 track 容忍度更高；M1/M2/M3/本
+确认脚本均未传入该参数，行为不变。这个改动不引入任何新的可变
+状态,只读现有字段，因此不需要像 v6 那样检查新状态与
+`_propagate_membership`/`_edges`/剪枝逻辑的交互。同样是逐字段重跑
+验证而非论证：v7 修改前后的 M2（三种关联模式）、M3（含无因果似然
+消融）开发集产物，除 `cpu_wall_seconds` 外逐字段完全一致。v7 的
+修订记录同样保留 v6 协议与一次性确认结果的哈希，本审计逐项验证该
+链条。开发集结果在 v7 下重新生成并全部通过。
+
 ## 确认结果
 
 | 阶段 | 正式结果 | 机制对照 |

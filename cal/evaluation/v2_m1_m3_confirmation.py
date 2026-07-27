@@ -34,7 +34,7 @@ from cal.model.online_control import (
 
 
 DEFAULT_PROTOCOL = Path(
-    "experiments/V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL_V6.json"
+    "experiments/V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL_V7.json"
 )
 DEFAULT_NAMESPACE_MIGRATION = Path(
     "experiments/CAL_NAMESPACE_MIGRATION.json"
@@ -57,6 +57,7 @@ def _load_protocol(path: str | Path) -> tuple[dict[str, Any], str]:
         "frozen_after_v3_entity_graph_reacquisition_window_extension",
         "frozen_after_v4_entity_graph_identity_switch_penalty_extension",
         "frozen_after_v5_entity_graph_drift_reset_extension",
+        "frozen_after_v6_entity_graph_confidence_adaptive_gating_extension",
     }:
         raise RuntimeError("integrated confirmation protocol is not frozen")
     return protocol, digest

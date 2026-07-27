@@ -259,6 +259,83 @@ def test_reset_clears_stale_rigid_edges_so_propagation_cannot_undo_it() -> None:
     assert reset_track.probability == 0.5
 
 
+def test_default_confidence_adaptive_gating_weight_is_zero() -> None:
+    learner = OnlineEntityGraph(4)
+
+    assert learner.confidence_adaptive_gating_weight == 0.0
+
+
+def test_confidence_adaptive_gating_weight_rejects_negative() -> None:
+    try:
+        OnlineEntityGraph(4, confidence_adaptive_gating_weight=-0.1)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError(
+            "negative confidence_adaptive_gating_weight must raise"
+        )
+
+
+def test_motion_cost_scale_is_fixed_when_disabled() -> None:
+    # Default weight 0.0 must be a hard no-op: the scale is exactly 0.32
+    # regardless of covariance or action, matching every existing
+    # caller's behavior bit-for-bit, not just numerically.
+    learner = OnlineEntityGraph(4)
+    action = np.asarray((1.0, 0.0, 0.0, 0.0))
+    confident_track = learner._new_track(np.asarray((0.0, 0.0)))
+    confident_track.covariance = np.eye(4) * 0.001
+    uncertain_track = learner._new_track(np.asarray((0.0, 0.0)))
+    uncertain_track.covariance = np.eye(4) * 100.0
+
+    assert learner._motion_cost_scale(confident_track, action) == 0.32
+    assert learner._motion_cost_scale(uncertain_track, action) == 0.32
+
+
+def test_motion_cost_scale_tightens_for_a_less_confident_track() -> None:
+    # Direction confirmed by a calibration-set sweep, not the original
+    # hypothesis (see the docstring on _motion_cost_scale): a confident
+    # (low-covariance) track gets a WIDER tolerance; an uncertain
+    # (high-covariance) track gets a TIGHTER one.
+    learner = OnlineEntityGraph(4, confidence_adaptive_gating_weight=1.0)
+    action = np.asarray((1.0, 0.0, 0.0, 0.0))
+    confident_track = learner._new_track(np.asarray((0.0, 0.0)))
+    confident_track.covariance = np.eye(4) * 0.1
+    # A brand-new track's own default covariance (eye(4) * 6.0) is the
+    # reference point: it must behave identically to the disabled scale,
+    # so a never-yet-matched track is never harder to match than baseline
+    # whether or not this mechanism is enabled.
+    reference_track = learner._new_track(np.asarray((0.0, 0.0)))
+    assert np.array_equal(reference_track.covariance, np.eye(4) * 6.0)
+    uncertain_track = learner._new_track(np.asarray((0.0, 0.0)))
+    uncertain_track.covariance = np.eye(4) * 20.0
+
+    confident_scale = learner._motion_cost_scale(confident_track, action)
+    reference_scale = learner._motion_cost_scale(reference_track, action)
+    uncertain_scale = learner._motion_cost_scale(uncertain_track, action)
+
+    assert reference_scale == 0.32
+    assert uncertain_scale < reference_scale < confident_scale
+
+
+def test_motion_cost_scale_does_not_discriminate_on_a_stay_action() -> None:
+    # A "stay" (all-zero) action makes action @ covariance @ action == 0
+    # for every track regardless of individual confidence - the formula
+    # must degrade to a single uniform (bounded, non-crashing) value on
+    # that step rather than dividing by zero or otherwise blowing up.
+    learner = OnlineEntityGraph(4, confidence_adaptive_gating_weight=1.0)
+    stay_action = np.zeros(4)
+    confident_track = learner._new_track(np.asarray((0.0, 0.0)))
+    confident_track.covariance = np.eye(4) * 0.1
+    uncertain_track = learner._new_track(np.asarray((0.0, 0.0)))
+    uncertain_track.covariance = np.eye(4) * 20.0
+
+    confident_scale = learner._motion_cost_scale(confident_track, stay_action)
+    uncertain_scale = learner._motion_cost_scale(uncertain_track, stay_action)
+
+    assert confident_scale == uncertain_scale
+    assert 0.0 < confident_scale < float("inf")
+
+
 def test_entity_graph_consumes_unordered_detections() -> None:
     learner = OnlineEntityGraph(4)
     points = np.asarray(((4.0, 4.0), (2.0, 2.0), (2.0, 4.0)))
