@@ -26,3 +26,10 @@ def test_confirmation_review_passes_and_preserves_amendment(
     assert "行为组合确认" in rendered
     assert "reacquisition_window" in rendered
     assert result["protocol_v4_sha256"] in rendered
+    assert "confidence_adaptive_gating_weight" in rendered
+    assert result["protocol_v7_sha256"] in rendered
+    assert result["gates"]["v7_amendment_preserves_v6_protocol"]
+    assert result["gates"]["v7_amendment_preserves_confirmation"]
+    assert result["gates"][
+        "v7_extension_kept_thresholds_and_verified_equivalence"
+    ]

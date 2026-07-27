@@ -336,6 +336,37 @@ def test_motion_cost_scale_does_not_discriminate_on_a_stay_action() -> None:
     assert 0.0 < confident_scale < float("inf")
 
 
+def test_motion_cost_scale_does_not_crash_on_extreme_covariance() -> None:
+    # RLS covariance can "wind up" over hundreds of steps in a rarely
+    # excited action dimension (forgetting divides it every step in every
+    # direction, but only shrinks it back along the currently-excited
+    # one). Without a clamp on the exponent, this drives `gap` far enough
+    # negative that exp() underflows to exactly 0.0, which then makes
+    # _probabilistic_assign's `distance / scale` raise ZeroDivisionError.
+    learner = OnlineEntityGraph(4, confidence_adaptive_gating_weight=1.0)
+    action = np.asarray((1.0, 0.0, 0.0, 0.0))
+    wound_up_track = learner._new_track(np.asarray((0.0, 0.0)))
+    wound_up_track.covariance = np.eye(4) * 1e8
+
+    scale = learner._motion_cost_scale(wound_up_track, action)
+
+    assert 0.0 < scale < float("inf")
+
+
+def test_motion_cost_scale_does_not_crash_on_extreme_weight() -> None:
+    # Symmetrically, a large weight against a near-zero-variance track
+    # pushes the exponent far positive; without a clamp exp() raises
+    # OverflowError.
+    learner = OnlineEntityGraph(4, confidence_adaptive_gating_weight=200.0)
+    action = np.asarray((1.0, 0.0, 0.0, 0.0))
+    confident_track = learner._new_track(np.asarray((0.0, 0.0)))
+    confident_track.covariance = np.eye(4) * 1e-6
+
+    scale = learner._motion_cost_scale(confident_track, action)
+
+    assert 0.0 < scale < float("inf")
+
+
 def test_entity_graph_consumes_unordered_detections() -> None:
     learner = OnlineEntityGraph(4)
     points = np.asarray(((4.0, 4.0), (2.0, 2.0), (2.0, 4.0)))

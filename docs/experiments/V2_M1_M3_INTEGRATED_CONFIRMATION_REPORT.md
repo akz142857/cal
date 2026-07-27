@@ -56,7 +56,7 @@ docs/experiments/V2_I1_INTEGRATION_REPORT.md 的 V6 节）。同样是
 完全一致。v6 的修订记录同样保留 v5 协议与一次性确认结果的哈希，
 本审计逐项验证该链条。开发集结果在 v6 下重新生成并全部通过。
 
-随后发布的 v7 修订（SHA-256 `f1591fadd46895b4f7425ac96a82b52c5c0fa2c04869f2ee4ddaaa3a94f3eda1`）给
+随后发布的 v7 修订（SHA-256 `2daca06580f78ce8ede54f53fea0269cd56cbd0bfd36648a6396051477b436c6`）给
 `OnlineEntityGraph` 加了一个默认值为 0.0（无操作）的
 `confidence_adaptive_gating_weight` 构造参数——用 RLS 已经算出来的
 `action @ track.covariance @ action`（预测置信度，本来就存在，只是

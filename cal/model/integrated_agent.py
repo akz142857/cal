@@ -188,8 +188,9 @@ class IntegratedSelfWorldAgent:
         # gains for a self_f1 regression that violates this investigation's
         # own pre-registered "must not regress" requirement - even the
         # smallest tested weight (0.02) drops self_f1 from 0.326 to 0.292
-        # for a negligible identity_consistency gain (0.2325 -> 0.2310),
-        # and the trade only gets worse from there (weight=0.2:
+        # with no identity_consistency benefit at all - it actually ticks
+        # down slightly (0.2325 -> 0.2310) rather than up - and the
+        # trade only gets worse from there (weight=0.2:
         # self_f1 0.227, identity_consistency 0.288). The mechanism itself
         # is real, verified, and kept available (see cal/model/entity_graph.py
         # and docs/experiments/V2_I1_INTEGRATION_REPORT.md) - it just isn't

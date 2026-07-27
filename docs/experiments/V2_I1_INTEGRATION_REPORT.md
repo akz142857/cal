@@ -810,3 +810,65 @@ track），但对自我识别是坏事：这也放宽了一个"确信的干扰�
 诚实地发现并报告了一个真实的权衡，而不是选择性地只报告
 `identity_consistency` 一个指标的进步。这本身就是"如何判断方向
 对不对"这个问题的答案——不是靠感觉，是靠能被推翻的实验设计。
+
+### 提交后的子 Agent 审查（2026-07-27）
+
+按流程对 V7 改动跑了 8 角度并行审查，确认并修复了 3 处真实问题：
+
+1. **`_motion_cost_scale` 的指数项没有界限，覆盖不到自己文档字符串
+   宣称的"positive and bounded"** （已修复，指数截断到 ±30）——
+   逐行扫描角度用一次真实的数值模拟复现了这个问题：RLS 的协方差
+   在一个很少被激发的动作维度上会随步数"膨胀"（`forgetting`
+   每步都会把协方差放大，只有在该维度被激发时才会收缩回来），
+   几百步之后 `action @ covariance @ action` 可以轻松超过 1e8；
+   这会让 `gap` 变成一个很大的负数，`exp(weight * gap)` 在 Python
+   的 `math.exp` 下会**精确下溢到 0.0**（不是"很小的正数"），随后
+   `_probabilistic_assign` 里的 `distance / scale` 触发
+   `ZeroDivisionError`，整条 `update()` 调用崩溃。反方向同样可能
+   溢出：一个高权重配合接近零方差的 track 会让 `math.exp` 抛出
+   `OverflowError`。两种情况都用一个简单的复现脚本独立验证过
+   （协方差设为 `1e8`/`1e-6`，权重设为 `1.0`/`200.0`，确认修复前
+   会崩溃、修复后不会）。修复后新增了两个回归测试
+   （`test_motion_cost_scale_does_not_crash_on_extreme_covariance`、
+   `test_motion_cost_scale_does_not_crash_on_extreme_weight`）。
+2. **`_motion_cost_scale(track, action)` 在 `_probabilistic_assign`
+   最内层的 (beam, 候选检测) 循环里被重复计算**（已修复，提到
+   每个 track 的最外层循环里只算一次）——效率与复用两个角度分别
+   指出：这个值只依赖 `track` 和 `action`，跟具体是哪个 beam、哪个
+   候选检测无关，跟 `predicted_positions` 已经做过的"每个 track
+   算一次"是同一类值，之前没有同样处理。
+3. **`estimated_mac_per_step` 没有为 `confidence_adaptive_gating_weight`
+   加对应的开销项**，跟同一属性里 `identity_switch_penalty_weight`
+   和 `drift_reset_after` 已有的模式不一致（已修复，按同样的
+   "默认权重下开销为零"写法补上）——效率与被删行为两个角度各自
+   指出了这个遗漏。
+
+以上三处修复都不改变默认值（`confidence_adaptive_gating_weight == 0.0`，
+现在唯一会用到这个类的调用方都是这个值）下的任何行为：改动前后
+M2（三种关联模式）、M3（含消融）开发集产物逐字段核对完全一致
+（`cpu_wall_seconds` 除外）；`cal-v2-m1-m3-confirm --split development`、
+`cal-v2-m1-m3-confirm-review` 全部通过；全量 `pytest`（220 项）通过。
+因为 `entity_graph.py` 的字节内容变了，`experiments/
+V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL_V7.json` 的
+`locked_source_sha256` 与其自身的 `.sha256` 副本、以及
+`amendment_record.reason` 里的说明文字都同步更新了，记录了这三处
+修复本身（而不是悄悄把哈希改掉）。
+
+审查还发现并修复了一处文档措辞错误：`cal/model/integrated_agent.py`
+里解释"为什么不采纳"的注释把 `weight=0.02` 时 `identity_consistency`
+从 0.2325 到 0.2310 的变化描述成"negligible ... gain"，但 0.2310
+比 0.2325 更小，是下降不是上升——本节上面的权衡表和这句话本身
+早就如实写了"实际上还降了一点点"，只是复制到代码注释时被误写成了
+"gain"，已改为如实描述（无收益，反而略微下降）。
+
+审查另指出一处**未采纳的架构级意见**（与 V6 审查提出的关切一致，
+判定为合理但仍不是本轮范围）：这是 `entity_graph.py` 连续第二次
+——先是 V6 的 `drift_reset_after`，现在是 V7 的
+`confidence_adaptive_gating_weight`——完整走完协议修订流程（新版本
+JSON、哈希锁更新、审查链扩展、新增测试）之后，才发现该机制不值得
+被唯一的目标调用方采纳。审查建议：像三个 oracle 消融那样，这类
+"先验证方向对不对、再决定值不值得动锁定文件"的判断，本可以先用
+monkeypatch/子类在 scratch 脚本里验证符号和真实权衡，只有决定采纳
+之后才付协议修订的成本——而不是像这次一样,把修订成本和验证成本
+的顺序倒过来。这个意见被记录下来，留给下一次类似修订前重新考虑，
+而不是本轮回退或强行处理。

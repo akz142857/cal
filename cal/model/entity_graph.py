@@ -134,6 +134,18 @@ class OnlineEntityGraph:
             total += self.maximum_tracks * (
                 2 * self.action_dimensions + self.action_dimensions**2
             )
+        if self.confidence_adaptive_gating_weight > 0.0:
+            # One action_dimensions-sized quadratic form
+            # (action @ track.covariance @ action) per active track per
+            # step - _motion_cost_scale is now called once per track
+            # (hoisted above the per-beam/per-candidate loop in
+            # _probabilistic_assign), not once per candidate. Disabled
+            # callers (the default weight 0.0) return 0.32 before ever
+            # touching the covariance, so this term is correctly omitted
+            # for them, matching the pattern above.
+            total += self.maximum_tracks * (
+                self.action_dimensions**2 + self.action_dimensions
+            )
         return total
 
     def reset(self, detections: np.ndarray) -> None:
@@ -419,6 +431,11 @@ class OnlineEntityGraph:
         ] = [(0.0, (), frozenset())]
         for track in active_tracks:
             predicted = predicted_positions[track.index]
+            # Depends only on (track, action), both fixed for this whole
+            # iteration - hoisted above the per-beam/per-candidate loop
+            # below rather than recomputed there, the same way `predicted`
+            # above is computed once per track rather than once per beam.
+            motion_cost_scale = self._motion_cost_scale(track, action)
             age = self._step - track.last_seen
             radius = self.match_radius + min(age, 3)
             candidates = [
@@ -444,9 +461,7 @@ class OnlineEntityGraph:
                         assignments,
                         detections,
                     )
-                    motion_cost = (
-                        distance / self._motion_cost_scale(track, action)
-                    ) ** 2
+                    motion_cost = (distance / motion_cost_scale) ** 2
                     switch_penalty = self._identity_switch_penalty(
                         track.index,
                         detections[detection_index],
@@ -543,15 +558,34 @@ class OnlineEntityGraph:
         return track.position + track.theta @ action + track.autonomous_velocity
 
     # Reference prediction-variance level: action @ covariance @ action for
-    # a unit-norm (one-hot) action against _new_track's own initial
-    # covariance (eye(action_dimensions) * 6.0). A track at exactly this
-    # variance - i.e. exactly as confident as a brand-new track - gets
-    # exactly the disabled-path scale (0.32); less confident tracks get a
-    # tighter scale, more confident ones a wider one (see the direction
-    # note on _motion_cost_scale below for why). Chosen this way so
-    # "just created" behaves identically whether or not the mechanism is
+    # a unit-norm (one-hot) action against a brand-new track's own initial
+    # covariance. _new_track and _reset_track_state both build that
+    # initial covariance as eye(action_dimensions) * this same constant
+    # (not a separately-hardcoded 6.0), so the invariant below is
+    # structural, not just documented: a track at exactly this variance -
+    # i.e. exactly as confident as a brand-new track - gets exactly the
+    # disabled-path scale (0.32); less confident tracks get a tighter
+    # scale, more confident ones a wider one (see the direction note on
+    # _motion_cost_scale below for why). Chosen this way so "just
+    # created" behaves identically whether or not the mechanism is
     # enabled, rather than picking an arbitrary unrelated reference point.
     _MOTION_COST_SCALE_REFERENCE_VARIANCE = 6.0
+
+    # exp()'s argument is clamped to this magnitude before use. Without a
+    # clamp, a track whose covariance has "wound up" in a rarely-excited
+    # action dimension (RLS divides covariance by `forgetting` < 1 every
+    # step in every direction, but only shrinks it back down along the
+    # currently-excited one - see `update()`) can push `gap` far enough
+    # negative that `exp(weight * gap)` underflows to exactly 0.0 (not a
+    # small positive number - Python's math.exp() truly returns 0.0 for
+    # very negative arguments), which then makes `_probabilistic_assign`'s
+    # `distance / scale` raise ZeroDivisionError. Symmetrically, a large
+    # positive exponent raises OverflowError. 30.0 keeps exp() in
+    # [~9.4e-14, ~1.1e13] - always strictly positive and always finite,
+    # which is what the "positive and bounded" claim below actually
+    # requires holding for every reachable covariance value, not just the
+    # ones this class's own tests happen to construct.
+    _MOTION_COST_SCALE_MAX_EXPONENT_MAGNITUDE = 30.0
 
     def _motion_cost_scale(self, track: GraphTrack, action: np.ndarray) -> float:
         """The distance scale motion_cost normalizes against for this track.
@@ -590,14 +624,22 @@ class OnlineEntityGraph:
         scale positive and bounded for any covariance value, including
         the degenerate prediction_variance == 0 case a "stay" action
         produces for every track uniformly (no discrimination that
-        step, but no blow-up either).
+        step, but no blow-up either) - and the exponent itself is
+        clamped to +-_MOTION_COST_SCALE_MAX_EXPONENT_MAGNITUDE so this
+        holds for genuinely extreme covariance too (e.g. a track whose
+        theta estimate for a rarely-excited action dimension has wound
+        up over hundreds of steps), not only for the moderate values
+        this class's own tests construct by hand.
         """
 
         if self.confidence_adaptive_gating_weight <= 0.0:
             return 0.32
         prediction_variance = float(action @ track.covariance @ action)
         gap = self._MOTION_COST_SCALE_REFERENCE_VARIANCE - prediction_variance
-        return 0.32 * exp(self.confidence_adaptive_gating_weight * gap)
+        exponent = self.confidence_adaptive_gating_weight * gap
+        bound = self._MOTION_COST_SCALE_MAX_EXPONENT_MAGNITUDE
+        exponent = max(-bound, min(bound, exponent))
+        return 0.32 * exp(exponent)
 
     def _geometry_assignment_cost(
         self,
@@ -661,7 +703,8 @@ class OnlineEntityGraph:
             previous=detection.copy(),
             last_seen=self._step,
             theta=np.zeros((2, self.action_dimensions), dtype=np.float64),
-            covariance=np.eye(self.action_dimensions, dtype=np.float64) * 6.0,
+            covariance=np.eye(self.action_dimensions, dtype=np.float64)
+            * self._MOTION_COST_SCALE_REFERENCE_VARIANCE,
             autonomous_velocity=np.zeros(2, dtype=np.float64),
         )
         self._next_index += 1
@@ -708,7 +751,10 @@ class OnlineEntityGraph:
         """
 
         track.theta = np.zeros((2, self.action_dimensions), dtype=np.float64)
-        track.covariance = np.eye(self.action_dimensions, dtype=np.float64) * 6.0
+        track.covariance = (
+            np.eye(self.action_dimensions, dtype=np.float64)
+            * self._MOTION_COST_SCALE_REFERENCE_VARIANCE
+        )
         track.autonomous_velocity = np.zeros(2, dtype=np.float64)
         track.control_evidence = 0.0
         track.probability = 0.5
