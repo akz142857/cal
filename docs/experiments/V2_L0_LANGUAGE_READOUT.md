@@ -5,7 +5,9 @@
 当前状态：V4 修复版 development 全部门通过，三路最终独立 review 均无
 P0/P1 阻塞；V5 exact source-lock 已发布。唯一一次 V5 review holdout 已获得
 授权并被原子消费，但身份负对照无法在该 holdout 事件集合上构造，运行在产出
-指标前终止。协议禁止重试，因此当前没有 V5 holdout 通过结论。
+指标前终止。协议禁止重试，因此没有 V5 holdout 通过结论。后续 V6 已在实现前
+冻结逐行身份反事实，development 全部 24 门通过；新的 holdout 仍未运行，
+下一步是独立审查与 V7 exact source-lock。
 
 ## 1. 这个实验究竟验证什么
 
@@ -136,6 +138,10 @@ self 只读显式 self 通道；identity 不读绝对位置和 global base；ide
   (`35aa6458…aa9`)
 - V4：`experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V4.json`
   (`85aee950…f6a9`)
+- V5：`experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V5.json`
+  (`51a4f561…1aae`)
+- V6：`experiments/V2_L0_LANGUAGE_READOUT_PROTOCOL_V6.json`
+  (`6742a36c…76aa`)
 
 V3 冻结成对命题、严格覆盖、新候选 holdout 和新增门。V4 记录 V3 的正式负
 结果，并在跨 episode identity 控制实现前冻结反捷径规则。两者都只授权重复
@@ -245,7 +251,48 @@ SHA-256 bfdefd0185f74f114fe45880208d8c11f21596db4b3a6987144c9f354abbe2d7
 若要继续验证，必须把这次结果保留为不可变负证据，另行设计并审查新的协议、
 新的未见数据和新的独立一次性注册表；不能修改 V5 后复用本次 holdout。
 
-## 11. 如何重复已允许的部分
+## 11. V6 下一轮验证
+
+V6 在实现前由提交 `91491d044088d733f2cea8e21f10f9469ade29bd`
+冻结。它不修改 I1、命题、probe、阈值或 development 数据，只把失败的
+跨-episode 身份控制改成逐行反事实：
+
+> 对每个有效身份查询，保持当前两个候选、标签和学习器状态不动，仅把遮挡前
+> 参考替换成同一行中另一个可见干扰者的 ID-invariant 描述。
+
+身份查询本身已经要求两个干扰者在当帧唯一可见，因此该反事实对每个 active row
+都有定义，不需要从另一个 episode 寻找配对，也不需要预看 holdout 结构。
+
+干净实现提交：
+`515a20dbcf7da761468efe16c5a5eacd161f4844`
+
+development 结果：
+
+```text
+results/V2-L0-language-readout-development-v6.json
+SHA-256 c02b370ad4d3dd712afd929d91d4ad0ee08a37225f2e095f687b018733139b42
+source SHA-256 30230659f14e2146c17694db2727e649b96537d5c18d35c08f1f6bded3b55cee
+```
+
+结果绑定到上述干净实现提交，`git_dirty=false`。全部 24 个 gates 通过，
+decision 为 `authorize_review_and_source_lock`。关键指标：
+
+| 条件 | Macro | Permanence | Identity |
+|---|---:|---:|---:|
+| Formal entity graph | **0.9715** | **0.9825** | **1.0000** |
+| Raw sensor | 0.6684 | 0.8430 | 0.5000 |
+| Assume all visible | 0.8986 | 0.7882 | 1.0000 |
+| Row-local identity counterfactual | 0.7371 | 0.9825 | **0.0625** |
+
+逐行反事实使 identity 从 `1.0000` 降到 `0.0625`。296/296 个 active
+reference blocks 全部改变，反事实逐行匹配率与角色切换率均为 `1.0`；标签、
+mask、当前候选和非身份特征保持不变。
+
+V6 在实现前登记了新的候选 holdout `33600–33603`。这些 seed 当前未检查、
+未运行，也不因 development 通过而自动获得授权。下一步必须先完成独立审查，
+再冻结 V7 exact-source-lock 与全新 origin tags；仍需用户另行授权后才能消费。
+
+## 12. 如何重复已允许的部分
 
 可重复 development：
 
@@ -259,5 +306,5 @@ uv run cal-v2-l0-language --split development
 uv run pytest tests/test_v2_l0_language_readout.py -q
 ```
 
-V5 holdout 已消费，不能再次运行。可以重复的只有 development 与机制回归测试；
-任何新的 holdout 都必须使用新的协议版本、未见数据和新的 tag 名称。
+V5 holdout 已消费，不能再次运行。V6 当前只允许 development；新的 holdout
+必须先通过审查和 V7 source-lock，并使用新的 tag 名称。
