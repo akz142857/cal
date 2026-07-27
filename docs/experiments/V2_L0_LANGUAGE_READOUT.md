@@ -350,10 +350,12 @@ V7 使用全新 registry：
 - `calmodel-l0-v7-holdout-evidence`
 - `calmodel-l0-v7-holdout-failure-evidence`
 
-source-lock 只允许创建第一个 tag。authorization 必须等待用户另行明确授权；
-consumption 只能由 holdout runner 在第一条 episode 前原子创建。成功结果发布
-result evidence；消费后的任何运行异常都必须写入失败记录并发布 failure
-evidence，机会不会恢复。
+V7 原设计中，source-lock 只允许创建第一个 tag，authorization 必须等待用户
+另行明确授权，consumption 只能由 holdout runner 在第一条 episode 前原子
+创建；成功或失败再分别发布 evidence。事后审查已经否决这套设计，因此 V7 的
+authorization、consumption、result 和 failure tags 现在永久禁止创建。V8
+候选改用唯一 attempt 身份和单一 terminal evidence CAS tag，使成功与失败
+只能有一个终态；跨机器恢复还必须由操作者明确确认原进程已经终止。
 
 V7 exact source SHA：
 `bc86f58979a8453efedaf25135d907edb2de1e6a230e90e8e1b1edf473cf613b`
@@ -373,5 +375,6 @@ uv run pytest tests/test_v2_l0_language_readout.py -q
 ```
 
 V5 holdout 已消费，不能再次运行。V7 source-lock 已发布，但事后审查否决了
-授权，因此也不能运行。新的 holdout 已通过 V6 development/review；必须先
-完成 V8 修复、独立复审和全新 source-lock，之后仍要等待用户另行明确授权。
+授权，因此也不能运行。V6 实现和实验方案已通过 development/review，但新的
+holdout 从未运行；必须先完成 V8 修复、独立复审和全新 source-lock，之后仍
+要等待用户另行明确授权。

@@ -686,8 +686,7 @@ def test_v8_owned_consumed_failure_is_recorded_and_published(
         "shared_git_registry": {
             "remote": "origin",
             "holdout_consumption_tag": "v8-consumed",
-            "holdout_evidence_tag": "v8-result",
-            "holdout_failure_evidence_tag": "v8-failure",
+            "holdout_terminal_evidence_tag": "v8-terminal",
         },
     }
     monkeypatch.setattr(language, "PROJECT_ROOT", tmp_path)
@@ -714,6 +713,8 @@ def test_v8_owned_consumed_failure_is_recorded_and_published(
                     "git_commit": "d" * 40,
                     "source_sha256": "e" * 64,
                     "attempt_id": "attempt-a",
+                    "source_lock_tag_object_sha": "1" * 40,
+                    "holdout_authorization_tag_object_sha": "2" * 40,
                 },
                 "d" * 40,
                 "f" * 40,
@@ -764,7 +765,7 @@ def test_v8_owned_consumed_failure_is_recorded_and_published(
         "message": "synthetic failure",
         "type": "RuntimeError",
     }
-    assert published["tag"] == "v8-failure"
+    assert published["tag"] == "v8-terminal"
 
 
 def test_v8_cas_loser_cannot_publish_winners_failure(
@@ -825,8 +826,7 @@ def test_v8_failure_records_result_written_pending_evidence(
         "shared_git_registry": {
             "remote": "origin",
             "holdout_consumption_tag": "v8-consumed",
-            "holdout_evidence_tag": "v8-result",
-            "holdout_failure_evidence_tag": "v8-failure",
+            "holdout_terminal_evidence_tag": "v8-terminal",
         },
     }
     monkeypatch.setattr(language, "PROJECT_ROOT", tmp_path)
@@ -853,6 +853,8 @@ def test_v8_failure_records_result_written_pending_evidence(
                 "git_commit": "d" * 40,
                 "source_sha256": "e" * 64,
                 "attempt_id": "attempt-a",
+                "source_lock_tag_object_sha": "1" * 40,
+                "holdout_authorization_tag_object_sha": "2" * 40,
             },
             "d" * 40,
             "f" * 40,
@@ -900,3 +902,102 @@ def test_v8_failure_records_result_written_pending_evidence(
     assert failure["outcome"] == (
         "consumed_failed_after_result_write_before_evidence"
     )
+
+
+def test_v8_orphan_recovery_requires_explicit_operator_confirmation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    touched = False
+
+    def unexpected_load(path: Path) -> tuple[dict, str]:
+        nonlocal touched
+        touched = True
+        return {}, ""
+
+    monkeypatch.setattr(language, "_load_protocol", unexpected_load)
+
+    with pytest.raises(RuntimeError, match="explicit confirmation"):
+        language.recover_v2_l0_v8_orphaned_holdout(
+            expected_consumption_tag_object_sha="a" * 40,
+            reason="machine A terminated",
+            confirm_original_run_terminated=False,
+        )
+
+    assert touched is False
+
+
+def test_v8_orphan_recovery_uses_origin_attempt_and_exact_tag_oid(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    digest = "a" * 64
+    consumption_oid = "b" * 40
+    protocol = {
+        "protocol_version": 8,
+        "exact_source_sha256": "c" * 64,
+        "shared_git_registry": {
+            "remote": "origin",
+            "holdout_consumption_tag": "v8-consumed",
+            "holdout_terminal_evidence_tag": "v8-terminal",
+        },
+    }
+    monkeypatch.setattr(
+        language,
+        "_load_protocol",
+        lambda path: (protocol, digest),
+    )
+    monkeypatch.setattr(
+        language,
+        "_require_source_lock_registry",
+        lambda *args, **kwargs: {},
+    )
+    monkeypatch.setattr(
+        language,
+        "_load_registry_certificate",
+        lambda **kwargs: (
+            {
+                "certificate_schema_version": 1,
+                "certificate_type": "one_shot_consumption",
+                "split": "holdout",
+                "protocol_sha256": digest,
+                "git_commit": "d" * 40,
+                "source_sha256": "c" * 64,
+                "status": "consumed_before_first_episode",
+                "attempt_id": "origin-attempt",
+                "source_lock_tag_object_sha": "1" * 40,
+                "holdout_authorization_tag_object_sha": "2" * 40,
+            },
+            "d" * 40,
+            consumption_oid,
+        ),
+    )
+    captured: dict[str, object] = {}
+
+    def capture_recovery(**kwargs: object) -> None:
+        captured.update(kwargs)
+
+    monkeypatch.setattr(
+        language,
+        "_record_v8_holdout_failure_if_owned",
+        capture_recovery,
+    )
+    monkeypatch.setattr(
+        language,
+        "_load_v8_terminal_evidence",
+        lambda *args, **kwargs: {
+            "tag_object_sha": "e" * 40,
+            "outcome": "failure",
+        },
+    )
+
+    recovered = language.recover_v2_l0_v8_orphaned_holdout(
+        expected_consumption_tag_object_sha=consumption_oid,
+        reason="machine A power loss was confirmed",
+        confirm_original_run_terminated=True,
+    )
+
+    state = captured["attempt_state"]
+    assert state["attempt_id"] == "origin-attempt"
+    assert state["consumption_acquired"] is True
+    assert state["consumption_tag_object_sha"] == consumption_oid
+    assert state["operator_recovery_confirmed"] is True
+    assert recovered["terminal_evidence"]["outcome"] == "failure"

@@ -753,9 +753,11 @@ def _reserve_shared_one_shot(
     git_commit: str,
     source_sha256: str,
     attempt_id: str | None = None,
+    extra_certificate: Mapping[str, Any] | None = None,
     cwd: str | Path | None = None,
 ) -> dict[str, Any]:
     certificate = {
+        **dict(extra_certificate or {}),
         "certificate_schema_version": 1,
         "certificate_type": "one_shot_consumption",
         "split": split,

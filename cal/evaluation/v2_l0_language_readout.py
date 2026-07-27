@@ -35,7 +35,6 @@ from cal.evaluation.v2_i1_integration import (
 )
 from cal.evaluation.v2_i1_integration_v2 import (
     _git_command,
-    _load_result_evidence,
     _publish_annotated_tag,
     _publish_result_evidence,
     _remote_tag_exists,
@@ -784,8 +783,14 @@ def _merge_v8(document: Mapping[str, Any]) -> dict[str, Any]:
     ):
         raise RuntimeError("V2-L0 V8 post-fix review evidence changed")
     review = json.loads(review_raw)
+    expected_reviewers = {
+        "freeze_implementation",
+        "language_claims",
+        "metrics_controls",
+    }
     if (
         review.get("decision") != "authorize_v8_exact_source_lock"
+        or set(review.get("final_reviews", {})) != expected_reviewers
         or any(
             int(review["final_reviews"][name][severity]) != 0
             for name in review["final_reviews"]
@@ -2879,6 +2884,80 @@ def _certificate_matches_exact(
     )
 
 
+def _v8_terminal_evidence_tag(protocol: Mapping[str, Any]) -> str:
+    registry = protocol["shared_git_registry"]
+    if int(protocol["protocol_version"]) == 8:
+        return str(registry["holdout_terminal_evidence_tag"])
+    raise RuntimeError("terminal evidence registry requires V2-L0 V8")
+
+
+def _load_v8_terminal_evidence(
+    protocol: Mapping[str, Any],
+    protocol_digest: str,
+    *,
+    expected_attempt_id: str,
+    expected_consumption_tag_object_sha: str,
+    expected_source_lock_tag_object_sha: str,
+    expected_authorization_tag_object_sha: str,
+) -> dict[str, Any]:
+    registry = protocol["shared_git_registry"]
+    tag = _v8_terminal_evidence_tag(protocol)
+    certificate, blob, tag_object_sha = _load_registry_certificate(
+        remote=registry["remote"],
+        tag=tag,
+    )
+    raw = _git_command(
+        "cat-file",
+        "-p",
+        blob,
+        cwd=PROJECT_ROOT,
+        text=False,
+    ).stdout
+    certificate_type = certificate.get("certificate_type")
+    if certificate_type == "immutable_result_evidence":
+        outcome = "result"
+        digest_key = "result_sha256"
+    elif certificate_type == "immutable_failure_evidence":
+        outcome = "failure"
+        digest_key = "failure_sha256"
+    else:
+        raise RuntimeError("invalid V8 terminal evidence type")
+    if (
+        certificate.get("certificate_schema_version") != 1
+        or certificate.get("split") != "holdout"
+        or certificate.get("protocol_sha256") != protocol_digest
+        or certificate.get("attempt_id") != expected_attempt_id
+        or certificate.get("consumption_tag_object_sha")
+        != expected_consumption_tag_object_sha
+        or certificate.get("source_lock_tag_object_sha")
+        != expected_source_lock_tag_object_sha
+        or certificate.get("holdout_authorization_tag_object_sha")
+        != expected_authorization_tag_object_sha
+        or certificate.get("git_blob") != blob
+        or certificate.get(digest_key)
+        != hashlib.sha256(raw).hexdigest()
+    ):
+        raise RuntimeError("invalid V8 terminal evidence certificate")
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("invalid V8 terminal evidence JSON") from exc
+    if (
+        payload.get("protocol_sha256") != protocol_digest
+        or (
+            outcome == "failure"
+            and payload.get("attempt_id") != expected_attempt_id
+        )
+    ):
+        raise RuntimeError("invalid V8 terminal evidence payload")
+    return {
+        "certificate": certificate,
+        "outcome": outcome,
+        "payload": payload,
+        "tag_object_sha": tag_object_sha,
+    }
+
+
 def _expected_source_lock_certificate(
     protocol: Mapping[str, Any],
     protocol_digest: str,
@@ -2923,6 +3002,29 @@ def _expected_source_lock_certificate(
     return certificate
 
 
+def _require_superseded_v7_origin_state(
+    protocol: Mapping[str, Any],
+) -> None:
+    predecessor = protocol["superseded_v7_source_lock"]
+    registry = predecessor["registry"]
+    _, target, tag_object_sha = _load_registry_certificate(
+        remote=registry["remote"],
+        tag=predecessor["tag"],
+    )
+    if (
+        tag_object_sha != predecessor["tag_object_sha"]
+        or target != predecessor["target_commit"]
+    ):
+        raise RuntimeError("published V7 source-lock tag was moved")
+    for forbidden_tag in registry["permanently_forbidden_tags"]:
+        if _remote_tag_exists(
+            registry["remote"], forbidden_tag, cwd=PROJECT_ROOT
+        ):
+            raise RuntimeError(
+                f"forbidden V7 post-lock tag exists: {forbidden_tag}"
+            )
+
+
 def _require_source_lock_registry(
     protocol: Mapping[str, Any],
     protocol_digest: str,
@@ -2932,6 +3034,8 @@ def _require_source_lock_registry(
     provenance = capture_provenance(PROJECT_ROOT)
     if provenance["git_dirty"]:
         raise RuntimeError("V2-L0 source lock requires a clean worktree")
+    if int(protocol["protocol_version"]) == 8:
+        _require_superseded_v7_origin_state(protocol)
     registry = protocol["shared_git_registry"]
     source_certificate, source_target, source_tag_object_sha = (
         _load_registry_certificate(
@@ -3108,20 +3212,21 @@ def _run_v2_l0_language_readout(
         if reservation.exists():
             raise RuntimeError("one-shot V2-L0 holdout is already reserved")
         registry = protocol["shared_git_registry"]
-        if _remote_tag_exists(
-            registry["remote"],
-            registry["holdout_evidence_tag"],
-            cwd=PROJECT_ROOT,
-        ):
-            raise RuntimeError("V2-L0 holdout evidence already exists")
-        if _remote_tag_exists(
-            registry["remote"],
-            registry["holdout_failure_evidence_tag"],
-            cwd=PROJECT_ROOT,
-        ):
-            raise RuntimeError(
-                "V2-L0 holdout failure evidence already exists"
+        terminal_tags = (
+            {_v8_terminal_evidence_tag(protocol)}
+            if int(protocol["protocol_version"]) == 8
+            else {
+                registry["holdout_evidence_tag"],
+                registry["holdout_failure_evidence_tag"],
+            }
+        )
+        if any(
+            _remote_tag_exists(
+                registry["remote"], tag, cwd=PROJECT_ROOT
             )
+            for tag in terminal_tags
+        ):
+            raise RuntimeError("V2-L0 holdout terminal evidence exists")
         if _remote_tag_exists(
             registry["remote"],
             registry["holdout_consumption_tag"],
@@ -3153,6 +3258,20 @@ def _run_v2_l0_language_readout(
             source_sha256=run_start["source_sha256"],
             attempt_id=(
                 attempt_state["attempt_id"]
+                if int(protocol["protocol_version"]) == 8
+                else None
+            ),
+            extra_certificate=(
+                {
+                    "source_lock_tag_object_sha": registry_evidence[
+                        "source_lock_tag_object_sha"
+                    ],
+                    "holdout_authorization_tag_object_sha": (
+                        registry_evidence[
+                            "holdout_authorization_tag_object_sha"
+                        ]
+                    ),
+                }
                 if int(protocol["protocol_version"]) == 8
                 else None
             ),
@@ -3455,18 +3574,15 @@ def _run_v2_l0_language_readout(
         )
     if split == "holdout":
         registry = protocol["shared_git_registry"]
-        if _remote_tag_exists(
-            registry["remote"],
-            registry["holdout_failure_evidence_tag"],
-            cwd=PROJECT_ROOT,
-        ):
-            raise RuntimeError(
-                "V2-L0 failure evidence exists before result publication"
-            )
+        result_evidence_tag = (
+            _v8_terminal_evidence_tag(protocol)
+            if int(protocol["protocol_version"]) == 8
+            else registry["holdout_evidence_tag"]
+        )
         publication = _publish_result_evidence(
             destination,
             remote=registry["remote"],
-            tag=registry["holdout_evidence_tag"],
+            tag=result_evidence_tag,
             split="holdout",
             protocol_digest=protocol_digest,
             git_commit=run_start["git_commit"],
@@ -3540,6 +3656,12 @@ def _record_v8_holdout_failure_if_owned(
         != attempt_state.get("attempt_id")
         or consumption_tag_object_sha
         != attempt_state.get("consumption_tag_object_sha")
+        or not isinstance(
+            consumption.get("source_lock_tag_object_sha"), str
+        )
+        or not isinstance(
+            consumption.get("holdout_authorization_tag_object_sha"), str
+        )
     ):
         raise RuntimeError(
             "V8 failure recorder does not own origin consumption"
@@ -3559,25 +3681,24 @@ def _record_v8_holdout_failure_if_owned(
         ):
             raise RuntimeError("invalid V8 local reservation during failure")
     result_path = PROJECT_ROOT / document["result_paths"]["holdout"]
-    result_evidence_tag = registry["holdout_evidence_tag"]
+    terminal_evidence_tag = _v8_terminal_evidence_tag(document)
     if _remote_tag_exists(
-        registry["remote"], result_evidence_tag, cwd=PROJECT_ROOT
+        registry["remote"], terminal_evidence_tag, cwd=PROJECT_ROOT
     ):
-        result_payload, result_certificate = _load_result_evidence(
-            remote=registry["remote"],
-            tag=result_evidence_tag,
-            split="holdout",
-            protocol_digest=protocol_digest,
-            cwd=PROJECT_ROOT,
+        _load_v8_terminal_evidence(
+            document,
+            protocol_digest,
+            expected_attempt_id=str(attempt_state["attempt_id"]),
+            expected_consumption_tag_object_sha=(
+                consumption_tag_object_sha
+            ),
+            expected_source_lock_tag_object_sha=consumption[
+                "source_lock_tag_object_sha"
+            ],
+            expected_authorization_tag_object_sha=consumption[
+                "holdout_authorization_tag_object_sha"
+            ],
         )
-        if (
-            result_certificate.get("attempt_id")
-            != attempt_state.get("attempt_id")
-            or result_certificate.get("consumption_tag_object_sha")
-            != consumption_tag_object_sha
-            or result_payload.get("protocol_sha256") != protocol_digest
-        ):
-            raise RuntimeError("invalid V8 result evidence during recovery")
         return
     failure_path = PROJECT_ROOT / document["result_paths"]["holdout_failure"]
     result_created = result_path.exists()
@@ -3620,7 +3741,7 @@ def _record_v8_holdout_failure_if_owned(
                 "type": type(error).__name__,
             },
             "failure_evidence_tag": registry[
-                "holdout_failure_evidence_tag"
+                "holdout_terminal_evidence_tag"
             ],
             "git_commit": consumption_target,
             "local_reservation_present": reservation_present,
@@ -3638,61 +3759,165 @@ def _record_v8_holdout_failure_if_owned(
             "source_sha256": consumption["source_sha256"],
             "split": "holdout",
         }
+        if attempt_state.get("operator_recovery_confirmed") is True:
+            failure["operator_recovery"] = {
+                "confirmed_original_run_terminated": True,
+                "reason": attempt_state["operator_recovery_reason"],
+            }
         failure_path.parent.mkdir(parents=True, exist_ok=True)
         failure_path.write_text(
             json.dumps(failure, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
-    evidence_tag = registry["holdout_failure_evidence_tag"]
-    if _remote_tag_exists(
-        registry["remote"], result_evidence_tag, cwd=PROJECT_ROOT
-    ):
-        raise RuntimeError(
-            "V8 result evidence appeared before failure publication"
-        )
+    evidence_tag = terminal_evidence_tag
     if _remote_tag_exists(
         registry["remote"], evidence_tag, cwd=PROJECT_ROOT
     ):
-        certificate, _ = _load_failure_evidence(
+        _load_v8_terminal_evidence(
+            document,
+            protocol_digest,
+            expected_attempt_id=str(attempt_state["attempt_id"]),
+            expected_consumption_tag_object_sha=(
+                consumption_tag_object_sha
+            ),
+            expected_source_lock_tag_object_sha=consumption[
+                "source_lock_tag_object_sha"
+            ],
+            expected_authorization_tag_object_sha=consumption[
+                "holdout_authorization_tag_object_sha"
+            ],
+        )
+        return
+    try:
+        _publish_failure_evidence(
+            failure_path,
             remote=registry["remote"],
             tag=evidence_tag,
-            expected_failure_sha256=hashlib.sha256(
-                failure_path.read_bytes()
-            ).hexdigest(),
+            certificate={
+                "split": "holdout",
+                "protocol_sha256": protocol_digest,
+                "git_commit": consumption_target,
+                "source_sha256": consumption["source_sha256"],
+                "attempt_id": attempt_state["attempt_id"],
+                "consumption_tag_object_sha": consumption_tag_object_sha,
+                "source_lock_tag_object_sha": consumption[
+                    "source_lock_tag_object_sha"
+                ],
+                "holdout_authorization_tag_object_sha": consumption[
+                    "holdout_authorization_tag_object_sha"
+                ],
+                "outcome": outcome,
+                "result_sha256": result_sha256,
+                "status": "consumed_failure_archived_no_retry",
+            },
         )
-        expected_fields = {
-            "split": "holdout",
-            "protocol_sha256": protocol_digest,
-            "git_commit": consumption_target,
-            "source_sha256": consumption["source_sha256"],
-            "attempt_id": attempt_state["attempt_id"],
-            "consumption_tag_object_sha": consumption_tag_object_sha,
-            "outcome": outcome,
-            "result_sha256": result_sha256,
-            "status": "consumed_failure_archived_no_retry",
-        }
-        if any(
-            certificate.get(key) != value
-            for key, value in expected_fields.items()
+    except RuntimeError:
+        if not _remote_tag_exists(
+            registry["remote"], evidence_tag, cwd=PROJECT_ROOT
         ):
-            raise RuntimeError("invalid existing V8 failure certificate")
-        return
-    _publish_failure_evidence(
-        failure_path,
-        remote=registry["remote"],
-        tag=evidence_tag,
-        certificate={
-            "split": "holdout",
-            "protocol_sha256": protocol_digest,
-            "git_commit": consumption_target,
-            "source_sha256": consumption["source_sha256"],
-            "attempt_id": attempt_state["attempt_id"],
-            "consumption_tag_object_sha": consumption_tag_object_sha,
-            "outcome": outcome,
-            "result_sha256": result_sha256,
-            "status": "consumed_failure_archived_no_retry",
-        },
+            raise
+        _load_v8_terminal_evidence(
+            document,
+            protocol_digest,
+            expected_attempt_id=str(attempt_state["attempt_id"]),
+            expected_consumption_tag_object_sha=(
+                consumption_tag_object_sha
+            ),
+            expected_source_lock_tag_object_sha=consumption[
+                "source_lock_tag_object_sha"
+            ],
+            expected_authorization_tag_object_sha=consumption[
+                "holdout_authorization_tag_object_sha"
+            ],
+        )
+
+
+def recover_v2_l0_v8_orphaned_holdout(
+    *,
+    expected_consumption_tag_object_sha: str,
+    reason: str,
+    confirm_original_run_terminated: bool,
+    protocol_path: Path = PROTOCOL_V8,
+) -> dict[str, Any]:
+    """Archive an origin-only consumed attempt after human crash confirmation."""
+
+    if not confirm_original_run_terminated:
+        raise RuntimeError(
+            "orphan recovery requires explicit confirmation that the "
+            "original holdout process terminated"
+        )
+    if len(expected_consumption_tag_object_sha) != 40:
+        raise ValueError("expected consumption tag object SHA must be 40 hex")
+    try:
+        int(expected_consumption_tag_object_sha, 16)
+    except ValueError as exc:
+        raise ValueError(
+            "expected consumption tag object SHA must be 40 hex"
+        ) from exc
+    if not reason.strip():
+        raise ValueError("orphan recovery reason must be non-empty")
+    protocol, protocol_digest = _load_protocol(protocol_path)
+    if int(protocol["protocol_version"]) != 8:
+        raise RuntimeError("orphan recovery requires V2-L0 V8")
+    _require_source_lock_registry(
+        protocol, protocol_digest, require_authorization=True
     )
+    registry = protocol["shared_git_registry"]
+    consumption, target, tag_object_sha = _load_registry_certificate(
+        remote=registry["remote"],
+        tag=registry["holdout_consumption_tag"],
+    )
+    if (
+        tag_object_sha != expected_consumption_tag_object_sha
+        or consumption.get("certificate_schema_version") != 1
+        or consumption.get("certificate_type") != "one_shot_consumption"
+        or consumption.get("split") != "holdout"
+        or consumption.get("protocol_sha256") != protocol_digest
+        or consumption.get("git_commit") != target
+        or consumption.get("source_sha256")
+        != protocol["exact_source_sha256"]
+        or consumption.get("status") != "consumed_before_first_episode"
+        or not isinstance(consumption.get("attempt_id"), str)
+        or not isinstance(
+            consumption.get("source_lock_tag_object_sha"), str
+        )
+        or not isinstance(
+            consumption.get("holdout_authorization_tag_object_sha"), str
+        )
+    ):
+        raise RuntimeError("orphan recovery consumption evidence mismatch")
+    attempt_state = {
+        "attempt_id": consumption["attempt_id"],
+        "consumption_acquired": True,
+        "consumption_tag_object_sha": tag_object_sha,
+        "operator_recovery_confirmed": True,
+        "operator_recovery_reason": reason.strip(),
+        "phase": "origin_consumed_process_terminated_before_terminal_evidence",
+    }
+    _record_v8_holdout_failure_if_owned(
+        protocol_path=protocol_path,
+        error=RuntimeError(
+            "operator-confirmed original holdout process termination: "
+            f"{reason.strip()}"
+        ),
+        attempt_state=attempt_state,
+    )
+    terminal = _load_v8_terminal_evidence(
+        protocol,
+        protocol_digest,
+        expected_attempt_id=consumption["attempt_id"],
+        expected_consumption_tag_object_sha=tag_object_sha,
+        expected_source_lock_tag_object_sha=consumption[
+            "source_lock_tag_object_sha"
+        ],
+        expected_authorization_tag_object_sha=consumption[
+            "holdout_authorization_tag_object_sha"
+        ],
+    )
+    return {
+        "consumption_tag_object_sha": tag_object_sha,
+        "terminal_evidence": terminal,
+    }
 
 
 def run_v2_l0_language_readout(
@@ -3746,6 +3971,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     actions.add_argument(
         "--publish-v5-failure-evidence", action="store_true"
     )
+    actions.add_argument(
+        "--recover-orphaned-v8-holdout", action="store_true"
+    )
+    parser.add_argument("--expected-consumption-tag-object-sha")
+    parser.add_argument("--recovery-reason")
+    parser.add_argument(
+        "--confirm-original-run-terminated",
+        action="store_true",
+    )
     arguments = parser.parse_args(argv)
     try:
         if arguments.publish_source_lock:
@@ -3771,6 +4005,22 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(
                 "v5_failure_evidence_published="
                 f"{evidence['tag_object_sha']}"
+            )
+            return 0
+        if arguments.recover_orphaned_v8_holdout:
+            recovery = recover_v2_l0_v8_orphaned_holdout(
+                protocol_path=arguments.protocol,
+                expected_consumption_tag_object_sha=(
+                    arguments.expected_consumption_tag_object_sha or ""
+                ),
+                reason=arguments.recovery_reason or "",
+                confirm_original_run_terminated=(
+                    arguments.confirm_original_run_terminated
+                ),
+            )
+            print(
+                "orphaned_holdout_archived="
+                f"{recovery['terminal_evidence']['tag_object_sha']}"
             )
             return 0
         if arguments.split is None:
