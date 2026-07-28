@@ -19,16 +19,22 @@ jobs:
           - group: model-and-training
             tests: >-
               tests/test_[m-u]*.py
-          - group: v2-integration
+          - group: v2-audit-and-integration
             tests: >-
               tests/test_v2_audit_summary.py
               tests/test_v2_i1_integration.py
+          - group: v2-integration-v2
+            tests: >-
               tests/test_v2_i1_integration_v2.py
+          - group: v2-i1-replay
+            tests: >-
               tests/test_v2_i1_replay.py
-          - group: v2-language-and-m2
+          - group: v2-language
             tests: >-
               tests/test_v2_l0_language_readout.py
               tests/test_v2_l0_language_replay.py
+          - group: v2-m1-and-m2
+            tests: >-
               tests/test_v2_m1.py
               tests/test_v2_m1_m3_confirmation.py
               tests/test_v2_m1_m3_confirmation_review.py
