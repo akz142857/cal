@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Research discussion
+    url: https://github.com/akz142857/cal/discussions
+    about: Propose hypotheses, directions, or open-ended research questions.
+  - name: Security or private disclosure
+    url: https://github.com/akz142857/cal/security
+    about: Do not disclose credentials, private data, or unpublished holdouts in an Issue.

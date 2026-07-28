@@ -1,0 +1,32 @@
+name: Replication result
+description: Report an independent reproduction, including a negative result.
+title: "[Replication] "
+labels: ["replication"]
+body:
+  - type: input
+    id: target
+    attributes:
+      label: Target result
+      description: Report, result file, release, and commit being replicated.
+    validations:
+      required: true
+  - type: textarea
+    id: protocol
+    attributes:
+      label: Protocol and environment
+      description: Commands, source commit, hardware, dependencies, seeds, and deviations.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome
+      description: Metrics, checksums, artifacts, and whether the result matched.
+    validations:
+      required: true
+  - type: textarea
+    id: interpretation
+    attributes:
+      label: Interpretation and limitations
+    validations:
+      required: true

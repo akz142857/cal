@@ -1,12 +1,46 @@
 # Cal
 
-Cal explores whether an embodied learner can discover a stable
-self–environment boundary from unlabeled sensorimotor experience.
+Cal is an open research prototype exploring whether an embodied learner can
+discover a stable self–environment boundary, persistent entities, and
+controlled language-readable state from unlabeled sensorimotor experience.
 
-The complete milestones, hypotheses, controls, and acceptance criteria are in
-[the research plan](docs/RESEARCH_PLAN.md).
-The Python namespace is `cal`; the historical rename and frozen-protocol
-handling are documented in [the package migration note](docs/PACKAGE_RENAME.md).
+![Cal entity-belief replay](docs/experiments/assets/v2_m4_unprivileged_replay_seed500.gif)
+
+> **Research status:** the V2 I1 entity belief graph passed its frozen
+> calibration, validation, and holdout. The subsequent L0 V8 language-readout
+> experiment did **not** pass its unique holdout: 21 of 24 frozen gates passed,
+> while three permanence/control-integrity gates failed. Cal is therefore a
+> synthetic research prototype, not a validated general world model.
+
+Start with:
+
+- [current evidence and claim boundaries](RESEARCH_STATUS.md);
+- [ten-minute reproduction path](REPRODUCIBILITY.md);
+- [data card](DATA_CARD.md);
+- [open research roadmap](ROADMAP.md);
+- [contribution guide](CONTRIBUTING.md).
+
+The complete milestones, hypotheses, controls, negative results, and
+acceptance criteria are in the [V1 research plan](docs/RESEARCH_PLAN.md) and
+[V2 research plan](docs/RESEARCH_PLAN_V2.md). The Python namespace is `cal`;
+the historical rename and frozen-protocol handling are documented in the
+[package migration note](docs/PACKAGE_RENAME.md).
+
+## Quick start
+
+```bash
+uv sync --extra dev
+uv run pytest
+uv run streamlit run streamlit_app.py
+```
+
+The dashboard is read-only and displays persisted JSON evidence. To inspect a
+static replay without running an experiment, open
+[`docs/experiments/assets/v2_i1_v4_replay_seed30000.html`](docs/experiments/assets/v2_i1_v4_replay_seed30000.html).
+
+Code is licensed under Apache-2.0. Project-created reports, result summaries,
+and demonstration media are CC BY 4.0; see
+[`LICENSE-DATA.md`](LICENSE-DATA.md).
 
 ## First experiment: body discovery
 
@@ -255,10 +289,33 @@ object `b8b391abc5b54aa7acbf58bef6a6cdf2c7d32664`, targeting
 `db524a3d1b65a232c2159541a79d7098227848f5`. Post-lock independent review found
 one-shot crash-recovery defects, so V7 remains unopened and unauthorized and
 must never be consumed. Those defects are fixed and five rounds of independent
-review end at P0=0/P1=0/P2=0. V8 freezes the repaired control plane under the
-new `calmodel-l0-v8-*` namespace; its holdout remains unopened and requires
-separate explicit authorization. See the
-[L0 language-readout report](docs/experiments/V2_L0_LANGUAGE_READOUT.md).
+review end at P0=0/P1=0/P2=0. V8 froze the repaired control plane under the
+new `calmodel-l0-v8-*` namespace. Its unique holdout was subsequently
+authorized and consumed. The formal readout passed its primary self, spatial,
+identity, permanence, macro, and per-seed performance gates, but the run ended
+with `stop_and_report` because three frozen control gates failed: it did not
+beat raw sensors on permanence, the assume-all-visible control did not fail
+permanence, and the identity-scramble integrity condition lacked complete
+opposite-motion coverage. The exact result is preserved in
+[`results/V2-L0-language-readout-holdout-v8.json`](results/V2-L0-language-readout-holdout-v8.json);
+see the
+[L0 language-readout report](docs/experiments/V2_L0_LANGUAGE_READOUT.md) and
+[research status](RESEARCH_STATUS.md).
+
+Generate the repeatable, presentation-only L0 language replay with:
+
+```bash
+uv run cal-v2-l0-language-replay --seed 33100
+uv run cal-v2-l0-language-replay --seed 33100 \
+  --check docs/experiments/assets/v2_l0_language_replay_seed33100.html
+```
+
+The page aligns the I1 world/observation/belief views with ten controlled
+Chinese propositions and lets the viewer switch between the frozen I1 entity
+graph and the raw-sensor control. It accepts only repeatable
+development-validation seeds `33100`–`33103`; it rejects every training,
+unknown, and V8 holdout seed before simulation. See the
+[L0 replay guide](docs/experiments/V2_L0_LANGUAGE_REPLAY_GUIDE.md).
 
 The measured evidence, limitations, and M4 decision are documented in the
 [V2 audit report](docs/experiments/V2_AUDIT_REPORT.md) and

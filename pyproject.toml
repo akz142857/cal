@@ -7,6 +7,7 @@ name = "cal"
 version = "0.1.0"
 description = "Experiments in developmental embodied learning"
 readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.11"
 dependencies = [
   "numpy>=1.26,<3",
@@ -14,6 +15,12 @@ dependencies = [
   "streamlit>=1.59,<2",
   "torch>=2.5,<3",
 ]
+
+[project.urls]
+Homepage = "https://github.com/akz142857/cal"
+Repository = "https://github.com/akz142857/cal"
+Issues = "https://github.com/akz142857/cal/issues"
+Discussions = "https://github.com/akz142857/cal/discussions"
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
@@ -53,6 +60,7 @@ cal-v2-i1 = "cal.evaluation.v2_i1_integration:main"
 cal-v2-i1-v2 = "cal.evaluation.v2_i1_integration_v2:main"
 cal-v2-i1-replay = "cal.evaluation.v2_i1_replay:main"
 cal-v2-l0-language = "cal.evaluation.v2_l0_language_readout:main"
+cal-v2-l0-language-replay = "cal.evaluation.v2_l0_language_replay:main"
 cal-v2-stage-summary = "cal.evaluation.v2_stage_summary:main"
 
 [tool.setuptools.packages.find]

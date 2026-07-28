@@ -13,8 +13,8 @@ tag object 为 `b8b391abc5b54aa7acbf58bef6a6cdf2c7d32664`，目标提交为
 消费所有权、崩溃恢复、结果阶段标记、run-start 复核和证据字节一致性问题，
 因此 V7 被否决，永不授权、永不消费，也绝不移动原 tag。修复已进入全新的 V8
 协议与 tag 命名空间，五轮独立复审最终均为 P0=0/P1=0/P2=0。V8 exact
-source-lock 使用 `calmodel-l0-v8-source-locked`；新的 holdout 仍未授权、
-未运行。
+source-lock 使用 `calmodel-l0-v8-source-locked`。V8 holdout 后续已经获得
+明确授权并完成唯一一次消费，最终决策为 `stop_and_report`；详见第 14 节。
 
 ## 1. 这个实验究竟验证什么
 
@@ -377,6 +377,18 @@ V8 exact source SHA：
 uv run cal-v2-l0-language --split development
 ```
 
+可重复的交互式 L0 演示：
+
+```bash
+uv run cal-v2-l0-language-replay --seed 33100
+```
+
+页面把同一步的世界真值、局部观测、I1 信念和 10 个受控中文命题放在一起，
+并可切换 I1 实体信念图与原始传感器对照。它只接受 `33100–33103` 的
+development-validation seeds；`33600–33603` V8 holdout seeds 会在模拟开始
+前被拒绝。详细操作与解释见
+[`V2_L0_LANGUAGE_REPLAY_GUIDE.md`](V2_L0_LANGUAGE_REPLAY_GUIDE.md)。
+
 机制与攻击回归测试：
 
 ```bash
@@ -385,5 +397,39 @@ uv run pytest tests/test_v2_l0_language_readout.py -q
 
 V5 holdout 已消费，不能再次运行。V7 source-lock 已发布，但事后审查否决了
 授权，因此也不能运行。V6 实现和实验方案已通过 development/review，V8
-control-plane 修复也已通过五轮独立复审并进入新的 exact source-lock；新的
-holdout 从未运行，仍要等待用户另行明确授权。
+control-plane 修复也已通过五轮独立复审并进入新的 exact source-lock。
+
+## 14. V8 唯一 holdout 最终结果
+
+V8 holdout 已于 2026-07-28 获得明确授权并完成唯一一次消费。运行来自干净的
+冻结提交 `e26c613e4648528f38f7125b662c6daf89448983`，开始和结束的
+source SHA 均为
+`1a4b1a8ac55c5a8213e219ffc30fae276170b33f31bfdc7f88ff1598633de41c`。
+不可变结果由 `calmodel-l0-v8-holdout-terminal-evidence` tag 绑定，结果
+SHA-256 为
+`ae5ad9d4ef457d22680dc30048bf8e0421f5e708c724351b8751f8061a2d9d04`。
+
+最终决策是 **`stop_and_report`**，不能声明 L0 通过独立 holdout。24 个冻结
+gate 中 21 个通过，3 个失败：
+
+1. `formal_beats_raw_permanence=false`：formal permanence balanced
+   accuracy 为 `0.8021`，raw-sensor control 为 `0.8750`；
+2. `all_visible_permanence_fails=false`：assume-all-visible control 的
+   permanence balanced accuracy 为 `0.8542`，没有按预注册要求失败；
+3. `identity_scramble_integrity_pass=false`：row-local counterfactual 的
+   reference、label、mask 和 interaction 重算检查均通过，但 opposite-motion
+   覆盖率只有 `0.8777`，没有达到完整覆盖。
+
+formal entity graph 的 holdout balanced accuracy 为：
+
+- macro `0.8903`；
+- self `0.9993`；
+- spatial `0.8750`；
+- identity `0.8847`；
+- permanence `0.8021`。
+
+因此当前证据只支持较窄结论：在这个合成环境中，冻结 I1 状态包含可被线性
+读出的 self、spatial 和部分 identity 信息；它不支持完整 L0 claim，也不能
+证明 hidden-object permanence 的可读性依赖 formal entity graph。这个
+holdout 已永久消费，不能重试。后续实验必须使用新的、由开发过程之外保管的
+盲测 split。
