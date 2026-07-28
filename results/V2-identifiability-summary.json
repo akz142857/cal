@@ -1,0 +1,3285 @@
+{
+  "audit": "v2_identifiability",
+  "body_config": {
+    "angle_step": 0.16,
+    "base": [
+      0.5,
+      0.5
+    ],
+    "elbow_enabled": true,
+    "elbow_limits": [
+      -2.4,
+      2.4
+    ],
+    "joint_radius": 0.024,
+    "link_lengths": [
+      0.22,
+      0.18
+    ],
+    "link_radius": 0.018,
+    "shoulder_enabled": true,
+    "shoulder_limits": [
+      -2.6,
+      2.6
+    ],
+    "tip_radius": 0.025
+  },
+  "diagnostic_only": true,
+  "duration_seconds": 59.87324524996802,
+  "history_lengths": [
+    1,
+    2,
+    4,
+    8,
+    16,
+    32
+  ],
+  "learnable_parameter_count": 0,
+  "permutation_symmetry": {
+    "case_count": 64,
+    "description": "exact counterexamples formed by swapping self with an externally mirrored isomorphic arm",
+    "exact_history_pairs": {
+      "1": 64,
+      "16": 64,
+      "2": 64,
+      "32": 64,
+      "4": 64,
+      "8": 64
+    },
+    "histories": {
+      "1": {
+        "ambiguity_sample_rate": 1.0,
+        "ambiguous_class_count": 64,
+        "ambiguous_examples": [
+          {
+            "first": {
+              "elbow_angle": 0.9659521191508,
+              "seed": 0,
+              "shoulder_angle": 0.3476082949632482,
+              "step": 0
+            },
+            "mask_iou": 0.4782608695652174,
+            "second": {
+              "elbow_angle": 2.188269089729323,
+              "seed": 1,
+              "shoulder_angle": -0.13182685828408847,
+              "step": 0
+            },
+            "signature": "f51f1b9ecfed1f8e83dc468026f676e51dc46a99b767908c0dea8c86b2150758"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.952812707152236,
+              "seed": 2,
+              "shoulder_angle": 2.5688994962061478,
+              "step": 0
+            },
+            "mask_iou": 0.13333333333333333,
+            "second": {
+              "elbow_angle": -0.9899075437180342,
+              "seed": 3,
+              "shoulder_angle": -1.665003952980745,
+              "step": 0
+            },
+            "signature": "8cc3c144c89d5dd234328301fa276f7e1a464c3c723b8f81f018d354e790f056"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.448932386752595,
+              "seed": 4,
+              "shoulder_angle": 2.442153053622881,
+              "step": 0
+            },
+            "mask_iou": 0.12903225806451613,
+            "second": {
+              "elbow_angle": 0.4379978417884418,
+              "seed": 5,
+              "shoulder_angle": -0.7653576634722459,
+              "step": 0
+            },
+            "signature": "f97cc33fb62affdfa78e1c5f65cef522a235a5119141c1ea9943f0b8681c779c"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.019410049023270926,
+              "seed": 6,
+              "shoulder_angle": -2.3966522108400556,
+              "step": 0
+            },
+            "mask_iou": 0.6190476190476191,
+            "second": {
+              "elbow_angle": -0.6369861911117931,
+              "seed": 7,
+              "shoulder_angle": -2.075552790386264,
+              "step": 0
+            },
+            "signature": "206442c71497d96c755e4fdc63480363052ecd7a5d6c48cd2d45933080e4ed2c"
+          },
+          {
+            "first": {
+              "elbow_angle": -2.028928666974617,
+              "seed": 8,
+              "shoulder_angle": -1.6438515226306538,
+              "step": 0
+            },
+            "mask_iou": 0.13333333333333333,
+            "second": {
+              "elbow_angle": 0.5855687205912781,
+              "seed": 9,
+              "shoulder_angle": 0.3760102502526541,
+              "step": 0
+            },
+            "signature": "a946256d3f56a40de0ee3dcd84c1fae924c2b7c9037c582d0c461244d61b0b89"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.5258539294459403,
+              "seed": 10,
+              "shoulder_angle": -1.574717707253606,
+              "step": 0
+            },
+            "mask_iou": 0.12903225806451613,
+            "second": {
+              "elbow_angle": 0.3503159229676496,
+              "seed": 11,
+              "shoulder_angle": 0.8146802369350343,
+              "step": 0
+            },
+            "signature": "cf6191aa8d8136ee7c6231e980d8ff039d3fa5982d37f54e3b292f6f011f6621"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.6853851866965979,
+              "seed": 12,
+              "shoulder_angle": 0.31026308508225764,
+              "step": 0
+            },
+            "mask_iou": 0.13333333333333333,
+            "second": {
+              "elbow_angle": -1.025321162736939,
+              "seed": 13,
+              "shoulder_angle": -2.2669706274450148,
+              "step": 0
+            },
+            "signature": "41f327ec39d4d1acffb8dbf61217068c66750bc6df131342f818c3d852871cd1"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.7020304774539663,
+              "seed": 14,
+              "shoulder_angle": 1.206182316610354,
+              "step": 0
+            },
+            "mask_iou": 0.4782608695652174,
+            "second": {
+              "elbow_angle": 2.18423178464927,
+              "seed": 15,
+              "shoulder_angle": 1.0952016884163056,
+              "step": 0
+            },
+            "signature": "c5a8f4161922d3e558df1131adc21736de91ec951577881a872c3359b7ee1de1"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.7462486717516357,
+              "seed": 16,
+              "shoulder_angle": 0.26222938484406333,
+              "step": 0
+            },
+            "mask_iou": 0.391304347826087,
+            "second": {
+              "elbow_angle": -0.02262158163298178,
+              "seed": 17,
+              "shoulder_angle": 0.6765587273153981,
+              "step": 0
+            },
+            "signature": "078ccceb1922fb4d3b89d82613520e2479297d27accefa0dfbc8c085eede3569"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.4190007128882312,
+              "seed": 18,
+              "shoulder_angle": -1.6155801987855423,
+              "step": 0
+            },
+            "mask_iou": 0.13793103448275862,
+            "second": {
+              "elbow_angle": -2.073793724097188,
+              "seed": 19,
+              "shoulder_angle": 1.2175646137762577,
+              "step": 0
+            },
+            "signature": "6292761baf1850b5760acd25c10cb4e78757c21cc50b17ec1dc902baff6202a7"
+          },
+          {
+            "first": {
+              "elbow_angle": 2.141401705436038,
+              "seed": 20,
+              "shoulder_angle": 1.5735317952289525,
+              "step": 0
+            },
+            "mask_iou": 0.55,
+            "second": {
+              "elbow_angle": -1.7509286868362217,
+              "seed": 21,
+              "shoulder_angle": 1.8421429675789684,
+              "step": 0
+            },
+            "signature": "e1ef9b1dfd580bf850fb86588945f6729071568b153044a6db28cf961bf5a488"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.361672081013531,
+              "seed": 22,
+              "shoulder_angle": -1.6014427422982846,
+              "step": 0
+            },
+            "mask_iou": 0.13333333333333333,
+            "second": {
+              "elbow_angle": -0.5365253851769878,
+              "seed": 23,
+              "shoulder_angle": 2.276197331648999,
+              "step": 0
+            },
+            "signature": "44e9fe57f70d6abc25f64d594d07f9d887191685b308cabf948e1045f750b5dc"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.9551036302234128,
+              "seed": 24,
+              "shoulder_angle": -0.17782436469851381,
+              "step": 0
+            },
+            "mask_iou": 0.14285714285714285,
+            "second": {
+              "elbow_angle": -1.9358287392489573,
+              "seed": 25,
+              "shoulder_angle": -1.483785222064037,
+              "step": 0
+            },
+            "signature": "fa432d33716d07ff509fc4942745eff492589add4b8cf79364485792a76636ef"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.4636379045602594,
+              "seed": 26,
+              "shoulder_angle": -0.5792803665561754,
+              "step": 0
+            },
+            "mask_iou": 0.12903225806451613,
+            "second": {
+              "elbow_angle": -0.6314509533446497,
+              "seed": 27,
+              "shoulder_angle": 2.208855056944284,
+              "step": 0
+            },
+            "signature": "72b57fd876c19a55638d886a267598bd14b65fe0a82f4c0c3ad59b608860a931"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.966517359422649,
+              "seed": 28,
+              "shoulder_angle": -1.589814570874181,
+              "step": 0
+            },
+            "mask_iou": 0.12903225806451613,
+            "second": {
+              "elbow_angle": 0.5030223799849916,
+              "seed": 29,
+              "shoulder_angle": 1.6632802341140729,
+              "step": 0
+            },
+            "signature": "cab233f85a00257b787fc347a4e8c11c30c7d014bc9de7686d8338456735ca39"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.6930792296244981,
+              "seed": 30,
+              "shoulder_angle": -1.4321506053867217,
+              "step": 0
+            },
+            "mask_iou": 0.4166666666666667,
+            "second": {
+              "elbow_angle": -0.39850544226548124,
+              "seed": 31,
+              "shoulder_angle": -1.260490300045311,
+              "step": 0
+            },
+            "signature": "33f98129718c1005fad98f622c2ffe2048fb15b7c7bc312f31387a88ec56fc16"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.9867989546658307,
+              "seed": 32,
+              "shoulder_angle": -0.299611380832165,
+              "step": 0
+            },
+            "mask_iou": 0.7894736842105263,
+            "second": {
+              "elbow_angle": -2.3118013501091643,
+              "seed": 33,
+              "shoulder_angle": 0.6813948821303102,
+              "step": 0
+            },
+            "signature": "1003a556b1bb0c25468b7457bf1760bb134ccbb6e3827453cd1ea3ac238f3b79"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.0183539702588018,
+              "seed": 34,
+              "shoulder_angle": -1.7582084054474394,
+              "step": 0
+            },
+            "mask_iou": 0.21428571428571427,
+            "second": {
+              "elbow_angle": -2.3757981158371724,
+              "seed": 35,
+              "shoulder_angle": -0.15405019850733037,
+              "step": 0
+            },
+            "signature": "8492a133d7bef71d61976a42f0a9d23a87d7e0f9dcec86dccb74b7e4ebdac41e"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.17174426903238782,
+              "seed": 36,
+              "shoulder_angle": 2.109949606168627,
+              "step": 0
+            },
+            "mask_iou": 0.13333333333333333,
+            "second": {
+              "elbow_angle": 0.12172684232465336,
+              "seed": 37,
+              "shoulder_angle": 0.4186259314230081,
+              "step": 0
+            },
+            "signature": "11d0f5410075f786485cb4bed4cf16f8bb7cad6f39fbb544e92484f438b9a62e"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.9662563640721598,
+              "seed": 38,
+              "shoulder_angle": -0.8632891262164337,
+              "step": 0
+            },
+            "mask_iou": 0.125,
+            "second": {
+              "elbow_angle": -1.0455092964858146,
+              "seed": 39,
+              "shoulder_angle": -2.1688798214855325,
+              "step": 0
+            },
+            "signature": "749dae8042bd01d36181a1779fae75429aaf5bb26536ce82387405f749c664be"
+          }
+        ],
+        "ambiguous_sample_count": 128,
+        "collision_class_count": 64,
+        "collision_sample_count": 128,
+        "collision_sample_rate": 1.0,
+        "cross_seed_ambiguous_class_count": 64,
+        "cross_seed_collision_class_count": 64,
+        "equivalence_class_count": 64,
+        "majority_ceiling_all": {
+          "f1": 0.761854398025736,
+          "false_negative": 0,
+          "false_positive": 1351,
+          "iou": 0.6153189066059226,
+          "pixel_accuracy": 0.958770751953125,
+          "precision": 0.6153189066059226,
+          "recall": 1.0,
+          "sample_count": 128,
+          "true_negative": 29256,
+          "true_positive": 2161
+        },
+        "majority_ceiling_ambiguous": {
+          "f1": 0.761854398025736,
+          "false_negative": 0,
+          "false_positive": 1351,
+          "iou": 0.6153189066059226,
+          "pixel_accuracy": 0.958770751953125,
+          "precision": 0.6153189066059226,
+          "recall": 1.0,
+          "sample_count": 128,
+          "true_negative": 29256,
+          "true_positive": 2161
+        },
+        "majority_ceiling_collisions": {
+          "f1": 0.761854398025736,
+          "false_negative": 0,
+          "false_positive": 1351,
+          "iou": 0.6153189066059226,
+          "pixel_accuracy": 0.958770751953125,
+          "precision": 0.6153189066059226,
+          "recall": 1.0,
+          "sample_count": 128,
+          "true_negative": 29256,
+          "true_positive": 2161
+        },
+        "mask_iou_to_class_majority": {
+          "count": 128,
+          "maximum": 0.8947368421052632,
+          "mean": 0.6251110033721142,
+          "minimum": 0.5333333333333333
+        },
+        "sample_count": 128
+      },
+      "16": {
+        "ambiguity_sample_rate": 1.0,
+        "ambiguous_class_count": 64,
+        "ambiguous_examples": [
+          {
+            "first": {
+              "elbow_angle": 0.9659521191507999,
+              "seed": 0,
+              "shoulder_angle": 0.3476082949632482,
+              "step": 15
+            },
+            "mask_iou": 0.4782608695652174,
+            "second": {
+              "elbow_angle": 2.188269089729323,
+              "seed": 1,
+              "shoulder_angle": -0.13182685828408847,
+              "step": 15
+            },
+            "signature": "96de0fbb83434796a2041574b9d4b818a66e820076a282948932443ae6972787"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.952812707152236,
+              "seed": 2,
+              "shoulder_angle": 2.44,
+              "step": 15
+            },
+            "mask_iou": 0.13333333333333333,
+            "second": {
+              "elbow_angle": -0.9899075437180342,
+              "seed": 3,
+              "shoulder_angle": -1.665003952980745,
+              "step": 15
+            },
+            "signature": "5cf1667a91191d3dc590bc4d6e741b5804bd6db16a6c01f99405cfb1409eac18"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.448932386752595,
+              "seed": 4,
+              "shoulder_angle": 2.442153053622881,
+              "step": 15
+            },
+            "mask_iou": 0.12903225806451613,
+            "second": {
+              "elbow_angle": 0.4379978417884418,
+              "seed": 5,
+              "shoulder_angle": -0.7653576634722459,
+              "step": 15
+            },
+            "signature": "a64cdbb51507ce581cd4d60030f3ceb6f6798db3ca2d3bbbbc52fcc365a42bff"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.019410049023270926,
+              "seed": 6,
+              "shoulder_angle": -2.3966522108400556,
+              "step": 15
+            },
+            "mask_iou": 0.6190476190476191,
+            "second": {
+              "elbow_angle": -0.6369861911117931,
+              "seed": 7,
+              "shoulder_angle": -2.075552790386264,
+              "step": 15
+            },
+            "signature": "ab0c53a1bff4170cc1408b3d7287ce3e4a6eef895c4bff0e044c24c762d210a1"
+          },
+          {
+            "first": {
+              "elbow_angle": -2.028928666974617,
+              "seed": 8,
+              "shoulder_angle": -1.6438515226306538,
+              "step": 15
+            },
+            "mask_iou": 0.13333333333333333,
+            "second": {
+              "elbow_angle": 0.5855687205912781,
+              "seed": 9,
+              "shoulder_angle": 0.3760102502526541,
+              "step": 15
+            },
+            "signature": "f6f5ea9bc96fd426eac1adfbce395513878fe1546cfad1d68bac695d3eff6484"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.5258539294459403,
+              "seed": 10,
+              "shoulder_angle": -1.574717707253606,
+              "step": 15
+            },
+            "mask_iou": 0.12903225806451613,
+            "second": {
+              "elbow_angle": 0.3503159229676496,
+              "seed": 11,
+              "shoulder_angle": 0.8146802369350343,
+              "step": 15
+            },
+            "signature": "93677a243031973c1b5337b15fbbc5fdd634872dc74cde5d9d247be5eae0ff34"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.6853851866965979,
+              "seed": 12,
+              "shoulder_angle": 0.31026308508225764,
+              "step": 15
+            },
+            "mask_iou": 0.13333333333333333,
+            "second": {
+              "elbow_angle": -1.025321162736939,
+              "seed": 13,
+              "shoulder_angle": -2.2669706274450148,
+              "step": 15
+            },
+            "signature": "7157a449dc3731acdb9a3b96ac9f8a1d5646b86227c68e696f0b0b8e2b0cb01b"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.7020304774539663,
+              "seed": 14,
+              "shoulder_angle": 1.206182316610354,
+              "step": 15
+            },
+            "mask_iou": 0.4782608695652174,
+            "second": {
+              "elbow_angle": 2.18423178464927,
+              "seed": 15,
+              "shoulder_angle": 1.0952016884163056,
+              "step": 15
+            },
+            "signature": "89bbc9c5bd2ccca50d47afd3f06bc9004643875eece3432b9ecc24cbccfa4273"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.7462486717516357,
+              "seed": 16,
+              "shoulder_angle": 0.26222938484406333,
+              "step": 15
+            },
+            "mask_iou": 0.391304347826087,
+            "second": {
+              "elbow_angle": -0.02262158163298178,
+              "seed": 17,
+              "shoulder_angle": 0.6765587273153981,
+              "step": 15
+            },
+            "signature": "4b28d7d8e4e4b433af449f0b8f54775f42ff3e108c810a8586102e97c213ebe7"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.4190007128882312,
+              "seed": 18,
+              "shoulder_angle": -1.6155801987855423,
+              "step": 15
+            },
+            "mask_iou": 0.13793103448275862,
+            "second": {
+              "elbow_angle": -2.073793724097188,
+              "seed": 19,
+              "shoulder_angle": 1.2175646137762577,
+              "step": 15
+            },
+            "signature": "6aa0e439fd1c35b2cdd5eed77c6459ba6e09056a6ec6ce50eae4d92caea52ccf"
+          },
+          {
+            "first": {
+              "elbow_angle": 2.141401705436038,
+              "seed": 20,
+              "shoulder_angle": 1.5735317952289525,
+              "step": 15
+            },
+            "mask_iou": 0.55,
+            "second": {
+              "elbow_angle": -1.7509286868362217,
+              "seed": 21,
+              "shoulder_angle": 1.8421429675789687,
+              "step": 15
+            },
+            "signature": "d71d111da6658cecf1a530aafcc23087f0b39f03d3c73f725b86adc5eee2a258"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.361672081013531,
+              "seed": 22,
+              "shoulder_angle": -1.6014427422982846,
+              "step": 15
+            },
+            "mask_iou": 0.13333333333333333,
+            "second": {
+              "elbow_angle": -0.5365253851769878,
+              "seed": 23,
+              "shoulder_angle": 2.276197331648999,
+              "step": 15
+            },
+            "signature": "663f93b6136b0e3602ae2634ae8f4297de023e2bd72da371ec26cd2e2a994a3f"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.9551036302234128,
+              "seed": 24,
+              "shoulder_angle": -0.17782436469851384,
+              "step": 15
+            },
+            "mask_iou": 0.14285714285714285,
+            "second": {
+              "elbow_angle": -1.9358287392489573,
+              "seed": 25,
+              "shoulder_angle": -1.483785222064037,
+              "step": 15
+            },
+            "signature": "c29940a06034d0cdb882a18f3025ab14029bf40a2f0d61f4c980bb9de8881da7"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.4636379045602594,
+              "seed": 26,
+              "shoulder_angle": -0.5792803665561754,
+              "step": 15
+            },
+            "mask_iou": 0.12903225806451613,
+            "second": {
+              "elbow_angle": -0.6314509533446497,
+              "seed": 27,
+              "shoulder_angle": 2.208855056944284,
+              "step": 15
+            },
+            "signature": "68b0d2a36b97917d98f8d8a0af798ddde0515bcb068aea0f75fe0c3a492874e5"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.966517359422649,
+              "seed": 28,
+              "shoulder_angle": -1.589814570874181,
+              "step": 15
+            },
+            "mask_iou": 0.12903225806451613,
+            "second": {
+              "elbow_angle": 0.5030223799849916,
+              "seed": 29,
+              "shoulder_angle": 1.6632802341140729,
+              "step": 15
+            },
+            "signature": "a2755ffa2ec09df941d694ff09044bb2e26f9eba318139b9dab3233c5f2c6e16"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.6930792296244981,
+              "seed": 30,
+              "shoulder_angle": -1.4321506053867217,
+              "step": 15
+            },
+            "mask_iou": 0.4166666666666667,
+            "second": {
+              "elbow_angle": -0.39850544226548124,
+              "seed": 31,
+              "shoulder_angle": -1.260490300045311,
+              "step": 15
+            },
+            "signature": "52c2aa107a46b3c1ea94cce5b5e999d14eb29c8b8a9fadc8e960ec240b33a25e"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.986798954665831,
+              "seed": 32,
+              "shoulder_angle": -0.299611380832165,
+              "step": 15
+            },
+            "mask_iou": 0.7894736842105263,
+            "second": {
+              "elbow_angle": -2.3118013501091643,
+              "seed": 33,
+              "shoulder_angle": 0.6813948821303102,
+              "step": 15
+            },
+            "signature": "797008819e14e6ff4b48ee61d7814817b9ae76c882eb126f0d4ee9688f9ce7a4"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.0183539702588018,
+              "seed": 34,
+              "shoulder_angle": -1.7582084054474394,
+              "step": 15
+            },
+            "mask_iou": 0.21428571428571427,
+            "second": {
+              "elbow_angle": -2.3757981158371724,
+              "seed": 35,
+              "shoulder_angle": -0.1540501985073304,
+              "step": 15
+            },
+            "signature": "a524ea4815969460b54bb72b2e737a2c4638465c821297646153e0321c72db2c"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.17174426903238782,
+              "seed": 36,
+              "shoulder_angle": 2.109949606168627,
+              "step": 15
+            },
+            "mask_iou": 0.13333333333333333,
+            "second": {
+              "elbow_angle": 0.12172684232465339,
+              "seed": 37,
+              "shoulder_angle": 0.4186259314230081,
+              "step": 15
+            },
+            "signature": "03a9263a5a7fb9d5a89de41217e98853f98078c46f2022fecf9f1efd359313f1"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.9662563640721596,
+              "seed": 38,
+              "shoulder_angle": -0.8632891262164337,
+              "step": 15
+            },
+            "mask_iou": 0.125,
+            "second": {
+              "elbow_angle": -1.0455092964858146,
+              "seed": 39,
+              "shoulder_angle": -2.1688798214855325,
+              "step": 15
+            },
+            "signature": "beb1d0a5e13aeb8c8a490cbd6ab15cf55e98a0d9315b4e4d7cb1294a31ff2c10"
+          }
+        ],
+        "ambiguous_sample_count": 128,
+        "collision_class_count": 64,
+        "collision_sample_count": 128,
+        "collision_sample_rate": 1.0,
+        "cross_seed_ambiguous_class_count": 64,
+        "cross_seed_collision_class_count": 64,
+        "equivalence_class_count": 64,
+        "majority_ceiling_all": {
+          "f1": 0.7618040873854828,
+          "false_negative": 0,
+          "false_positive": 1352,
+          "iou": 0.6152532726237906,
+          "pixel_accuracy": 0.958740234375,
+          "precision": 0.6152532726237906,
+          "recall": 1.0,
+          "sample_count": 128,
+          "true_negative": 29254,
+          "true_positive": 2162
+        },
+        "majority_ceiling_ambiguous": {
+          "f1": 0.7618040873854828,
+          "false_negative": 0,
+          "false_positive": 1352,
+          "iou": 0.6152532726237906,
+          "pixel_accuracy": 0.958740234375,
+          "precision": 0.6152532726237906,
+          "recall": 1.0,
+          "sample_count": 128,
+          "true_negative": 29254,
+          "true_positive": 2162
+        },
+        "majority_ceiling_collisions": {
+          "f1": 0.7618040873854828,
+          "false_negative": 0,
+          "false_positive": 1352,
+          "iou": 0.6152532726237906,
+          "pixel_accuracy": 0.958740234375,
+          "precision": 0.6152532726237906,
+          "recall": 1.0,
+          "sample_count": 128,
+          "true_negative": 29254,
+          "true_positive": 2162
+        },
+        "mask_iou_to_class_majority": {
+          "count": 128,
+          "maximum": 0.8947368421052632,
+          "mean": 0.6250725181504394,
+          "minimum": 0.5333333333333333
+        },
+        "sample_count": 128
+      },
+      "2": {
+        "ambiguity_sample_rate": 1.0,
+        "ambiguous_class_count": 64,
+        "ambiguous_examples": [
+          {
+            "first": {
+              "elbow_angle": 0.9659521191508,
+              "seed": 0,
+              "shoulder_angle": 0.3476082949632482,
+              "step": 1
+            },
+            "mask_iou": 0.4782608695652174,
+            "second": {
+              "elbow_angle": 2.188269089729323,
+              "seed": 1,
+              "shoulder_angle": -0.13182685828408847,
+              "step": 1
+            },
+            "signature": "05ed52febcfb9dc73bd5609091a4726d9c5147deaad88b563e90e8dc60efbe54"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.952812707152236,
+              "seed": 2,
+              "shoulder_angle": 2.6,
+              "step": 1
+            },
+            "mask_iou": 0.14285714285714285,
+            "second": {
+              "elbow_angle": -0.9899075437180342,
+              "seed": 3,
+              "shoulder_angle": -1.505003952980745,
+              "step": 1
+            },
+            "signature": "eba42fd0738b506b6cb1d6634f2be43c61d87899f803c74158fb51615defcd54"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.448932386752595,
+              "seed": 4,
+              "shoulder_angle": 2.282153053622881,
+              "step": 1
+            },
+            "mask_iou": 0.12903225806451613,
+            "second": {
+              "elbow_angle": 0.4379978417884418,
+              "seed": 5,
+              "shoulder_angle": -0.9253576634722459,
+              "step": 1
+            },
+            "signature": "9857847fb7d337d80e41947a5c462c7a9f0cacd47c6dc916b21bd8675b18cca0"
+          },
+          {
+            "first": {
+              "elbow_angle": 0.14058995097672908,
+              "seed": 6,
+              "shoulder_angle": -2.3966522108400556,
+              "step": 1
+            },
+            "mask_iou": 0.5909090909090909,
+            "second": {
+              "elbow_angle": -0.4769861911117931,
+              "seed": 7,
+              "shoulder_angle": -2.075552790386264,
+              "step": 1
+            },
+            "signature": "5130f833267f07475411363a123f660c417e8e0a003cb55bd62d16e4cda59700"
+          },
+          {
+            "first": {
+              "elbow_angle": -2.188928666974617,
+              "seed": 8,
+              "shoulder_angle": -1.6438515226306538,
+              "step": 1
+            },
+            "mask_iou": 0.13793103448275862,
+            "second": {
+              "elbow_angle": 0.42556872059127804,
+              "seed": 9,
+              "shoulder_angle": 0.3760102502526541,
+              "step": 1
+            },
+            "signature": "6f8153ff05c927d9bfa0ea767f0706858bfe75691bcf79cf0a2c52647077455c"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.5258539294459403,
+              "seed": 10,
+              "shoulder_angle": -1.574717707253606,
+              "step": 1
+            },
+            "mask_iou": 0.12903225806451613,
+            "second": {
+              "elbow_angle": 0.3503159229676496,
+              "seed": 11,
+              "shoulder_angle": 0.8146802369350343,
+              "step": 1
+            },
+            "signature": "0ff1718c16785e87a45c1dac89f22a7acc8dcd1df1fe1ad6807d9c6c12f81fd8"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.6853851866965979,
+              "seed": 12,
+              "shoulder_angle": 0.47026308508225767,
+              "step": 1
+            },
+            "mask_iou": 0.13333333333333333,
+            "second": {
+              "elbow_angle": -1.025321162736939,
+              "seed": 13,
+              "shoulder_angle": -2.1069706274450146,
+              "step": 1
+            },
+            "signature": "09e3c604be145bef01e98fe9b52c5a9639e0f47ce3fd84b72c666034ce6ec90f"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.7020304774539663,
+              "seed": 14,
+              "shoulder_angle": 1.046182316610354,
+              "step": 1
+            },
+            "mask_iou": 0.5238095238095238,
+            "second": {
+              "elbow_angle": 2.18423178464927,
+              "seed": 15,
+              "shoulder_angle": 0.9352016884163056,
+              "step": 1
+            },
+            "signature": "d142077b56ef91485ea0b19b30f7ce463c25499b0014de1cb64a57bf439f884e"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.9062486717516356,
+              "seed": 16,
+              "shoulder_angle": 0.26222938484406333,
+              "step": 1
+            },
+            "mask_iou": 0.42857142857142855,
+            "second": {
+              "elbow_angle": 0.13737841836701822,
+              "seed": 17,
+              "shoulder_angle": 0.6765587273153981,
+              "step": 1
+            },
+            "signature": "269f16db6a959544e05f4269f1ce58c80649f1abcd3b53979338d98b3c988616"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.579000712888231,
+              "seed": 18,
+              "shoulder_angle": -1.6155801987855423,
+              "step": 1
+            },
+            "mask_iou": 0.13793103448275862,
+            "second": {
+              "elbow_angle": -2.2337937240971883,
+              "seed": 19,
+              "shoulder_angle": 1.2175646137762577,
+              "step": 1
+            },
+            "signature": "8ba1f6ea92eee735f7fc39febe2bf7e09ad7d2ebc7c2a329cdd008716ee01fc6"
+          },
+          {
+            "first": {
+              "elbow_angle": 2.141401705436038,
+              "seed": 20,
+              "shoulder_angle": 1.5735317952289525,
+              "step": 1
+            },
+            "mask_iou": 0.55,
+            "second": {
+              "elbow_angle": -1.7509286868362217,
+              "seed": 21,
+              "shoulder_angle": 1.8421429675789684,
+              "step": 1
+            },
+            "signature": "cac03f027983bd2d3f0b400b775a614061e6b44d695c7ad7be742aacf682b239"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.361672081013531,
+              "seed": 22,
+              "shoulder_angle": -1.4414427422982847,
+              "step": 1
+            },
+            "mask_iou": 0.12903225806451613,
+            "second": {
+              "elbow_angle": -0.5365253851769878,
+              "seed": 23,
+              "shoulder_angle": 2.4361973316489993,
+              "step": 1
+            },
+            "signature": "c4572fa9045ca9c49166a63052948c98b77926481595c3c19a08803ceb41c4e1"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.9551036302234128,
+              "seed": 24,
+              "shoulder_angle": -0.33782436469851385,
+              "step": 1
+            },
+            "mask_iou": 0.1724137931034483,
+            "second": {
+              "elbow_angle": -1.9358287392489573,
+              "seed": 25,
+              "shoulder_angle": -1.643785222064037,
+              "step": 1
+            },
+            "signature": "61a1f0c99b3719a31062dc439818b889244a0f4b8a63b20eabc3041c6c6858a4"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.6236379045602594,
+              "seed": 26,
+              "shoulder_angle": -0.5792803665561754,
+              "step": 1
+            },
+            "mask_iou": 0.13333333333333333,
+            "second": {
+              "elbow_angle": -0.4714509533446497,
+              "seed": 27,
+              "shoulder_angle": 2.208855056944284,
+              "step": 1
+            },
+            "signature": "67316e56d4ebc9e9e6b3e95ef8770ac78b83e88618ef9f35a921fdb96d757605"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.8065173594226491,
+              "seed": 28,
+              "shoulder_angle": -1.589814570874181,
+              "step": 1
+            },
+            "mask_iou": 0.13793103448275862,
+            "second": {
+              "elbow_angle": 0.3430223799849915,
+              "seed": 29,
+              "shoulder_angle": 1.6632802341140729,
+              "step": 1
+            },
+            "signature": "6bf71d1503262401ce7ba8ff785c2e937519d06542d13cb2d3b6de68573e6759"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.6930792296244981,
+              "seed": 30,
+              "shoulder_angle": -1.4321506053867217,
+              "step": 1
+            },
+            "mask_iou": 0.4166666666666667,
+            "second": {
+              "elbow_angle": -0.39850544226548124,
+              "seed": 31,
+              "shoulder_angle": -1.260490300045311,
+              "step": 1
+            },
+            "signature": "0f76606094e07ee151c83c223ab5d6964428b567f0cd32143c798ca569aa7486"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.9867989546658307,
+              "seed": 32,
+              "shoulder_angle": -0.13961138083216498,
+              "step": 1
+            },
+            "mask_iou": 0.55,
+            "second": {
+              "elbow_angle": -2.3118013501091643,
+              "seed": 33,
+              "shoulder_angle": 0.8413948821303102,
+              "step": 1
+            },
+            "signature": "686ac1668ee6e0d7fa6b44cda7df7a0f489cfdf88ede6153ab83b17191d8be1c"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.0183539702588018,
+              "seed": 34,
+              "shoulder_angle": -1.9182084054474393,
+              "step": 1
+            },
+            "mask_iou": 0.18518518518518517,
+            "second": {
+              "elbow_angle": -2.3757981158371724,
+              "seed": 35,
+              "shoulder_angle": -0.3140501985073304,
+              "step": 1
+            },
+            "signature": "6b4553a5097e92352ed872ad962402e3ad1123238c3cda618bb799b9b9e789c7"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.011744269032387816,
+              "seed": 36,
+              "shoulder_angle": 2.109949606168627,
+              "step": 1
+            },
+            "mask_iou": 0.13793103448275862,
+            "second": {
+              "elbow_angle": 0.2817268423246534,
+              "seed": 37,
+              "shoulder_angle": 0.4186259314230081,
+              "step": 1
+            },
+            "signature": "54251ebd568a57d44d6b00efaf5f551f52b168d2e8d183760fa58514c840e325"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.1262563640721597,
+              "seed": 38,
+              "shoulder_angle": -0.8632891262164337,
+              "step": 1
+            },
+            "mask_iou": 0.12903225806451613,
+            "second": {
+              "elbow_angle": -1.2055092964858145,
+              "seed": 39,
+              "shoulder_angle": -2.1688798214855325,
+              "step": 1
+            },
+            "signature": "390740681c40ed173695fad00374516a228bea76f5d45e421fab8a68b67f8cd4"
+          }
+        ],
+        "ambiguous_sample_count": 128,
+        "collision_class_count": 64,
+        "collision_sample_count": 128,
+        "collision_sample_rate": 1.0,
+        "cross_seed_ambiguous_class_count": 64,
+        "cross_seed_collision_class_count": 64,
+        "equivalence_class_count": 64,
+        "majority_ceiling_all": {
+          "f1": 0.760873424462986,
+          "false_negative": 0,
+          "false_positive": 1347,
+          "iou": 0.6140401146131805,
+          "pixel_accuracy": 0.958892822265625,
+          "precision": 0.6140401146131805,
+          "recall": 1.0,
+          "sample_count": 128,
+          "true_negative": 29278,
+          "true_positive": 2143
+        },
+        "majority_ceiling_ambiguous": {
+          "f1": 0.760873424462986,
+          "false_negative": 0,
+          "false_positive": 1347,
+          "iou": 0.6140401146131805,
+          "pixel_accuracy": 0.958892822265625,
+          "precision": 0.6140401146131805,
+          "recall": 1.0,
+          "sample_count": 128,
+          "true_negative": 29278,
+          "true_positive": 2143
+        },
+        "majority_ceiling_collisions": {
+          "f1": 0.760873424462986,
+          "false_negative": 0,
+          "false_positive": 1347,
+          "iou": 0.6140401146131805,
+          "pixel_accuracy": 0.958892822265625,
+          "precision": 0.6140401146131805,
+          "recall": 1.0,
+          "sample_count": 128,
+          "true_negative": 29278,
+          "true_positive": 2143
+        },
+        "mask_iou_to_class_majority": {
+          "count": 128,
+          "maximum": 0.8181818181818182,
+          "mean": 0.6228552356914732,
+          "minimum": 0.5
+        },
+        "sample_count": 128
+      },
+      "32": {
+        "ambiguity_sample_rate": 1.0,
+        "ambiguous_class_count": 64,
+        "ambiguous_examples": [
+          {
+            "first": {
+              "elbow_angle": 0.9659521191507999,
+              "seed": 0,
+              "shoulder_angle": 0.3476082949632482,
+              "step": 31
+            },
+            "mask_iou": 0.4782608695652174,
+            "second": {
+              "elbow_angle": 2.188269089729323,
+              "seed": 1,
+              "shoulder_angle": -0.13182685828408847,
+              "step": 31
+            },
+            "signature": "afb8f750c019bfb5c79f593a91a75ba975175d13744ef4db5ad3570649135238"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.952812707152236,
+              "seed": 2,
+              "shoulder_angle": 2.6,
+              "step": 31
+            },
+            "mask_iou": 0.14285714285714285,
+            "second": {
+              "elbow_angle": -0.9899075437180342,
+              "seed": 3,
+              "shoulder_angle": -1.505003952980745,
+              "step": 31
+            },
+            "signature": "27187ee1cf6a3c4a8bec70ed5e4ac0f07e920a651c2577d3979a7e69e5becb2e"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.448932386752595,
+              "seed": 4,
+              "shoulder_angle": 2.282153053622881,
+              "step": 31
+            },
+            "mask_iou": 0.12903225806451613,
+            "second": {
+              "elbow_angle": 0.4379978417884418,
+              "seed": 5,
+              "shoulder_angle": -0.9253576634722459,
+              "step": 31
+            },
+            "signature": "fc6d71f1e5796317d83762fceeba1194fd869550b8ee2bb3bc5a82bcf9fa8706"
+          },
+          {
+            "first": {
+              "elbow_angle": 0.14058995097672908,
+              "seed": 6,
+              "shoulder_angle": -2.3966522108400556,
+              "step": 31
+            },
+            "mask_iou": 0.5909090909090909,
+            "second": {
+              "elbow_angle": -0.4769861911117931,
+              "seed": 7,
+              "shoulder_angle": -2.075552790386264,
+              "step": 31
+            },
+            "signature": "32323680a2c886ff5ca51eb5c540fc0c1a6fa8cf85ff267781964794b5fa145f"
+          },
+          {
+            "first": {
+              "elbow_angle": -2.188928666974617,
+              "seed": 8,
+              "shoulder_angle": -1.6438515226306538,
+              "step": 31
+            },
+            "mask_iou": 0.13793103448275862,
+            "second": {
+              "elbow_angle": 0.42556872059127804,
+              "seed": 9,
+              "shoulder_angle": 0.3760102502526541,
+              "step": 31
+            },
+            "signature": "8a8509c5bf31bd12131b1f79abbaf51ad2a6ec6a6b1fce048ce1465c2d574c11"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.5258539294459403,
+              "seed": 10,
+              "shoulder_angle": -1.574717707253606,
+              "step": 31
+            },
+            "mask_iou": 0.12903225806451613,
+            "second": {
+              "elbow_angle": 0.3503159229676496,
+              "seed": 11,
+              "shoulder_angle": 0.8146802369350343,
+              "step": 31
+            },
+            "signature": "df9e52bd5ce430485730bf8f1143dc83d61d830888e973ce603637c0071f452b"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.6853851866965979,
+              "seed": 12,
+              "shoulder_angle": 0.47026308508225767,
+              "step": 31
+            },
+            "mask_iou": 0.13333333333333333,
+            "second": {
+              "elbow_angle": -1.025321162736939,
+              "seed": 13,
+              "shoulder_angle": -2.1069706274450146,
+              "step": 31
+            },
+            "signature": "a9b35dcbe8c82268c5b2e5ada4f1fd64e25879bc58bb057c3421824a3ceb395e"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.7020304774539663,
+              "seed": 14,
+              "shoulder_angle": 1.046182316610354,
+              "step": 31
+            },
+            "mask_iou": 0.5238095238095238,
+            "second": {
+              "elbow_angle": 2.18423178464927,
+              "seed": 15,
+              "shoulder_angle": 0.9352016884163056,
+              "step": 31
+            },
+            "signature": "3b60a76e871331ce8a30bc121ebc51416ae6e691649847bbf4c73fa70d92f3e8"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.9062486717516356,
+              "seed": 16,
+              "shoulder_angle": 0.26222938484406333,
+              "step": 31
+            },
+            "mask_iou": 0.42857142857142855,
+            "second": {
+              "elbow_angle": 0.13737841836701822,
+              "seed": 17,
+              "shoulder_angle": 0.6765587273153981,
+              "step": 31
+            },
+            "signature": "eef286266e7b2dc17781a9ddc5eafb83612bc842eb4531fb2197b04084607239"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.579000712888231,
+              "seed": 18,
+              "shoulder_angle": -1.6155801987855423,
+              "step": 31
+            },
+            "mask_iou": 0.13793103448275862,
+            "second": {
+              "elbow_angle": -2.2337937240971883,
+              "seed": 19,
+              "shoulder_angle": 1.2175646137762577,
+              "step": 31
+            },
+            "signature": "2b149ca65dd8d8c20391bf4ddaed99ffa590ed75ce12a5fa7ed49a1e85f35f45"
+          },
+          {
+            "first": {
+              "elbow_angle": 2.141401705436038,
+              "seed": 20,
+              "shoulder_angle": 1.5735317952289525,
+              "step": 31
+            },
+            "mask_iou": 0.55,
+            "second": {
+              "elbow_angle": -1.7509286868362217,
+              "seed": 21,
+              "shoulder_angle": 1.8421429675789687,
+              "step": 31
+            },
+            "signature": "225d94eb11e664095a798f21d55643bc43e4e974aeb3231c479521a701dfc2b9"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.361672081013531,
+              "seed": 22,
+              "shoulder_angle": -1.4414427422982847,
+              "step": 31
+            },
+            "mask_iou": 0.12903225806451613,
+            "second": {
+              "elbow_angle": -0.5365253851769878,
+              "seed": 23,
+              "shoulder_angle": 2.4361973316489993,
+              "step": 31
+            },
+            "signature": "9eecf36ba67cc85fae2671a9618046f6d86eb8da4e76a8d1207e6a23963a7d76"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.9551036302234128,
+              "seed": 24,
+              "shoulder_angle": -0.33782436469851385,
+              "step": 31
+            },
+            "mask_iou": 0.1724137931034483,
+            "second": {
+              "elbow_angle": -1.9358287392489573,
+              "seed": 25,
+              "shoulder_angle": -1.643785222064037,
+              "step": 31
+            },
+            "signature": "8b78c12d9dec79babcb5de5f5c37569b610ce156f187c04c589890af8a0327e3"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.6236379045602594,
+              "seed": 26,
+              "shoulder_angle": -0.5792803665561754,
+              "step": 31
+            },
+            "mask_iou": 0.13333333333333333,
+            "second": {
+              "elbow_angle": -0.4714509533446497,
+              "seed": 27,
+              "shoulder_angle": 2.208855056944284,
+              "step": 31
+            },
+            "signature": "16c79e7fa4c45b7e8b53b10550076338a062963ac6ba52021284f7357bdf5f49"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.8065173594226491,
+              "seed": 28,
+              "shoulder_angle": -1.589814570874181,
+              "step": 31
+            },
+            "mask_iou": 0.13793103448275862,
+            "second": {
+              "elbow_angle": 0.3430223799849915,
+              "seed": 29,
+              "shoulder_angle": 1.6632802341140729,
+              "step": 31
+            },
+            "signature": "0e76f96a5307944b19188c6f0f659c2b0e8e12d7be8fe164dff607f7e17e60fc"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.6930792296244981,
+              "seed": 30,
+              "shoulder_angle": -1.4321506053867217,
+              "step": 31
+            },
+            "mask_iou": 0.4166666666666667,
+            "second": {
+              "elbow_angle": -0.39850544226548124,
+              "seed": 31,
+              "shoulder_angle": -1.260490300045311,
+              "step": 31
+            },
+            "signature": "a9517f78f704d74e039ed90b6bbe9c1cded75e300ae40b4972b6a271f774ecc9"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.986798954665831,
+              "seed": 32,
+              "shoulder_angle": -0.13961138083216498,
+              "step": 31
+            },
+            "mask_iou": 0.55,
+            "second": {
+              "elbow_angle": -2.3118013501091643,
+              "seed": 33,
+              "shoulder_angle": 0.8413948821303102,
+              "step": 31
+            },
+            "signature": "11a75e4f1361290d05ba7860ebd90de0a57ac5137db5fd9e375bdc198cc7ceda"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.0183539702588018,
+              "seed": 34,
+              "shoulder_angle": -1.9182084054474393,
+              "step": 31
+            },
+            "mask_iou": 0.18518518518518517,
+            "second": {
+              "elbow_angle": -2.3757981158371724,
+              "seed": 35,
+              "shoulder_angle": -0.3140501985073304,
+              "step": 31
+            },
+            "signature": "e455b2252731dd5cf478cd5bd71a89bd6928f61932642f3257a5a589191297d7"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.011744269032387816,
+              "seed": 36,
+              "shoulder_angle": 2.109949606168627,
+              "step": 31
+            },
+            "mask_iou": 0.13793103448275862,
+            "second": {
+              "elbow_angle": 0.2817268423246534,
+              "seed": 37,
+              "shoulder_angle": 0.4186259314230081,
+              "step": 31
+            },
+            "signature": "c33dfe2be4b64550c1ba0f31dc25b88ee7f36b1d3c2ee33c9756b410aade5c48"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.1262563640721597,
+              "seed": 38,
+              "shoulder_angle": -0.8632891262164337,
+              "step": 31
+            },
+            "mask_iou": 0.12903225806451613,
+            "second": {
+              "elbow_angle": -1.2055092964858145,
+              "seed": 39,
+              "shoulder_angle": -2.1688798214855325,
+              "step": 31
+            },
+            "signature": "b7c889f78f165a2b8fd89b4e1436d628a919ddead8e6ace24d69dc9125aa722e"
+          }
+        ],
+        "ambiguous_sample_count": 128,
+        "collision_class_count": 64,
+        "collision_sample_count": 128,
+        "collision_sample_rate": 1.0,
+        "cross_seed_ambiguous_class_count": 64,
+        "cross_seed_collision_class_count": 64,
+        "equivalence_class_count": 64,
+        "majority_ceiling_all": {
+          "f1": 0.760923623445826,
+          "false_negative": 0,
+          "false_positive": 1346,
+          "iou": 0.614105504587156,
+          "pixel_accuracy": 0.95892333984375,
+          "precision": 0.614105504587156,
+          "recall": 1.0,
+          "sample_count": 128,
+          "true_negative": 29280,
+          "true_positive": 2142
+        },
+        "majority_ceiling_ambiguous": {
+          "f1": 0.760923623445826,
+          "false_negative": 0,
+          "false_positive": 1346,
+          "iou": 0.614105504587156,
+          "pixel_accuracy": 0.95892333984375,
+          "precision": 0.614105504587156,
+          "recall": 1.0,
+          "sample_count": 128,
+          "true_negative": 29280,
+          "true_positive": 2142
+        },
+        "majority_ceiling_collisions": {
+          "f1": 0.760923623445826,
+          "false_negative": 0,
+          "false_positive": 1346,
+          "iou": 0.614105504587156,
+          "pixel_accuracy": 0.95892333984375,
+          "precision": 0.614105504587156,
+          "recall": 1.0,
+          "sample_count": 128,
+          "true_negative": 29280,
+          "true_positive": 2142
+        },
+        "mask_iou_to_class_majority": {
+          "count": 128,
+          "maximum": 0.8181818181818182,
+          "mean": 0.6228965716703092,
+          "minimum": 0.5
+        },
+        "sample_count": 128
+      },
+      "4": {
+        "ambiguity_sample_rate": 1.0,
+        "ambiguous_class_count": 64,
+        "ambiguous_examples": [
+          {
+            "first": {
+              "elbow_angle": 0.9659521191508,
+              "seed": 0,
+              "shoulder_angle": 0.3476082949632482,
+              "step": 3
+            },
+            "mask_iou": 0.4782608695652174,
+            "second": {
+              "elbow_angle": 2.188269089729323,
+              "seed": 1,
+              "shoulder_angle": -0.13182685828408847,
+              "step": 3
+            },
+            "signature": "15054b8d28c791cd74408ca5ea611236149d01ce50c2e8d00181bf4ba197df4e"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.7928127071522362,
+              "seed": 2,
+              "shoulder_angle": 2.44,
+              "step": 3
+            },
+            "mask_iou": 0.13333333333333333,
+            "second": {
+              "elbow_angle": -0.8299075437180342,
+              "seed": 3,
+              "shoulder_angle": -1.665003952980745,
+              "step": 3
+            },
+            "signature": "5f6b0657de6bcc3f233f40e86698d2dfc93e454ece76bd0b16c2f933322db209"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.448932386752595,
+              "seed": 4,
+              "shoulder_angle": 2.282153053622881,
+              "step": 3
+            },
+            "mask_iou": 0.12903225806451613,
+            "second": {
+              "elbow_angle": 0.4379978417884418,
+              "seed": 5,
+              "shoulder_angle": -0.9253576634722459,
+              "step": 3
+            },
+            "signature": "7d1ff5680266d163c11dc02d0099b3087a2dd646fbc0b89c9c96f4918cdf9e3d"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.019410049023270926,
+              "seed": 6,
+              "shoulder_angle": -2.3966522108400556,
+              "step": 3
+            },
+            "mask_iou": 0.6190476190476191,
+            "second": {
+              "elbow_angle": -0.6369861911117931,
+              "seed": 7,
+              "shoulder_angle": -2.075552790386264,
+              "step": 3
+            },
+            "signature": "a6167b9aaa73a9980b776025b8adc8e3f296ab5fa9472282256fdc1ea44ecc4b"
+          },
+          {
+            "first": {
+              "elbow_angle": -2.188928666974617,
+              "seed": 8,
+              "shoulder_angle": -1.483851522630654,
+              "step": 3
+            },
+            "mask_iou": 0.13793103448275862,
+            "second": {
+              "elbow_angle": 0.42556872059127804,
+              "seed": 9,
+              "shoulder_angle": 0.5360102502526541,
+              "step": 3
+            },
+            "signature": "4ef2bcad847fdbd881afa80cd242ba7b50a123e2a80d0a09c08d55c5904cc2f3"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.5258539294459403,
+              "seed": 10,
+              "shoulder_angle": -1.574717707253606,
+              "step": 3
+            },
+            "mask_iou": 0.12903225806451613,
+            "second": {
+              "elbow_angle": 0.3503159229676496,
+              "seed": 11,
+              "shoulder_angle": 0.8146802369350343,
+              "step": 3
+            },
+            "signature": "330a7072dedcc43d234d2473e41aa8b5a782a5e038d629cb1fead6d23e882ed1"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.5253851866965978,
+              "seed": 12,
+              "shoulder_angle": 0.31026308508225764,
+              "step": 3
+            },
+            "mask_iou": 0.12903225806451613,
+            "second": {
+              "elbow_angle": -0.8653211627369389,
+              "seed": 13,
+              "shoulder_angle": -2.2669706274450148,
+              "step": 3
+            },
+            "signature": "4b0436a45bf9e6eda3345ef4e3ec1b2299635a9ce14da9f522e2f695bed91cba"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.7020304774539663,
+              "seed": 14,
+              "shoulder_angle": 1.046182316610354,
+              "step": 3
+            },
+            "mask_iou": 0.5238095238095238,
+            "second": {
+              "elbow_angle": 2.18423178464927,
+              "seed": 15,
+              "shoulder_angle": 0.9352016884163056,
+              "step": 3
+            },
+            "signature": "8be71770f526cc3e38679522014f2defe3f1c35dc00b680617d7108210dea083"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.7462486717516357,
+              "seed": 16,
+              "shoulder_angle": 0.26222938484406333,
+              "step": 3
+            },
+            "mask_iou": 0.391304347826087,
+            "second": {
+              "elbow_angle": -0.02262158163298178,
+              "seed": 17,
+              "shoulder_angle": 0.6765587273153981,
+              "step": 3
+            },
+            "signature": "3c92be1528d9612c4a3942733d2ea002511cba0e288a57d76c151570c01f5985"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.579000712888231,
+              "seed": 18,
+              "shoulder_angle": -1.4555801987855423,
+              "step": 3
+            },
+            "mask_iou": 0.13333333333333333,
+            "second": {
+              "elbow_angle": -2.2337937240971883,
+              "seed": 19,
+              "shoulder_angle": 1.3775646137762576,
+              "step": 3
+            },
+            "signature": "c2f49e3d025de63264212a0d67a9005b7257f14a2d46cef5e48af4901745d64e"
+          },
+          {
+            "first": {
+              "elbow_angle": 2.141401705436038,
+              "seed": 20,
+              "shoulder_angle": 1.5735317952289525,
+              "step": 3
+            },
+            "mask_iou": 0.55,
+            "second": {
+              "elbow_angle": -1.7509286868362217,
+              "seed": 21,
+              "shoulder_angle": 1.8421429675789687,
+              "step": 3
+            },
+            "signature": "385496634e17f76b1104a20e511535893208a590693ef32e6e135489939247d7"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.20167208101353098,
+              "seed": 22,
+              "shoulder_angle": -1.6014427422982846,
+              "step": 3
+            },
+            "mask_iou": 0.14285714285714285,
+            "second": {
+              "elbow_angle": -0.37652538517698775,
+              "seed": 23,
+              "shoulder_angle": 2.276197331648999,
+              "step": 3
+            },
+            "signature": "4467d6033a24ef3a2f67a388a9d0676103b6628a950e4ae6ef7a09bd92a0e773"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.9551036302234128,
+              "seed": 24,
+              "shoulder_angle": -0.33782436469851385,
+              "step": 3
+            },
+            "mask_iou": 0.1724137931034483,
+            "second": {
+              "elbow_angle": -1.9358287392489573,
+              "seed": 25,
+              "shoulder_angle": -1.643785222064037,
+              "step": 3
+            },
+            "signature": "bd33b0a3a8877cdd1936572b90e3fdf85c877759922e281e097caf30805f2585"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.4636379045602594,
+              "seed": 26,
+              "shoulder_angle": -0.5792803665561754,
+              "step": 3
+            },
+            "mask_iou": 0.12903225806451613,
+            "second": {
+              "elbow_angle": -0.6314509533446497,
+              "seed": 27,
+              "shoulder_angle": 2.208855056944284,
+              "step": 3
+            },
+            "signature": "25b9a154d808617b21b1e5d37f68fd4eabbc8df1e97b83debadcd7442f9f9ac5"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.8065173594226491,
+              "seed": 28,
+              "shoulder_angle": -1.4298145708741812,
+              "step": 3
+            },
+            "mask_iou": 0.13333333333333333,
+            "second": {
+              "elbow_angle": 0.3430223799849915,
+              "seed": 29,
+              "shoulder_angle": 1.8232802341140728,
+              "step": 3
+            },
+            "signature": "f299c7d0d45ec27ae381f2ec3d7cdddbe9b81fa636a1f019016d43ff74126e8e"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.6930792296244981,
+              "seed": 30,
+              "shoulder_angle": -1.4321506053867217,
+              "step": 3
+            },
+            "mask_iou": 0.4166666666666667,
+            "second": {
+              "elbow_angle": -0.39850544226548124,
+              "seed": 31,
+              "shoulder_angle": -1.260490300045311,
+              "step": 3
+            },
+            "signature": "425ec041164b4e02dccfa07f95dd78255ce2ef1e761b8df77503f454b8f936c5"
+          },
+          {
+            "first": {
+              "elbow_angle": 2.146798954665831,
+              "seed": 32,
+              "shoulder_angle": -0.299611380832165,
+              "step": 3
+            },
+            "mask_iou": 0.7894736842105263,
+            "second": {
+              "elbow_angle": -2.151801350109164,
+              "seed": 33,
+              "shoulder_angle": 0.6813948821303102,
+              "step": 3
+            },
+            "signature": "a34fc3cc45c00d2f6ae04c6eadf152432ebf2c455f3de5486a98ac8cb574239b"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.0183539702588018,
+              "seed": 34,
+              "shoulder_angle": -1.9182084054474393,
+              "step": 3
+            },
+            "mask_iou": 0.18518518518518517,
+            "second": {
+              "elbow_angle": -2.3757981158371724,
+              "seed": 35,
+              "shoulder_angle": -0.3140501985073304,
+              "step": 3
+            },
+            "signature": "9ca699e9555c1182a5e4379792de7a9a81a46df7ae9868967e26fbf618dea403"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.17174426903238782,
+              "seed": 36,
+              "shoulder_angle": 2.109949606168627,
+              "step": 3
+            },
+            "mask_iou": 0.13333333333333333,
+            "second": {
+              "elbow_angle": 0.12172684232465339,
+              "seed": 37,
+              "shoulder_angle": 0.4186259314230081,
+              "step": 3
+            },
+            "signature": "13a6e33db2ca2f564241367e8d9fb77a4d4fed4cf0067a5c80a37e2a2b9de116"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.1262563640721597,
+              "seed": 38,
+              "shoulder_angle": -0.7032891262164337,
+              "step": 3
+            },
+            "mask_iou": 0.13793103448275862,
+            "second": {
+              "elbow_angle": -1.2055092964858145,
+              "seed": 39,
+              "shoulder_angle": -2.0088798214855323,
+              "step": 3
+            },
+            "signature": "f0fe1000e8e5cbc979be547cf48aa4ee742e77f1bec80569c4999ffadbefc947"
+          }
+        ],
+        "ambiguous_sample_count": 128,
+        "collision_class_count": 64,
+        "collision_sample_count": 128,
+        "collision_sample_rate": 1.0,
+        "cross_seed_ambiguous_class_count": 64,
+        "cross_seed_collision_class_count": 64,
+        "equivalence_class_count": 64,
+        "majority_ceiling_all": {
+          "f1": 0.7615330021291696,
+          "false_negative": 0,
+          "false_positive": 1344,
+          "iou": 0.6148997134670487,
+          "pixel_accuracy": 0.958984375,
+          "precision": 0.6148997134670487,
+          "recall": 1.0,
+          "sample_count": 128,
+          "true_negative": 29278,
+          "true_positive": 2146
+        },
+        "majority_ceiling_ambiguous": {
+          "f1": 0.7615330021291696,
+          "false_negative": 0,
+          "false_positive": 1344,
+          "iou": 0.6148997134670487,
+          "pixel_accuracy": 0.958984375,
+          "precision": 0.6148997134670487,
+          "recall": 1.0,
+          "sample_count": 128,
+          "true_negative": 29278,
+          "true_positive": 2146
+        },
+        "majority_ceiling_collisions": {
+          "f1": 0.7615330021291696,
+          "false_negative": 0,
+          "false_positive": 1344,
+          "iou": 0.6148997134670487,
+          "pixel_accuracy": 0.958984375,
+          "precision": 0.6148997134670487,
+          "recall": 1.0,
+          "sample_count": 128,
+          "true_negative": 29278,
+          "true_positive": 2146
+        },
+        "mask_iou_to_class_majority": {
+          "count": 128,
+          "maximum": 0.8947368421052632,
+          "mean": 0.6245456675613461,
+          "minimum": 0.5333333333333333
+        },
+        "sample_count": 128
+      },
+      "8": {
+        "ambiguity_sample_rate": 1.0,
+        "ambiguous_class_count": 64,
+        "ambiguous_examples": [
+          {
+            "first": {
+              "elbow_angle": 0.9659521191507999,
+              "seed": 0,
+              "shoulder_angle": 0.5076082949632482,
+              "step": 7
+            },
+            "mask_iou": 0.45454545454545453,
+            "second": {
+              "elbow_angle": 2.188269089729323,
+              "seed": 1,
+              "shoulder_angle": 0.028173141715911537,
+              "step": 7
+            },
+            "signature": "fe0471ff35941e3c8e4d1f033f8e33cf34cc36b80dd5fd2327f6f017125e9256"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.952812707152236,
+              "seed": 2,
+              "shoulder_angle": 2.44,
+              "step": 7
+            },
+            "mask_iou": 0.13333333333333333,
+            "second": {
+              "elbow_angle": -0.9899075437180342,
+              "seed": 3,
+              "shoulder_angle": -1.665003952980745,
+              "step": 7
+            },
+            "signature": "8dfb3756cf7c3c1a662a20b110ed7bbc67e72e719a9641ba3414c633d55f5beb"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.6089323867525949,
+              "seed": 4,
+              "shoulder_angle": 2.282153053622881,
+              "step": 7
+            },
+            "mask_iou": 0.13793103448275862,
+            "second": {
+              "elbow_angle": 0.5979978417884418,
+              "seed": 5,
+              "shoulder_angle": -0.9253576634722459,
+              "step": 7
+            },
+            "signature": "49190cbe52200a2fbf32b2b95490b48939c21f4b93014a778b3420a294608bb2"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.019410049023270926,
+              "seed": 6,
+              "shoulder_angle": -2.3966522108400556,
+              "step": 7
+            },
+            "mask_iou": 0.6190476190476191,
+            "second": {
+              "elbow_angle": -0.6369861911117931,
+              "seed": 7,
+              "shoulder_angle": -2.075552790386264,
+              "step": 7
+            },
+            "signature": "c242a0005180b16eaef4e48035e999961fdce84558fcf88b19168b1c3802d8e8"
+          },
+          {
+            "first": {
+              "elbow_angle": -2.188928666974617,
+              "seed": 8,
+              "shoulder_angle": -1.6438515226306538,
+              "step": 7
+            },
+            "mask_iou": 0.13793103448275862,
+            "second": {
+              "elbow_angle": 0.42556872059127804,
+              "seed": 9,
+              "shoulder_angle": 0.3760102502526541,
+              "step": 7
+            },
+            "signature": "88113547de3d5e48ccf7af00c17b0832703b70e0bb979337bcb9eefc10153e3a"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.5258539294459403,
+              "seed": 10,
+              "shoulder_angle": -1.4147177072536061,
+              "step": 7
+            },
+            "mask_iou": 0.13333333333333333,
+            "second": {
+              "elbow_angle": 0.3503159229676496,
+              "seed": 11,
+              "shoulder_angle": 0.9746802369350344,
+              "step": 7
+            },
+            "signature": "91e4c4f66b804205adad91fad60b34478ba71e0377bb5dcc87db706e9de91aea"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.6853851866965979,
+              "seed": 12,
+              "shoulder_angle": 0.31026308508225764,
+              "step": 7
+            },
+            "mask_iou": 0.13333333333333333,
+            "second": {
+              "elbow_angle": -1.025321162736939,
+              "seed": 13,
+              "shoulder_angle": -2.2669706274450148,
+              "step": 7
+            },
+            "signature": "71a70f874bbf55698ecc5d8bfa1342c831ab447507210de8f42e1b89f3d4fbb3"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.5420304774539663,
+              "seed": 14,
+              "shoulder_angle": 1.046182316610354,
+              "step": 7
+            },
+            "mask_iou": 0.4782608695652174,
+            "second": {
+              "elbow_angle": 2.34423178464927,
+              "seed": 15,
+              "shoulder_angle": 0.9352016884163056,
+              "step": 7
+            },
+            "signature": "c38dc7ba248e0201db0c74d87a08cefc35773d512b00b79ba416f87be6614198"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.7462486717516357,
+              "seed": 16,
+              "shoulder_angle": 0.26222938484406333,
+              "step": 7
+            },
+            "mask_iou": 0.391304347826087,
+            "second": {
+              "elbow_angle": -0.02262158163298178,
+              "seed": 17,
+              "shoulder_angle": 0.6765587273153981,
+              "step": 7
+            },
+            "signature": "415dfaa7baff310c4822ec6c64bf2617fb6a114c61760ff308a170dee1a96093"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.579000712888231,
+              "seed": 18,
+              "shoulder_angle": -1.6155801987855423,
+              "step": 7
+            },
+            "mask_iou": 0.13793103448275862,
+            "second": {
+              "elbow_angle": -2.2337937240971883,
+              "seed": 19,
+              "shoulder_angle": 1.2175646137762577,
+              "step": 7
+            },
+            "signature": "e1d35dc6be348640180fa04417bc09ac95185808d588ba68138d9619a8ef8864"
+          },
+          {
+            "first": {
+              "elbow_angle": 2.141401705436038,
+              "seed": 20,
+              "shoulder_angle": 1.7335317952289524,
+              "step": 7
+            },
+            "mask_iou": 0.5,
+            "second": {
+              "elbow_angle": -1.7509286868362217,
+              "seed": 21,
+              "shoulder_angle": 2.0021429675789686,
+              "step": 7
+            },
+            "signature": "e6a76bd73da064c7d80a9a1c7ebd7d16f7df7da90c437b44a81c330d0f699640"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.361672081013531,
+              "seed": 22,
+              "shoulder_angle": -1.6014427422982846,
+              "step": 7
+            },
+            "mask_iou": 0.13333333333333333,
+            "second": {
+              "elbow_angle": -0.5365253851769878,
+              "seed": 23,
+              "shoulder_angle": 2.276197331648999,
+              "step": 7
+            },
+            "signature": "5f2bd7c3fcac62ab70d1a40285e9c9501ccee07f58c48d2b5e5d6473ffe577f8"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.795103630223413,
+              "seed": 24,
+              "shoulder_angle": -0.33782436469851385,
+              "step": 7
+            },
+            "mask_iou": 0.13333333333333333,
+            "second": {
+              "elbow_angle": -1.7758287392489573,
+              "seed": 25,
+              "shoulder_angle": -1.643785222064037,
+              "step": 7
+            },
+            "signature": "26abaef912f265a91b158f98aff1be0ecd368e7c4ba11d56f10176d5cde7b291"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.4636379045602594,
+              "seed": 26,
+              "shoulder_angle": -0.5792803665561754,
+              "step": 7
+            },
+            "mask_iou": 0.12903225806451613,
+            "second": {
+              "elbow_angle": -0.6314509533446497,
+              "seed": 27,
+              "shoulder_angle": 2.208855056944284,
+              "step": 7
+            },
+            "signature": "8caccee1841eba604cc70accb125ae45f91a9ddca5e5164deff9b7ed3af9ccf5"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.8065173594226491,
+              "seed": 28,
+              "shoulder_angle": -1.589814570874181,
+              "step": 7
+            },
+            "mask_iou": 0.13793103448275862,
+            "second": {
+              "elbow_angle": 0.3430223799849915,
+              "seed": 29,
+              "shoulder_angle": 1.6632802341140729,
+              "step": 7
+            },
+            "signature": "3f5d0a8f1925bb2ec5bb1d76c1f64d2ab508c104baec9e8e470dd5e88c972feb"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.6930792296244981,
+              "seed": 30,
+              "shoulder_angle": -1.2721506053867218,
+              "step": 7
+            },
+            "mask_iou": 0.4166666666666667,
+            "second": {
+              "elbow_angle": -0.39850544226548124,
+              "seed": 31,
+              "shoulder_angle": -1.100490300045311,
+              "step": 7
+            },
+            "signature": "5f5d180275f5fb31f3b1e2baaaf2a2effc13d5a5cfd97e41c8ae20021ec4ec5c"
+          },
+          {
+            "first": {
+              "elbow_angle": 1.986798954665831,
+              "seed": 32,
+              "shoulder_angle": -0.299611380832165,
+              "step": 7
+            },
+            "mask_iou": 0.7894736842105263,
+            "second": {
+              "elbow_angle": -2.3118013501091643,
+              "seed": 33,
+              "shoulder_angle": 0.6813948821303102,
+              "step": 7
+            },
+            "signature": "a96ce21176d3a19eb5f3b2c39e01cd274c8ca5c37a6c3cfd1523a7f2eda56f73"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.8583539702588018,
+              "seed": 34,
+              "shoulder_angle": -1.9182084054474393,
+              "step": 7
+            },
+            "mask_iou": 0.13793103448275862,
+            "second": {
+              "elbow_angle": -2.2157981158371722,
+              "seed": 35,
+              "shoulder_angle": -0.3140501985073304,
+              "step": 7
+            },
+            "signature": "85ef7134679a9a6df9564d02d14ca619133e02f37cec6d082d2c8ad8bcdd7a13"
+          },
+          {
+            "first": {
+              "elbow_angle": -0.17174426903238782,
+              "seed": 36,
+              "shoulder_angle": 2.109949606168627,
+              "step": 7
+            },
+            "mask_iou": 0.13333333333333333,
+            "second": {
+              "elbow_angle": 0.12172684232465339,
+              "seed": 37,
+              "shoulder_angle": 0.4186259314230081,
+              "step": 7
+            },
+            "signature": "8f97a3f8b4fbf3c97027aa46ded86b897d08fbe4d63123d1abc689c18baad98e"
+          },
+          {
+            "first": {
+              "elbow_angle": -1.1262563640721597,
+              "seed": 38,
+              "shoulder_angle": -0.8632891262164337,
+              "step": 7
+            },
+            "mask_iou": 0.12903225806451613,
+            "second": {
+              "elbow_angle": -1.2055092964858145,
+              "seed": 39,
+              "shoulder_angle": -2.1688798214855325,
+              "step": 7
+            },
+            "signature": "2e9822b3987243a26b05835d6e886c716f93797a2e78f8a7001693468fe0d920"
+          }
+        ],
+        "ambiguous_sample_count": 128,
+        "collision_class_count": 64,
+        "collision_sample_count": 128,
+        "collision_sample_rate": 1.0,
+        "cross_seed_ambiguous_class_count": 64,
+        "cross_seed_collision_class_count": 64,
+        "equivalence_class_count": 64,
+        "majority_ceiling_all": {
+          "f1": 0.7611940298507462,
+          "false_negative": 0,
+          "false_positive": 1344,
+          "iou": 0.6144578313253012,
+          "pixel_accuracy": 0.958984375,
+          "precision": 0.6144578313253012,
+          "recall": 1.0,
+          "sample_count": 128,
+          "true_negative": 29282,
+          "true_positive": 2142
+        },
+        "majority_ceiling_ambiguous": {
+          "f1": 0.7611940298507462,
+          "false_negative": 0,
+          "false_positive": 1344,
+          "iou": 0.6144578313253012,
+          "pixel_accuracy": 0.958984375,
+          "precision": 0.6144578313253012,
+          "recall": 1.0,
+          "sample_count": 128,
+          "true_negative": 29282,
+          "true_positive": 2142
+        },
+        "majority_ceiling_collisions": {
+          "f1": 0.7611940298507462,
+          "false_negative": 0,
+          "false_positive": 1344,
+          "iou": 0.6144578313253012,
+          "pixel_accuracy": 0.958984375,
+          "precision": 0.6144578313253012,
+          "recall": 1.0,
+          "sample_count": 128,
+          "true_negative": 29282,
+          "true_positive": 2142
+        },
+        "mask_iou_to_class_majority": {
+          "count": 128,
+          "maximum": 0.8947368421052632,
+          "mean": 0.6241130896890783,
+          "minimum": 0.5185185185185185
+        },
+        "sample_count": 128
+      }
+    }
+  },
+  "policies": {
+    "active_visual": {
+      "1": {
+        "ambiguity_sample_rate": 0.009521484375,
+        "ambiguous_class_count": 34,
+        "ambiguous_examples": [
+          {
+            "first": {
+              "elbow_angle": 0.0,
+              "seed": 51,
+              "shoulder_angle": 0.16,
+              "step": 5
+            },
+            "mask_iou": 0.65,
+            "second": {
+              "elbow_angle": 0.0,
+              "seed": 58,
+              "shoulder_angle": 0.0,
+              "step": 100
+            },
+            "signature": "f087a1f4be11c22f2d2908c5b01f7d724a0b86c352e4c86ddfceaa4c9e3e0a94"
+          },
+          {
+            "first": {
+              "elbow_angle": 0.16,
+              "seed": 58,
+              "shoulder_angle": 0.0,
+              "step": 11
+            },
+            "mask_iou": 0.9411764705882353,
+            "second": {
+              "elbow_angle": 0.0,
+              "seed": 61,
+              "shoulder_angle": 0.0,
+              "step": 60
+            },
+            "signature": "827bef6e064b90f23268d5188222af1ab8b7a711e3d34345ea72cc2a949456e4"
+          }
+        ],
+        "ambiguous_sample_count": 78,
+        "collision_class_count": 434,
+        "collision_sample_count": 916,
+        "collision_sample_rate": 0.11181640625,
+        "cross_seed_ambiguous_class_count": 2,
+        "cross_seed_collision_class_count": 6,
+        "equivalence_class_count": 7710,
+        "majority_ceiling_all": {
+          "f1": 0.9997670006324268,
+          "false_negative": 6,
+          "false_positive": 57,
+          "iou": 0.9995341098169717,
+          "pixel_accuracy": 0.9999699592590332,
+          "precision": 0.9995784616067269,
+          "recall": 0.9999556107954546,
+          "sample_count": 8192,
+          "true_negative": 1961927,
+          "true_positive": 135162
+        },
+        "majority_ceiling_ambiguous": {
+          "f1": 0.9759450171821306,
+          "false_negative": 6,
+          "false_positive": 57,
+          "iou": 0.9530201342281879,
+          "pixel_accuracy": 0.9968449519230769,
+          "precision": 0.9573033707865168,
+          "recall": 0.9953271028037384,
+          "sample_count": 78,
+          "true_negative": 18627,
+          "true_positive": 1278
+        },
+        "majority_ceiling_collisions": {
+          "f1": 0.997892060093017,
+          "false_negative": 6,
+          "false_positive": 57,
+          "iou": 0.9957929883138564,
+          "pixel_accuracy": 0.9997313387008734,
+          "precision": 0.9961921304028325,
+          "recall": 0.999597801313849,
+          "sample_count": 916,
+          "true_negative": 219521,
+          "true_positive": 14912
+        },
+        "mask_iou_to_class_majority": {
+          "count": 916,
+          "maximum": 1.0,
+          "mean": 0.9962817878243001,
+          "minimum": 0.8
+        },
+        "sample_count": 8192
+      },
+      "16": {
+        "ambiguity_sample_rate": 0.0,
+        "ambiguous_class_count": 0,
+        "ambiguous_examples": [],
+        "ambiguous_sample_count": 0,
+        "collision_class_count": 0,
+        "collision_sample_count": 0,
+        "collision_sample_rate": 0.0,
+        "cross_seed_ambiguous_class_count": 0,
+        "cross_seed_collision_class_count": 0,
+        "equivalence_class_count": 7232,
+        "majority_ceiling_all": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 7232,
+          "true_negative": 1732032,
+          "true_positive": 119360
+        },
+        "majority_ceiling_ambiguous": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 0,
+          "true_negative": 0,
+          "true_positive": 0
+        },
+        "majority_ceiling_collisions": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 0,
+          "true_negative": 0,
+          "true_positive": 0
+        },
+        "mask_iou_to_class_majority": {
+          "count": 0,
+          "maximum": null,
+          "mean": null,
+          "minimum": null
+        },
+        "sample_count": 7232
+      },
+      "2": {
+        "ambiguity_sample_rate": 0.0,
+        "ambiguous_class_count": 0,
+        "ambiguous_examples": [],
+        "ambiguous_sample_count": 0,
+        "collision_class_count": 15,
+        "collision_sample_count": 30,
+        "collision_sample_rate": 0.0036909448818897637,
+        "cross_seed_ambiguous_class_count": 0,
+        "cross_seed_collision_class_count": 0,
+        "equivalence_class_count": 8113,
+        "majority_ceiling_all": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 8128,
+          "true_negative": 1946624,
+          "true_positive": 134144
+        },
+        "majority_ceiling_ambiguous": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 0,
+          "true_negative": 0,
+          "true_positive": 0
+        },
+        "majority_ceiling_collisions": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 30,
+          "true_negative": 7182,
+          "true_positive": 498
+        },
+        "mask_iou_to_class_majority": {
+          "count": 30,
+          "maximum": 1.0,
+          "mean": 1.0,
+          "minimum": 1.0
+        },
+        "sample_count": 8128
+      },
+      "32": {
+        "ambiguity_sample_rate": 0.0,
+        "ambiguous_class_count": 0,
+        "ambiguous_examples": [],
+        "ambiguous_sample_count": 0,
+        "collision_class_count": 0,
+        "collision_sample_count": 0,
+        "collision_sample_rate": 0.0,
+        "cross_seed_ambiguous_class_count": 0,
+        "cross_seed_collision_class_count": 0,
+        "equivalence_class_count": 6208,
+        "majority_ceiling_all": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 6208,
+          "true_negative": 1486784,
+          "true_positive": 102464
+        },
+        "majority_ceiling_ambiguous": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 0,
+          "true_negative": 0,
+          "true_positive": 0
+        },
+        "majority_ceiling_collisions": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 0,
+          "true_negative": 0,
+          "true_positive": 0
+        },
+        "mask_iou_to_class_majority": {
+          "count": 0,
+          "maximum": null,
+          "mean": null,
+          "minimum": null
+        },
+        "sample_count": 6208
+      },
+      "4": {
+        "ambiguity_sample_rate": 0.0,
+        "ambiguous_class_count": 0,
+        "ambiguous_examples": [],
+        "ambiguous_sample_count": 0,
+        "collision_class_count": 0,
+        "collision_sample_count": 0,
+        "collision_sample_rate": 0.0,
+        "cross_seed_ambiguous_class_count": 0,
+        "cross_seed_collision_class_count": 0,
+        "equivalence_class_count": 8000,
+        "majority_ceiling_all": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 8000,
+          "true_negative": 1915968,
+          "true_positive": 132032
+        },
+        "majority_ceiling_ambiguous": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 0,
+          "true_negative": 0,
+          "true_positive": 0
+        },
+        "majority_ceiling_collisions": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 0,
+          "true_negative": 0,
+          "true_positive": 0
+        },
+        "mask_iou_to_class_majority": {
+          "count": 0,
+          "maximum": null,
+          "mean": null,
+          "minimum": null
+        },
+        "sample_count": 8000
+      },
+      "8": {
+        "ambiguity_sample_rate": 0.0,
+        "ambiguous_class_count": 0,
+        "ambiguous_examples": [],
+        "ambiguous_sample_count": 0,
+        "collision_class_count": 0,
+        "collision_sample_count": 0,
+        "collision_sample_rate": 0.0,
+        "cross_seed_ambiguous_class_count": 0,
+        "cross_seed_collision_class_count": 0,
+        "equivalence_class_count": 7744,
+        "majority_ceiling_all": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 7744,
+          "true_negative": 1854656,
+          "true_positive": 127808
+        },
+        "majority_ceiling_ambiguous": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 0,
+          "true_negative": 0,
+          "true_positive": 0
+        },
+        "majority_ceiling_collisions": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 0,
+          "true_negative": 0,
+          "true_positive": 0
+        },
+        "mask_iou_to_class_majority": {
+          "count": 0,
+          "maximum": null,
+          "mean": null,
+          "minimum": null
+        },
+        "sample_count": 7744
+      }
+    },
+    "random": {
+      "1": {
+        "ambiguity_sample_rate": 0.0035400390625,
+        "ambiguous_class_count": 14,
+        "ambiguous_examples": [],
+        "ambiguous_sample_count": 29,
+        "collision_class_count": 293,
+        "collision_sample_count": 595,
+        "collision_sample_rate": 0.0726318359375,
+        "cross_seed_ambiguous_class_count": 0,
+        "cross_seed_collision_class_count": 0,
+        "equivalence_class_count": 7890,
+        "majority_ceiling_all": {
+          "f1": 0.999903128935387,
+          "false_negative": 1,
+          "false_positive": 26,
+          "iou": 0.9998062766369624,
+          "pixel_accuracy": 0.9999871253967285,
+          "precision": 0.999813450237851,
+          "recall": 0.9999928237219049,
+          "sample_count": 8192,
+          "true_negative": 1957778,
+          "true_positive": 139347
+        },
+        "majority_ceiling_ambiguous": {
+          "f1": 0.972972972972973,
+          "false_negative": 1,
+          "false_positive": 26,
+          "iou": 0.9473684210526315,
+          "pixel_accuracy": 0.9963631465517241,
+          "precision": 0.94921875,
+          "recall": 0.997946611909651,
+          "sample_count": 29,
+          "true_negative": 6911,
+          "true_positive": 486
+        },
+        "majority_ceiling_collisions": {
+          "f1": 0.9986617100371747,
+          "false_negative": 1,
+          "false_positive": 26,
+          "iou": 0.9973269973269974,
+          "pixel_accuracy": 0.9998227415966386,
+          "precision": 0.9974257425742574,
+          "recall": 0.9999007444168735,
+          "sample_count": 595,
+          "true_negative": 142219,
+          "true_positive": 10074
+        },
+        "mask_iou_to_class_majority": {
+          "count": 595,
+          "maximum": 1.0,
+          "mean": 0.9974975501036328,
+          "minimum": 0.8333333333333334
+        },
+        "sample_count": 8192
+      },
+      "16": {
+        "ambiguity_sample_rate": 0.0,
+        "ambiguous_class_count": 0,
+        "ambiguous_examples": [],
+        "ambiguous_sample_count": 0,
+        "collision_class_count": 0,
+        "collision_sample_count": 0,
+        "collision_sample_rate": 0.0,
+        "cross_seed_ambiguous_class_count": 0,
+        "cross_seed_collision_class_count": 0,
+        "equivalence_class_count": 7232,
+        "majority_ceiling_all": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 7232,
+          "true_negative": 1728418,
+          "true_positive": 122974
+        },
+        "majority_ceiling_ambiguous": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 0,
+          "true_negative": 0,
+          "true_positive": 0
+        },
+        "majority_ceiling_collisions": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 0,
+          "true_negative": 0,
+          "true_positive": 0
+        },
+        "mask_iou_to_class_majority": {
+          "count": 0,
+          "maximum": null,
+          "mean": null,
+          "minimum": null
+        },
+        "sample_count": 7232
+      },
+      "2": {
+        "ambiguity_sample_rate": 0.0,
+        "ambiguous_class_count": 0,
+        "ambiguous_examples": [],
+        "ambiguous_sample_count": 0,
+        "collision_class_count": 1,
+        "collision_sample_count": 2,
+        "collision_sample_rate": 0.00024606299212598425,
+        "cross_seed_ambiguous_class_count": 0,
+        "cross_seed_collision_class_count": 0,
+        "equivalence_class_count": 8127,
+        "majority_ceiling_all": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 8128,
+          "true_negative": 1942444,
+          "true_positive": 138324
+        },
+        "majority_ceiling_ambiguous": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 0,
+          "true_negative": 0,
+          "true_positive": 0
+        },
+        "majority_ceiling_collisions": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 2,
+          "true_negative": 480,
+          "true_positive": 32
+        },
+        "mask_iou_to_class_majority": {
+          "count": 2,
+          "maximum": 1.0,
+          "mean": 1.0,
+          "minimum": 1.0
+        },
+        "sample_count": 8128
+      },
+      "32": {
+        "ambiguity_sample_rate": 0.0,
+        "ambiguous_class_count": 0,
+        "ambiguous_examples": [],
+        "ambiguous_sample_count": 0,
+        "collision_class_count": 0,
+        "collision_sample_count": 0,
+        "collision_sample_rate": 0.0,
+        "cross_seed_ambiguous_class_count": 0,
+        "cross_seed_collision_class_count": 0,
+        "equivalence_class_count": 6208,
+        "majority_ceiling_all": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 6208,
+          "true_negative": 1483778,
+          "true_positive": 105470
+        },
+        "majority_ceiling_ambiguous": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 0,
+          "true_negative": 0,
+          "true_positive": 0
+        },
+        "majority_ceiling_collisions": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 0,
+          "true_negative": 0,
+          "true_positive": 0
+        },
+        "mask_iou_to_class_majority": {
+          "count": 0,
+          "maximum": null,
+          "mean": null,
+          "minimum": null
+        },
+        "sample_count": 6208
+      },
+      "4": {
+        "ambiguity_sample_rate": 0.0,
+        "ambiguous_class_count": 0,
+        "ambiguous_examples": [],
+        "ambiguous_sample_count": 0,
+        "collision_class_count": 0,
+        "collision_sample_count": 0,
+        "collision_sample_rate": 0.0,
+        "cross_seed_ambiguous_class_count": 0,
+        "cross_seed_collision_class_count": 0,
+        "equivalence_class_count": 8000,
+        "majority_ceiling_all": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 8000,
+          "true_negative": 1911849,
+          "true_positive": 136151
+        },
+        "majority_ceiling_ambiguous": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 0,
+          "true_negative": 0,
+          "true_positive": 0
+        },
+        "majority_ceiling_collisions": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 0,
+          "true_negative": 0,
+          "true_positive": 0
+        },
+        "mask_iou_to_class_majority": {
+          "count": 0,
+          "maximum": null,
+          "mean": null,
+          "minimum": null
+        },
+        "sample_count": 8000
+      },
+      "8": {
+        "ambiguity_sample_rate": 0.0,
+        "ambiguous_class_count": 0,
+        "ambiguous_examples": [],
+        "ambiguous_sample_count": 0,
+        "collision_class_count": 0,
+        "collision_sample_count": 0,
+        "collision_sample_rate": 0.0,
+        "cross_seed_ambiguous_class_count": 0,
+        "cross_seed_collision_class_count": 0,
+        "equivalence_class_count": 7744,
+        "majority_ceiling_all": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 7744,
+          "true_negative": 1850704,
+          "true_positive": 131760
+        },
+        "majority_ceiling_ambiguous": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 0,
+          "true_negative": 0,
+          "true_positive": 0
+        },
+        "majority_ceiling_collisions": {
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "iou": 1.0,
+          "pixel_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "sample_count": 0,
+          "true_negative": 0,
+          "true_positive": 0
+        },
+        "mask_iou_to_class_majority": {
+          "count": 0,
+          "maximum": null,
+          "mean": null,
+          "minimum": null
+        },
+        "sample_count": 7744
+      }
+    }
+  },
+  "provenance": {
+    "captured_at_utc": "2026-07-24T05:15:09.025379+00:00",
+    "git_commit": null,
+    "git_dirty": true,
+    "git_status": [
+      "?? .github/",
+      "?? .gitignore",
+      "?? README.md",
+      "?? calmodel/",
+      "?? docs/",
+      "?? experiments/",
+      "?? pyproject.toml",
+      "?? tests/",
+      "?? uv.lock"
+    ],
+    "runtime": {
+      "numpy": "2.5.1",
+      "platform": "macOS-26.6-arm64-arm-64bit",
+      "python": "3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 08:22:19) [Clang 14.0.6 ]",
+      "pyyaml": "6.0.3",
+      "torch": "2.13.0"
+    },
+    "schema_version": 1,
+    "source_file_count": 156,
+    "source_files": {
+      "calmodel/__init__.py": "2213657139913b6c43d76e193c05c08245b46a33eb2c82eff80d2dd82db467aa",
+      "calmodel/env/__init__.py": "72ab778e9361d3a91b1969e08b9248273a5268f51624ed6c966191d64f173bbc",
+      "calmodel/env/body.py": "f73ffd9995ffe925dd5d8f6bda928db2c549075a0bb8861cc7d39a58994c4117",
+      "calmodel/env/point_world.py": "1ea8e8b6680d90c276acf7563279f40d71bffc55ebe6f921be55305ec74fa6e6",
+      "calmodel/env/sensors.py": "703e711d12a806bbe87148d36702397db75a4441e8bfa9c7e1a963731784daa5",
+      "calmodel/env/world.py": "01be69504d210a535481518bcd83bbea6ef8b8969381d30224f1bd2ef68f956d",
+      "calmodel/evaluation/__init__.py": "3664c069bc44c0ab0f0e66992251148fd4c8b1bd3ee3df990f69a6f85e0c6c14",
+      "calmodel/evaluation/action_envelope.py": "792a3b636a95d387263a140f2dd5cd3f2fd0f053c0e23506aaeea9b4a8887e63",
+      "calmodel/evaluation/adaptation.py": "ac2371af72771f628154460690766f511d4499dcad8b7179129481c16ce93234",
+      "calmodel/evaluation/adaptation_summary.py": "d283512f22a6dffd743dc92b8a212f9bff683247acac483d59d60d640fcdcd16",
+      "calmodel/evaluation/body_probe.py": "ce592d140c601cc0d4fba4754e88719981de219f3aced6416fefc56cf6803156",
+      "calmodel/evaluation/body_probe_summary.py": "e980fb2866458ffb2ddaf60c05fcd8fd1836916d3221bcf3cbd76a111bde399e",
+      "calmodel/evaluation/causal_sufficiency.py": "2562365eee5fd76ca6db94e1fd3820665b24a146e55a241160afe9e751dd1adc",
+      "calmodel/evaluation/cause_probe.py": "b3aed612d6406fa91b4cec911c531e341186016ce1260006baeeba9a16163d4a",
+      "calmodel/evaluation/counterfactual.py": "5f767fc26652c714d0e451574210af330ac75ad2c8e4860d962f79ed411317e9",
+      "calmodel/evaluation/diagnostic_ceiling.py": "9c0ae4c6761cd2b6768268920fdfc7518b3d90d00be77dccec63690d3b3ac433",
+      "calmodel/evaluation/efficiency.py": "e238fbad47d88e9d4c0d412ac00194ad65ce5dfe7ddd6b00aaa6ba83078ebb8b",
+      "calmodel/evaluation/envelope_fit.py": "115e7ea9b831d5473414f5e0db81c735fbb17326f4e1fe3bf6d4f731ad3f4536",
+      "calmodel/evaluation/identifiability.py": "7aaba127824cf2a0c1b2f50d46a6f68b4283e062ca89bbf9d69ad8ba6303d9b1",
+      "calmodel/evaluation/m1_summary.py": "ac01dc7921481e18332bf0fb65d31928d07619fee96ef2a4d5a5abe70c1f0883",
+      "calmodel/evaluation/m1b_summary.py": "65c52112035ca0220b7ff93d3c0d31814588e31db44fab85c6513ff5e53eeb92",
+      "calmodel/evaluation/m1c_summary.py": "183b9bb2449887622472af5bf1df8af57a75e2fc8b9137007fd24000850ff93f",
+      "calmodel/evaluation/m1d_summary.py": "a8719146bd35c2548d766403714c140ffd780ccd85e0e5989a0bc8e400bb2132",
+      "calmodel/evaluation/m1e_summary.py": "ddf2d4c213e1cee65843e512bbe859fefe50aa753fd519215c996a334e1a94cd",
+      "calmodel/evaluation/m1f_summary.py": "56eb4d50e72e6238ae5c1139093383697807facbf612565dfb8cd55ff5894475",
+      "calmodel/evaluation/metrics.py": "387001c39534991ee94ce18dd404cd5fc7e4b95413c4007c9a15713ef8186781",
+      "calmodel/evaluation/multiseed.py": "b224daa6ae29f095cad515a2af14e249ed3dd65950745c1086dd23234105bd37",
+      "calmodel/evaluation/raw_sensor_screen.py": "8694a4cd983c2d01ae66af363b9ea684484af9ee93f57df1b332e9389644ce28",
+      "calmodel/evaluation/temporal_probe.py": "f3710bffb952cebff919527f34a20261f9efb7170e9cd79ddb6e5adba02fa639",
+      "calmodel/evaluation/temporal_summary.py": "b9dd0585a05fa50dd08bedc0a4d9ae663f1f323f261354698c391b95ca1e7b4b",
+      "calmodel/evaluation/v2_artifacts.py": "7ed03d6956610af2b4b140a8285b5f0220d29e389c08d2d9d0f5ba21ae52e738",
+      "calmodel/evaluation/v2_audit_summary.py": "721fddc0632fe54d5b62508da6e4637a81ec065f933fd6c960e3d666c3bcf06d",
+      "calmodel/evaluation/v2_m1.py": "39c7672fa27dbbeb94d39fd854507ef43c26bab72bf5e08c1e8d84a53b1a4f00",
+      "calmodel/evaluation/v2_m2.py": "44630a25817bd224dbcd29255120cc745628d6698999e37f8b90298eeaab5147",
+      "calmodel/evaluation/v2_m3.py": "2be4f826733e193f90b82431a5fb44e04a19f1136abb78b36eddd1880a53f14e",
+      "calmodel/evaluation/v2_m4.py": "b58eab654f16b0041946d9f56bca013c73387084b5e74de7f06c5dd9422e96dc",
+      "calmodel/evaluation/v2_stage_summary.py": "5325d344b56a5eba42a2e7e94f2b7f21be96f9dc1f4f0dd882990fd2f703ac7a",
+      "calmodel/infra/__init__.py": "d4fef0416109507f21bce6c295ed3a853196abdcc3dc6815e9fd644044177f25",
+      "calmodel/infra/provenance.py": "12e99f707d6d74c0f5020c8ae095c3e503d514be3b39d7ba45e53ed770f09bad",
+      "calmodel/infra/results.py": "70a4990d2642d80ce75f8483d664cd99f42041c8690a6bb3f4b0adab2524d34a",
+      "calmodel/learning/__init__.py": "463763807d9d92f319e4a0a9fbc183ca9e602875f6cf7d66c339c78a2b3e7eba",
+      "calmodel/learning/dataset.py": "7387a3cf05f78f563b6a7d1f966d8923c338bed30f60d893d3ae5e84b7f2d20f",
+      "calmodel/learning/replay.py": "4e3b3459d9bef4325ada48d962c5abe58508c536e89d48535e4338bc5fbb05a3",
+      "calmodel/learning/trainer.py": "b685f102eb1a7f5c3dd199d39c7399f3243792d36b7e9177db1bcf0b4b259a6c",
+      "calmodel/model/__init__.py": "4aded75f47b4371ab540367814d52556e9eddba75d1cd91857dab6538f123754",
+      "calmodel/model/encoders.py": "bf81c30e609a4991276cad5c65999c93eea1ee0ae80140fd70a7b164efade639",
+      "calmodel/model/entity_graph.py": "cfc5efef0986f96df07daa020fd23ff141acffbadd1dcf42599dc5709a6fb8a9",
+      "calmodel/model/occupancy.py": "538e25f8eaab2a0d6ccf6d91fa6d641eb7ae0032f8936f121cdebc5bd997c249",
+      "calmodel/model/online_control.py": "5f216356fa26d61d22f9b76698dd2ba563e722ed0ffad3996c218a81e0318bca",
+      "calmodel/model/predictors.py": "7a60c1a288625960ed38d639d39078f17aa7139a944af9f8d67248e2e2f5f004",
+      "calmodel/model/recurrent_core.py": "1f92b23894ee6e516e7dcc76e484a4f7cdd7d0563951a8a88c15c2930ad6472e",
+      "experiments/baseline.yaml": "5fe2fb67b43f13ee71efea3b74bf07525fa01436cd95fd1e0417a8579e7ef770",
+      "experiments/feedforward.yaml": "319a30b83d3a06c641e11a559a0c6e5fa02703d08150f16f8ecf3e099bf07755",
+      "experiments/m1b_balanced.yaml": "9a8c50885811343007a461b7d6c6e119a744df0b04a2d8cc1022407b57a3a51c",
+      "experiments/m1b_balanced_feedforward.yaml": "fe32c4f2badf95bbb32b11f5c125209499bd09de9c904afa640d3d7987824e18",
+      "experiments/m1b_motion_contrastive.yaml": "244a127880d318e485e5f6daa81f8c7691a587cff179e7312cc58214575f4e73",
+      "experiments/m1b_motion_small.yaml": "3a8cff9f809932ecadcb1674c43223f308fe1c22efaadb97128e3d005cd55dde",
+      "experiments/m1b_no_auxiliary.yaml": "2b93d414ae0c936509e37095e2092fe5fbb7b41321c624b847aa40a50aef09af",
+      "experiments/m1b_no_motion.yaml": "d499a6c409e029619c3f629af828434225ccd5cea180252f6bfa61d89005ed5c",
+      "experiments/m1b_temporal_feedforward.yaml": "1d41affdec34e29862636f4ed63afd6f971a0454442997147eba9dbb64625938",
+      "experiments/m1b_temporal_gru.yaml": "04d104f6b0212b33e18776c2ad17a17017cf3f6013ac5cb39059d4956759568c",
+      "experiments/m1b_temporal_no_action.yaml": "65737aefc2ef2192b332b701f707fa587be4be1c525fb23b7ae2bb75dc433440",
+      "experiments/m1b_temporal_span_feedforward.yaml": "992311e44d8e02ef670d52287cfcdda452aeb866477930e08fdad59b2f5bd876",
+      "experiments/m1b_temporal_span_gru.yaml": "a9bdefd2115ea16b2c790e9264794d8faa7ad3b046178e6547dba001af0716a7",
+      "experiments/m1b_temporal_span_no_action.yaml": "b2117e1394b71b288ef1aa4000776d99f234fd738679110c5d6b4034b0610564",
+      "experiments/m1c_action_binding_feedforward.yaml": "700a059d1fa2dd25544bcc79c80c26ba00b06984fc4d2cece94c9b62b4ecd211",
+      "experiments/m1c_action_binding_gru.yaml": "a0307986adf8c8096eba1deef1940a6a3f9fbaa24a6e191cdde84c4e82e40e1a",
+      "experiments/m1c_action_binding_no_action.yaml": "614a7958ce8cf80d92f16c7f640c1b19e859552f729d2b38af1d0b5cedd221c8",
+      "experiments/m1c_control_delta_feedforward.yaml": "6dacbce7abefeac2ac29c2f78603ff40e90036470c657442c67165a817390ed8",
+      "experiments/m1c_control_delta_gru.yaml": "0804812d74fa5dc0c4fcb627b714cd3a7122ab37fc8eb01a2efdb2201b872c32",
+      "experiments/m1c_control_delta_no_action.yaml": "98104f4eb67a9c45b0adc2e9759d350eb6c54cdee8437b712ffe2fef9820c17b",
+      "experiments/m1c_control_delta_no_aux.yaml": "7841e5831fee4d88a8e8a1d109249631994eb515b477b6aa31abadbb4f9fedba",
+      "experiments/m1c_counterfactual_effect_feedforward.yaml": "e20551fe804cdccc725da952b043220e044aa64aa69488ddd19702d8d429ae5c",
+      "experiments/m1c_counterfactual_effect_gru.yaml": "be066d4962aa306b09aa34a987feac148228d2d82a9cc7fb7a3ae9ec821c1495",
+      "experiments/m1c_counterfactual_effect_no_action.yaml": "03774e952042c2d7a2eccc9debf5d852bce10b594942838dfd0b856d92545ab0",
+      "experiments/m1c_isomorphic_distractor_feedforward.yaml": "aed1374686fd181bfefe56e2e2a5757f2cac0024a5e8493653fb904fa6f6c445",
+      "experiments/m1c_isomorphic_distractor_gru.yaml": "75c0277732b2e4b04f6f360b6f5bc3e0a39d2013af13cfa6c8b4806ac5e9d7c3",
+      "experiments/m1c_isomorphic_distractor_no_action.yaml": "3277f6b564085864428c61c2199272d84b686f0ae2ba0feee95a29d97ceea9a2",
+      "experiments/m1c_no_residual_feedforward.yaml": "8dcefbd6e7a181c307bb794ed625049f9da2089f9ab8cb9155ac395a3ece8521",
+      "experiments/m1c_no_residual_gru.yaml": "19113704d8ac3423334a47aa645dc558591be29991093c639504217e16421934",
+      "experiments/m1c_no_residual_no_action.yaml": "fe400e30200bfed08149208d7636d13dfc4522e3987af603ce99a5b351081b8c",
+      "experiments/m1c_paired_control_feedforward.yaml": "115854726d995f8cdb389e4848980c0d274f4acf1e16e2a15cbd6cde9c9595c8",
+      "experiments/m1c_paired_control_gru.yaml": "53446eeb8753bbaa38e6a842eaad2013ea17113b124f102043bdcaec36ed2580",
+      "experiments/m1c_paired_control_no_action.yaml": "f16c95c4065ba3ab410cabebcba9e2db4d8fa806db295c45ca4885047f7bc652",
+      "experiments/m1c_paired_control_no_pair.yaml": "77f8154559623b1225eed816910afafca199a7ef6f6eab2e8f2d8215c5315972",
+      "experiments/m1d_ownership_feedforward.yaml": "cc5c8ec1c69a03003721afdaee7787b6c8b8cf602deb0a5db0a6b79736de21c3",
+      "experiments/m1d_ownership_gru.yaml": "9548f1b72a49001f5603749b84c69714af8929b93160db50cd36ab18b893708e",
+      "experiments/m1d_ownership_no_accumulation.yaml": "c54b7a380e957d5f871d7f5813c53523bee98b843bf366092065eab6a6ddefa7",
+      "experiments/m1d_ownership_no_action.yaml": "e27da61b243114ce84e6d3cc2071258428c317b3c1d931bf1c952c8247d4d2b8",
+      "experiments/m1e_part_slots_feedforward.yaml": "5c5e7df116e6615f645569897cc5a81d1cf8c639b4a9fbd79eaeea02f698ba67",
+      "experiments/m1e_part_slots_gru.yaml": "dec15a41a3cbbfdc7f0b1a72e1b9fa13b63f97a4953a4820473b1946a156631c",
+      "experiments/m1e_part_slots_no_action.yaml": "461876b4ae817994711f687ceadd37427569d5d68275be81f8ac9d9cfbb919f0",
+      "experiments/m1e_part_slots_no_persistence.yaml": "f082558d980d4d680a5aecb84e245dac2b02779912c2c9400cf9477662a7c85c",
+      "experiments/m1f_action_envelope_feedforward.yaml": "41c18e051235ba01a93da60429cf5f7a63ede9c3dcba66c71cb096741da92516",
+      "experiments/m1f_action_envelope_gru.yaml": "5822b8960ed5ca57e752d09481ab99b76676edfc44b9c26d3713be8a421e2e31",
+      "experiments/m1f_action_envelope_no_action.yaml": "1ff5fe31e827632c72773dc5c3e69c227ce7d39a0bef9bb069d41cfa222b16eb",
+      "experiments/m1f_action_envelope_no_persistence.yaml": "7488dd6d7d166577025724edc7f72d19affa1f52cfe81d5c033f6cb5e9f231ca",
+      "experiments/m1g_direct_envelope_feedforward.yaml": "64f5b83fc34acd1d0c4861f0e3c2fd7311b34f819138b68e57532606f0cb04e0",
+      "experiments/m1g_direct_envelope_gru.yaml": "3e0cf4be6299c8dc1bb03a91b674a9d4833bf52df8e773200c50d7c89d29cdce",
+      "experiments/m1g_direct_envelope_no_action.yaml": "c620fbfd13fe6232ce26375199d53c0002b3e52e915b2c9138d43465c88d18f8",
+      "experiments/m1g_direct_envelope_no_persistence.yaml": "f2a6773c704af8e0b813817a41fac186139f74f1275365a1284545f5691b3f2d",
+      "experiments/m1h_calibrated_envelope_gru.yaml": "4f2abdbd5acb82c98847eef4342efa081bcffc4602af06833a6414918d872166",
+      "experiments/m1i_dice_envelope_gru.yaml": "d3f38f8a5e592f3b6b72c561d5db365d8041066aaf5080582462fa7b03d10884",
+      "experiments/m1j_supported_envelope_gru.yaml": "3a217de0b1b3daa110050274e70450b775cc9e9fad199e51d3a37fa9a83a772b",
+      "experiments/m1k_spatial_effect_gru.yaml": "f25ac7103458abcca0b871e0b14439acb1bfabafe307bf96cac1f67ac0ccff41",
+      "experiments/m1l_prediction_effect_gru.yaml": "91295e1b18159904956b7664d086a6b54020d57c13b30ffb624ee19349255dd6",
+      "experiments/m1m_spatial_convgru.yaml": "fee67ce434199f50106435d11b9a7f2a4a3bb5ee575b33cfb51c34f3cc59d3ec",
+      "experiments/m1n_spatial_no_support.yaml": "7a9bc7cc2a1471daa56021742818c5ca476598654b116f33126ef33e243846b0",
+      "experiments/m1o_spatial_hard_support.yaml": "dc52aa06d1dd25907d6d733121a29fc65cc198edbf9cb939ad268c1f35b8e589",
+      "experiments/m1p_spatial_8ch.yaml": "8a556c19b2012ff2054d75216690abffb756b6e5b2b979344936a6c81db4ad0f",
+      "experiments/m1q_global_query.yaml": "2567c07be86c7e2988af30c2dbbab630279aa7f998b7df5794959a10b05cc64b",
+      "experiments/m1r_contextual_query.yaml": "394fb147aafa0db38de6bf5729d5d81d2417d71ce9830d177ab133bb04ea56ae",
+      "experiments/m1s_curriculum_start.yaml": "808197cc39391da73b9e9538957027e4c347e54bffe0a36346f3fa53f760368c",
+      "experiments/m1t_competitive_slots.yaml": "188890f99d258e18b7bb30f5dc15650cc199691755bdb558a58db6c7ea6889d6",
+      "experiments/m1u_exclusive_slots.yaml": "281927a1c3f48964140241c621124592b893274b7ef2500e7243d5680127e61d",
+      "experiments/m1v_action_basis.yaml": "b3588e2509001296b0f9cf752bcaf65a27959aa7307b17a53347d65d102573ee",
+      "experiments/no_action.yaml": "8beeb02cbf8c37935ffc168a22d577522dbfd842fa3832df28d2ea09afce222e",
+      "experiments/no_proprioception.yaml": "0b2b1c983b584c9015f0e24036d19d4eb176cddc71aeaf20bce9e2e865125ba7",
+      "experiments/no_touch.yaml": "29fd3f41898b55986e8d5eab9f491f99314797959665fc81249be0c2c6267264",
+      "experiments/random_actions.yaml": "9d8e03718b35fc5fac21bf0a592a4a3036e7a1bf32e3ca2e585c399a7f9ef391",
+      "experiments/shuffled_modalities.yaml": "b3bccc5555d64fa8dd34ca57ec10960ffc6104f9e363a57452f94de505dc34d8",
+      "experiments/visual_leak.yaml": "94c91f95f173979ccbc4e67581c8c009c005b14598736be368041e247e844137",
+      "pyproject.toml": "b19e13f61ce1480ad2d8d00c08ef124bbebe2e0a73bda67fb12bb5f2bd31b9b6",
+      "tests/test_adaptation.py": "61a428cf4266f29f3d4bc48fc047a4e505ea9a2d62ff48ac8c82806919603ae8",
+      "tests/test_adaptation_summary.py": "b75c85a9949d89de461339fa83f99e6af706fc471d601f95572676f6d9a9dca9",
+      "tests/test_body.py": "6949c82cd724c0eef8d9f72bf7e80715eb28366a1f7e5023ef999d503619d93e",
+      "tests/test_body_probe.py": "34b1e2a24af1e508b918098934a8dc58bd91b24c1bf32a1409fe0e5dd7ce999d",
+      "tests/test_body_probe_summary.py": "bf2d6fd46ea698aac21e183daf7800c4304d1fcad557d5e39121a5e615476ead",
+      "tests/test_causal_sufficiency.py": "2366b9265ef9e6e15568cd45b1f0519f84c49a6b3b893773eb561211ef796962",
+      "tests/test_cause_probe.py": "3e8273ead02830d71d5c7dbbe883d65bbc20bc8b080e54423acb13aa1579129b",
+      "tests/test_counterfactual.py": "27170401e8f0db340e8baa49b12a80351a1fface6f2ba4333a4b35e330c987fb",
+      "tests/test_dataset.py": "3b1695df64b9b7ddf58dd49742bdd79207aa7b6847746b61e6ab5d821f8a96f3",
+      "tests/test_diagnostic_ceiling.py": "f7e3e2e42f68426ad17c4f5230abcb171c100b089207a75cc1353023d65859d0",
+      "tests/test_efficiency.py": "3758c013dd6de3b3fbf024e741c9fc773647669c23ced41cec104183295721d7",
+      "tests/test_identifiability.py": "f9bf58e36e3993ad4785792897f2c23d9027f2011d69d809266c3559372f4020",
+      "tests/test_infra.py": "0c163628a61b8ef75c4b8a415ec1ced97b3f1a53ebfff962335dc1c0af25879a",
+      "tests/test_m1_summary.py": "4d81d3e2e69ac0ee58e31e4875910e56c84f33db14cca27a996193d085d3b743",
+      "tests/test_m1c_summary.py": "ba5163c9964fa39236bc3d166215561478c36ee4192438cb40c4631e90ed3873",
+      "tests/test_m1d_summary.py": "07f8fe95e5ea49c92c3f1fd12f3016d2a8f524a5652b3d0863957e1c6ddad544",
+      "tests/test_metrics.py": "525650c48c346c1c6b8a22cde720191de2207d35a22823d5be873bff424d3232",
+      "tests/test_model.py": "0fef913d4a07513e0bc935a50c64175e051dc953b697afe413f80475b4f079e3",
+      "tests/test_multiseed.py": "e8b60b47b8c0cf40cbe49e77697e27d6b1261632903cc71d730f243ee207c233",
+      "tests/test_package_layout.py": "25bf578be133a0650538a3b2e1a82b29a0275f61940d4b06b05e7250bdf26172",
+      "tests/test_replay.py": "9d58df893217dc7b2556fa6d3de3f34a7feb20be8367c3eaef6e3c8328ecb780",
+      "tests/test_sensors.py": "a7baa6e07f01ff077571099012765c8ef39e1fb0c4fe994df7565d00c755b59d",
+      "tests/test_temporal_probe.py": "215930a507eb9c47deb835c1716ec842f6c2e6602c4d7de7db65b01c60c9965c",
+      "tests/test_temporal_summary.py": "224ae47d2d3433d4f81032e5e052d2794f240f1d418c43ce35be9a0b316d1035",
+      "tests/test_trainer.py": "f267c9ca77ff241bd8c4f131b6e717cd6299326302c3af131ffdfac71634e4fc",
+      "tests/test_v2_audit_summary.py": "82c846e7afb2c5eb9010d78e386c27deadd611348d3095c8514c83a1b21ef6ff",
+      "tests/test_v2_m1.py": "72c6aeebc9bcc1c4352ef17b1a49c5d69cf09771894a3dc20a2c70c6e4f641ab",
+      "tests/test_v2_m2.py": "132a44ad7c424fffa28cf8d9259c0697cd30986f63b913f6ff78ec218d2b9de6",
+      "tests/test_v2_m3.py": "f4ca9a62307cfb14ecd6b09331de6c7890d1a1f5d9d84927242519981b3b5d59",
+      "tests/test_v2_m4.py": "a81954bfd5d6cd35c3c5a6471a7f328ae0949f18db745421e6654ac91939c290",
+      "tests/test_v2_stage_summary.py": "ef73ccf73bf10f42b8d87728f9e6d33003d0ad3f55fae1056171c377ca53e823",
+      "tests/test_world.py": "ffd1eeb1fa8a8e44c1d1f72e597762a96c3fad97241e3cac5ab07d6b0787a3f6",
+      "uv.lock": "57de60f0217b5246dda1c4eca783229a7cb3adf19103435291bf8cb62e1214cf"
+    },
+    "source_sha256": "da0b55f4be37e6367bb752c4ef5c6e86e51f4a9c308435f41ade5d3eab7757d7",
+    "workspace": "/Users/ziy/Documents/CalModel"
+  },
+  "resource_gates": {
+    "cpu_only": true,
+    "duration_limit_seconds": 7200.0,
+    "duration_passed": true,
+    "parameter_limit": 100000,
+    "parameter_passed": true
+  },
+  "result_schema_version": 1,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62,
+    63
+  ],
+  "steps_per_seed": 128,
+  "world_config": {
+    "body_visual_value": 1.0,
+    "distractor_body_count": 2,
+    "distractor_body_motion_probability": 1.0,
+    "external_object_motion_distance": 0.08,
+    "external_object_motion_probability": 0.0,
+    "image_size": [
+      16,
+      16
+    ],
+    "object_count": 0,
+    "object_radius": 0.045,
+    "object_visual_value": 1.0,
+    "proprioception_noise_std": 0.0,
+    "seed": 0,
+    "touch_dropout_probability": 0.0,
+    "vision_noise_probability": 0.0
+  }
+}
