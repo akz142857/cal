@@ -33,6 +33,15 @@ uv run cal-v2-l0-language-replay --seed 33100
 The generated replays reject validation or holdout seeds that are not approved
 for presentation.
 
+The checked-in replay HTML files are immutable presentation references with
+fixed SHA-256 digests. Regeneration is deterministic on the same runtime and
+CPU architecture. Across architectures, numerically tied identity hypotheses
+can be ordered differently, so individual presentation frames are not claimed
+to be byte-identical. Cross-platform verification therefore checks the frozen
+artifact digest plus the protocol, action schedule, evidence boundary, and
+formal aggregate metrics. The replay remains presentation-only and is not a
+new evidence artifact.
+
 ## Rebuilding published development results
 
 The command sequence for each stage is maintained in `README.md`. Every

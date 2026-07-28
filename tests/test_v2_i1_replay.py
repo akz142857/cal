@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 import shutil
 import subprocess
@@ -178,6 +180,34 @@ def test_embedded_javascript_parses(replay_html: str, tmp_path: Path) -> None:
     )
 
 
-def test_tracked_reference_replay_matches_generator(replay_html: str) -> None:
+def test_tracked_reference_replay_is_frozen_and_semantically_matches_generator(
+    replay_payload: dict,
+) -> None:
     reference = v2_i1_replay.default_output(30_000)
-    assert reference.read_text(encoding="utf-8") == replay_html
+    reference_bytes = reference.read_bytes()
+    assert hashlib.sha256(reference_bytes).hexdigest() == (
+        "76acf63581708ac1b5725ad59264d749692f7eceeb9ed4d30382f2ede716f6a4"
+    )
+    match = re.search(
+        rb'<script id="replay-data" type="application/json">(.*?)</script>',
+        reference_bytes,
+        flags=re.DOTALL,
+    )
+    assert match is not None
+    frozen = json.loads(match.group(1))
+    for key in (
+        "actionScheduleSha256",
+        "conditionOrder",
+        "formalEvidence",
+        "learnerInput",
+        "protocol",
+        "schemaVersion",
+        "seed",
+        "steps",
+    ):
+        assert frozen[key] == replay_payload[key]
+    for condition in frozen["conditionOrder"]:
+        assert (
+            frozen["conditions"][condition]["metrics"]
+            == replay_payload["conditions"][condition]["metrics"]
+        )

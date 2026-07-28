@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 import shutil
 import subprocess
@@ -211,8 +213,44 @@ def test_embedded_javascript_parses(
     )
 
 
-def test_tracked_reference_replay_matches_generator(
-    replay_html: str,
+def test_tracked_reference_replay_is_frozen_and_semantically_matches_generator(
+    replay_payload: dict,
 ) -> None:
     reference = v2_l0_language_replay.default_output(33_100)
-    assert reference.read_text(encoding="utf-8") == replay_html
+    reference_bytes = reference.read_bytes()
+    assert hashlib.sha256(reference_bytes).hexdigest() == (
+        "b321d888c8997b25cd507a8bb7d412d9eb2c99297a86602834debd5b70ee6bc9"
+    )
+    match = re.search(
+        rb'<script id="replay-data" type="application/json">(.*?)</script>',
+        reference_bytes,
+        flags=re.DOTALL,
+    )
+    assert match is not None
+    frozen = json.loads(match.group(1))
+    for key in (
+        "actionScheduleSha256",
+        "arena",
+        "evaluatorTruthUsedForI1",
+        "evaluatorTruthUsedForReadoutTraining",
+        "evidenceLevel",
+        "experiment",
+        "formalEvidence",
+        "holdoutSeedsAccessed",
+        "languageGradientsReachI1",
+        "languageReadoutInput",
+        "learnerInput",
+        "presentationOnly",
+        "protocol",
+        "representationOrder",
+        "schemaVersion",
+        "seed",
+        "sourceLock",
+        "steps",
+        "warmup",
+    ):
+        assert frozen[key] == replay_payload[key]
+    assert (
+        frozen["languageConditions"].keys()
+        == replay_payload["languageConditions"].keys()
+    )
