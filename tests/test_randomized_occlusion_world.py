@@ -80,6 +80,34 @@ def test_layout_varies_across_seeds():
     assert len(layouts) >= 4
 
 
+def test_layouts_are_connected_reachable_and_movable():
+    for seed in range(60000, 60032):
+        world = RandomizedOcclusionWorld(seed)
+        diagnostics = world.layout_diagnostics()
+        assert diagnostics["valid"] is True
+        assert (
+            diagnostics["reachable_free_cell_count"]
+            == diagnostics["free_cell_count"]
+        )
+        assert diagnostics["hidden_free_cell_count"] >= 3
+        assert diagnostics["visible_free_cell_count"] >= 3
+        assert diagnostics["movable_free_cell_count"] >= 3
+        assert diagnostics["visibility_boundary_edge_count"] >= 1
+        assert all(
+            any(
+                ARENA_LOW <= int(point[0]) + dx <= ARENA_HIGH
+                and ARENA_LOW <= int(point[1]) + dy <= ARENA_HIGH
+                and (int(point[0]) + dx, int(point[1]) + dy) not in world.static
+                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))
+            )
+            for point in (
+                world.self_position,
+                world.distractor_a,
+                world.distractor_b,
+            )
+        )
+
+
 def test_occlusion_events_occur():
     world = RandomizedOcclusionWorld(60002)
     action_rng = np.random.default_rng(60002 + 50_000)
@@ -97,6 +125,30 @@ def test_occlusion_events_occur():
                 max_hidden = max(max_hidden, hidden_runs[name])
     # Permanence samples require at least one >= 2-step occlusion.
     assert max_hidden >= 2
+
+
+def test_hidden_distractor_trajectories_do_not_depend_on_actions():
+    still = RandomizedOcclusionWorld(60003)
+    moving = RandomizedOcclusionWorld(60003)
+    for step in range(120):
+        still.step(0)
+        moving.step(1 + step % 4)
+        assert np.array_equal(still.distractor_a, moving.distractor_a)
+        assert np.array_equal(still.distractor_b, moving.distractor_b)
+        assert np.array_equal(still.velocity_a, moving.velocity_a)
+        assert np.array_equal(still.velocity_b, moving.velocity_b)
+
+
+def test_shadow_occupancy_is_absent_from_agent_observation():
+    world = RandomizedOcclusionWorld(60004)
+    hidden = next(iter(world.shadow_cells))
+    world.distractor_a = np.asarray(hidden, dtype=np.int64)
+    sensed, visibility = world.observe()
+    local_x = hidden[0] - (12 - visibility.shape[1] // 2)
+    local_y = hidden[1] - (12 - visibility.shape[0] // 2)
+    assert world.truth()[hidden[1], hidden[0]] == 1
+    assert visibility[local_y, local_x] == 0
+    assert sensed[local_y, local_x] == 0
 
 
 def test_geometry_shortcut_is_broken_vs_fixed_world():

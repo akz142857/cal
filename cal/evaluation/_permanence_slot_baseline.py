@@ -24,8 +24,10 @@ from typing import TYPE_CHECKING
 import numpy as np
 import torch
 from torch import nn
-from torch.nn import functional as F
 
+from cal.evaluation._permanence_gru_baseline import (
+    _occupancy_loss as _field_wide_occupancy_loss,
+)
 from cal.evaluation.v2_i1_integration import ARENA_HIGH, ARENA_LOW
 
 if TYPE_CHECKING:
@@ -39,10 +41,6 @@ _DIM = 32
 _SLOTS = 4
 _ITERS = 2
 _EPS = 1e-8
-
-
-def _local_index(cell: tuple[int, int]) -> int:
-    return (cell[1] - ARENA_LOW) * _SIDE + (cell[0] - ARENA_LOW)
 
 
 def _coordinate_grid() -> torch.Tensor:
@@ -121,35 +119,6 @@ class _SlotSSM(nn.Module):
         return (alpha * logit).sum(dim=1)  # (B, 121) occupancy logits
 
 
-def _occupancy_loss(
-    logits: torch.Tensor,
-    targets: torch.Tensor,
-    samples: list["_Sample"],
-) -> torch.Tensor:
-    """Combine full-map calibration with the benchmark's queried-cell task."""
-
-    global_loss = F.binary_cross_entropy_with_logits(logits, targets)
-    rows = torch.arange(logits.shape[0], device=logits.device)
-    positive = torch.as_tensor(
-        [_local_index(sample.positive) for sample in samples],
-        dtype=torch.long,
-        device=logits.device,
-    )
-    negative = torch.as_tensor(
-        [_local_index(sample.negative) for sample in samples],
-        dtype=torch.long,
-        device=logits.device,
-    )
-    pair_logits = torch.stack(
-        (logits[rows, positive], logits[rows, negative]), dim=1
-    )
-    pair_targets = torch.tensor(
-        (1.0, 0.0), dtype=logits.dtype, device=logits.device
-    ).expand_as(pair_logits)
-    query_loss = F.binary_cross_entropy_with_logits(pair_logits, pair_targets)
-    return global_loss + query_loss
-
-
 def slot_predictor_maps(
     train: list["_Sample"],
     evaluation: list["_Sample"],
@@ -169,7 +138,7 @@ def slot_predictor_maps(
     model.train()
     for _ in range(epochs):
         optimizer.zero_grad()
-        loss = _occupancy_loss(model(train_x), train_y, train)
+        loss = _field_wide_occupancy_loss(model(train_x), train_y, train)
         loss.backward()
         optimizer.step()
     model.eval()

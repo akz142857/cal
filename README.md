@@ -15,6 +15,7 @@ controlled language-readable state from unlabeled sensorimotor experience.
 Start with:
 
 - [current evidence and claim boundaries](RESEARCH_STATUS.md);
+- [Cal modality system and language boundary](docs/MODALITY_SYSTEM.md);
 - [ten-minute reproduction path](REPRODUCIBILITY.md);
 - [data card](DATA_CARD.md);
 - [open research roadmap](ROADMAP.md);

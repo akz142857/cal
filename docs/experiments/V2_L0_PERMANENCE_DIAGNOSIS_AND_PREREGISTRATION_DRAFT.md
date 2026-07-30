@@ -91,16 +91,16 @@ uv run python -m cal.evaluation.permanence_geometry_diagnostic
 
 | 预测器 | permanence 平衡准确率 |
 |---|---:|
-| **纯几何解析外推（无训练、无信念）** | **0.9961** |
-| 隐藏位置精确重建率 | **0.9944** |
-| 几何-only 学习探针（无信念、无占据栅格） | 0.785 |
-| raw-sensor 探针 | 0.768 |
+| **纯几何解析外推（无训练、无信念）** | **1.0000** |
+| 隐藏位置精确重建率 | **1.0000** |
+| 几何-only 学习探针（无信念、无占据栅格） | 0.7870 |
+| raw-sensor 探针 | 0.7717 |
 | 参照：V8 holdout 上 formal 实体图 permanence | 0.8021 |
 
-**断言被坐实，且强于预期。** 一个零信念、只做确定性物理外推的预测器拿到 **0.996**，
-而正式实体图在 V8 holdout 上只有 **0.802**；隐藏位置有 **99.4%** 可由可观测的
+**断言被坐实，且强于预期。** 一个零信念、只做确定性物理外推的预测器拿到 **1.000**，
+而正式实体图在 V8 holdout 上只有 **0.802**；隐藏位置可由可观测的
 "末见位置 + 观测速度 + 固定遮挡布局"精确重建。**该任务根本不测物体永久性，它测
-运动学外推，且信念层反而比平凡物理更差。** 连一个简单的无信念线性探针（0.785）
+运动学外推，且信念层反而比平凡物理更差。** 连一个简单的无信念线性探针（0.787）
 都追平了正式模型（0.802），在全新种子上复现了"formal 打不过平凡基线"。
 
 这直接支撑第 B 节的环境改造：只有引入**随机几何 + 随机隐藏动力学**（让隐藏位置
@@ -120,20 +120,21 @@ uv run python -m cal.evaluation.permanence_geometry_diagnostic
 > **实现状态（已完成，未冻结）：** `RandomizedOcclusionWorld` 已实现为
 > `_IntegratedWorld` 的同接口 drop-in（`grid_size`/`static`/`self_position`/
 > `distractor_a,b`/`velocity_a,b`/`step`/`observe`/`truth`），单元测试
-> `tests/test_randomized_occlusion_world.py`（5 项，全过）覆盖接口对齐、按 seed
+> `tests/test_randomized_occlusion_world.py`（9 项）覆盖接口对齐、按 seed
 > 确定性、跨 seed 几何随机化、遮挡事件发生，以及**捷径被打破**的对比断言。
 > 用 A.5 的同一诊断脚本（`--world randomized`）验证：
 >
 > | 指标 | 固定环境 | 随机环境 |
 > |---|---:|---:|
-> | 恒速重建隐藏位置 | 0.9944 | **0.1819** |
-> | 解析外推 permanence 平衡准确率 | 0.9961 | **0.5863** |
-> | 几何-only 探针 | 0.785 | **0.528** |
-> | raw-sensor 探针 | 0.768 | **0.522** |
+> | 恒速重建隐藏位置 | 1.0000 | **0.2212** |
+> | 解析外推 permanence 平衡准确率 | 1.0000 | **0.6029** |
+> | 几何-only 探针 | 0.7870 | **0.4925** |
+> | raw-sensor 探针 | 0.7717 | **0.5021** |
 >
-> 随机环境下所有无信念/平凡预测器全部塌到接近随机（0.5）——几何捷径确已消除。
-> `hidden_turn_probability`（当前默认 0.35）是难度旋钮：需在冻结前调到"平凡外推
-> 失败、而良好信念明显高于随机"的区间。
+> 随机环境下两个学习型无信念探针约为随机（0.5）；解析恒速外推仍有 0.603，说明
+> 早期二元真格/最近诱饵诊断中仍留有残余短程运动学信号，不能声称所有捷径已完全消除。
+> 该诊断的二元平衡准确率也不是 D 节 hidden-field-conditioned top-1，二者的 chance
+> 口径不可直接比较。最终 P1 难度选择应以 C.6 的长遮挡 field 指标为准。
 
 ### B.1 每 episode 随机化遮挡几何
 
@@ -152,8 +153,12 @@ uv run python -m cal.evaluation.permanence_geometry_diagnostic
 
 ### B.3 几何对称负样本
 
-- permanence 负样本改为与正样本**几何等价**（到门洞等距 / 镜像、局部遮挡关系
-  相同），使查询 one-hot 无法靠位置先验区分正负。
+- 正式 localization 已改为全 hidden field 排序，主指标不再选择单个负 query，因而没有
+  “最近诱饵决定评分”的偏差。
+- GRU/Slot 的 selected-positive vs 最近 hidden decoy 辅助 loss 已移除；训练改为整个 hidden
+  field 上的 binary BCE，加上与 evaluator 完全同构的“sigmoid occupancy 所有正格质量相对
+  整个 field 质量”的 categorical NLL。更换 selected decoy 或改动 field 外 logits 都不再
+  影响训练 loss，并有显式回归测试锁定。
 
 ### B.4 不变的公平性约束（继承 V2 §4.1）
 
@@ -169,20 +174,32 @@ uv run python -m cal.evaluation.permanence_geometry_diagnostic
 ### C.1 假设
 
 > 在随机几何 + 随机隐藏动力学环境下，正式实体图的永久性信念**优于纯几何外推
-> 基线**，且 `assume_all_visible` 与 `no_action` 对照在 permanence 上坍缩到接近
+> 基线**，且 `assume_all_visible` 对照在 permanence 上坍缩到接近
 > 随机——即永久性能力来自维持的信念，而非固定几何。
 
-### C.2 新 seed 段（与所有已消费段不相交）
+### C.2 模型无关 development seed registry
 
-已占用段：500–715、9101–9316、30000–33603。本程序统一使用 **50000+**：
+不再把公开连续整数段称为“密封 holdout”。development registry 由
+`cal.evaluation.permanence_seed_registry` 按固定规则生成：从 62000 开始升序扫描，
+**不读取任何模型输出**，仅检查 layout 与事件覆盖；选择前 56 个合格 seed，前 40 个用于
+train、后 16 个用于 evaluation，不允许人工替换。
 
-| split | seeds | 用途 |
-|---|---|---|
-| `permanence_train` | 50000–50031 | 训练线性探针 / 前向模型 |
-| `permanence_validation` | 50100–50115 | 开发期一次性校验 |
-| `permanence_holdout` | 50200–50215 | **密封一次性留出**，冻结授权后消费一次 |
+紧凑、可重生成的 registry artifact：
+`experiments/V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY.json`。artifact 内的 selection
+digest 绑定 coverage contract、扫描范围、split、accepted audit 与 rejected prefix；不得只把
+seed 列表当成完整选择证据。以 artifact 自带的 `reproduction_command` 重生成并逐字段比较。
+接受条件在五个候选 `turn_probability={0.15,0.25,0.35,0.45,0.55}` 上同时成立：
 
-（item 3 基准另用 51000+，见 D 节，避免与语言留出交叉。）
+- 单隐藏对象合格样本至少 12；
+- `2–3`、`4–5`、`6+` 每档至少 2 个不同 focus-episode 组；
+- focus 与所有隐藏正格都有已知 track；
+- 碰撞和重复正格事件过滤；
+- layout 连通、可达、actor 初始可移动且存在 visible-hidden boundary。
+
+共扫描到 62193，拒绝 138 个不满足条件的候选后得到 40+16 registry。validation/holdout
+seed **尚未生成，也不得公开写入本文**；未来必须由独立 custodian 保管秘密 seed stream，
+在候选定稿前公布该 stream/manifest 的密码学承诺，并以已锁定算法生成 split。只有候选源码
+锁定且执行获授权后，custodian 才可运行相应 split；公开承诺不等于公开 seed。
 
 ### C.3 对照条件
 
@@ -192,8 +209,10 @@ uv run python -m cal.evaluation.permanence_geometry_diagnostic
 - `raw_sensor`：裸传感器（保留，但降级为次要下限）；
 - `geometric_extrapolation`（**新，主要下限**）：只含遮挡布局 + 末见位置 + 速度 +
   hidden_steps 的确定性外推特征，无任何信念；
-- `no_action`、`assume_all_visible`、`time_shuffled`、`random_labels`、
+- `assume_all_visible`、`time_shuffled`、`random_labels`、
   `referent_swapped`、`identity_scramble`：语义同 V8。
+
+`no_action` 只作为非门控耦合诊断保留，不进入 permanence 成败判定。
 
 ### C.4 门（相对 V8 的关键重设计）
 
@@ -207,20 +226,22 @@ uv run python -m cal.evaluation.permanence_geometry_diagnostic
 |---|---|---|
 | `formal_beats_geometric_extrapolation_permanence` | formal permanence 显著 > geometric_extrapolation，**seed-level 配对**，报告效应量与置信区间 | 新增主门，取代过弱的 raw 基线 |
 | `formal_beats_raw_permanence` | formal > raw（配对 + CI） | 保留 |
-| `all_visible_permanence_fails` | assume_all_visible 在遮挡长度 ≥K 分箱上落入 [0.5±ε] 容差 | 保留，现预期真会失败 |
-| `shortcuts_fail_by_occlusion_length` | geometric / 位置先验 / all-visible 在 ≥K 分箱上均落入 [0.5±ε] | **新增，取代笼统的 `geometry_near_chance`** |
+| `all_visible_permanence_fails` | assume_all_visible 在遮挡长度 ≥K 的 hidden-field-conditioned 指标上落入 runner 逐事件计算的 chance+ε 容差 | 保留，但不再假定 chance=0.5 |
+| `shortcuts_fail_by_occlusion_length` | geometric / 位置先验 / all-visible 在 ≥K 分箱上均落入 runner 报告的 exact chance+ε | **新增，取代笼统的 `geometry_near_chance`** |
 | `formal_permanence_pass` | formal permanence ≥ 阈值（评审定数） | 保留 |
 | 其余身份/自我/结构/资源门 | 同 V8 | 保留 |
 
 **关键定义（评审前必须敲定，草案不写死具体数）：**
 
-- **最小遮挡长度 K**：短遮挡下恒速外推本就有效（当前 2 步 geometric 仍 ~0.87），
-  笼统说"几何已接近随机"是错的。permanence 门只在遮挡长度 **≥K** 的分箱上评估。
-- **"接近随机"容差 ε**：给出具体数值区间（如 [0.5−ε, 0.5+ε]），不用"接近"。
+- **最小遮挡长度 K**：短遮挡下恒速外推本就可能有效，笼统说"几何已接近随机"是错的。
+  permanence 门只在遮挡长度 **≥K** 的分箱上评估。
+- **精确 chance 与容差 ε**：any-positive top-1 chance 由 runner 按事件计算
+  `mean(|positives| / |field|)`；候选数和正格数变化时不得写死 0.5 或 0.026。
+  ε 仍须在冻结前给出具体数值。
 - **配对统计**：所有"A 优于 B"的门一律用 **seed-level paired bootstrap / 置信区间**，
   不用汇总均值直接比较。
-- **每 seed 有效事件的数量与均衡**：门需保证各 seed 在 ≥K 分箱内有足够且正负均衡的
-  permanence 事件。
+- **每 seed 有效事件的数量与覆盖**：门需保证各 seed 在 ≥K 分箱内有足够的独立
+  episode-bin 组，并报告 field 大小与正格数分布；这里不是旧二元正/负 query 任务。
 
 ### C.5 托管（评审冻结后才实施）
 
@@ -229,6 +250,11 @@ uv run python -m cal.evaluation.permanence_geometry_diagnostic
 `--force-with-lease` CAS 一次性消费 tag + immutable Git blob evidence。
 **本草案阶段不创建任何一次性 tag，不消费任何 seed。**
 
+validation 也不是可反复调参的 development split：候选与契约锁定后只执行一次；若任何
+模型、阈值、指标或 evaluator 发生实质修改，该候选/协议版本的 validation 结论即终止，必须
+建立新版本及新的预承诺 validation stream，原 holdout 保持未消费。正式协议还必须预先定义
+基础设施失败与部分输出的重跑规则，避免观察结果后决定是否把一次运行算作“有效消费”。
+
 ### C.6 环境标定必须模型无关（评审更正）
 
 标定 `turn_probability` 及其它难度参数时，**不得**采用"geometric / entity_graph 明显
@@ -236,8 +262,9 @@ uv run python -m cal.evaluation.permanence_geometry_diagnostic
 构成另一种测试设计过拟合。标定采用**模型无关**判据：
 
 1. 已知核 oracle（belief）在规定遮挡长度上稳定有效（提供可达上界）；
-2. 恒速外推、位置先验、all-visible 等捷径在遮挡长度 ≥K 上**失败**（落入 [0.5±ε]）；
-3. 每 seed 有足够且正负均衡的有效 permanence 事件；
+2. 恒速外推、位置先验、all-visible 等捷径在遮挡长度 ≥K 上**失败**（落入 runner
+   报告的 exact chance+ε）；
+3. 每 seed 在三档中有足够的独立 episode-bin 覆盖，并报告 field/positive-count 分布；
 4. 难度随参数**平滑**变化（无突变/退化区）；
 5. **不**根据当前 entity graph 是否占优来选参数。
 
@@ -255,20 +282,43 @@ A 的正确形态是**新一代候选 + 新协议版本**，不改写任何已�
 
 ### C.8 冻结前阻塞项（评审，未解决即不可冻结）
 
-1. **几何对称负样本未实现**：当前仍取"距真格最近的隐藏空格"
-   （`permanence_forward_benchmark.py:284`），非 B.3 要求的镜像 / 几何等价负样本；
-2. **布局有效性检查不足**：当前只校验 `shadow >= 3`
-   （`randomized_occlusion_world.py:164`），未校验连通性、可达性、自体可移动性、
-   每 seed 有效遮挡事件数；
-3. **B 节旧诊断数值已过期**：世界动力学、可见性与速度估计修复改变了样本生成，
-   B 节旧表需重新生成；
-4. **标签泄漏审计未做**：需检查位置 one-hot、布局、seed、事件选择、decoy 规则是否
-   泄漏标签；
-5. **边界事件未审计**：碰撞、两对象同格、长时间不重现等；
-6. **统计用汇总均值**：需改为 seed-level paired bootstrap / CI；
-7. **无 clean reviewed commit / 协议 JSON / sidecar / source lock / 正式 runner**；
-8. **seed registry 未做全仓库冲突检查**：50000–50215 目前看似未被占用，但冻结前须经
-   统一 seed registry 做全仓冲突检查，不能只凭文档描述。
+下列 development 层问题已实现、确定性复跑，并经三路独立 review；review 发现的 Brier、
+分箱、artifact provenance 与 neural objective 问题均已修复：
+
+1. **field 口径**：所有图先投影到 hidden field；field 外无质量时明确记 miss；top-1 chance
+   逐事件计算 `|positives|/|field|`；最大分数并列时距离取并列集合平均，不受 candidate
+   顺序影响；
+2. **事件资格**：缺失 hidden track、actor collision、重复正格显式报告并过滤；时长统计
+   只使用单隐藏对象事件；
+3. **模型无关 registry**：相同 seeds 在全部五个候选难度上覆盖三档时长，每档至少两个
+   episode-bin 组；不读取模型分数，不允许人工替换；当前 selection digest 为
+   `e31929f7563ded1163979abaa353c2c26771912328e319175615dbb90ae4d9e4`；
+4. **统计单位**：主指标固定为 `time → episode/bin → seed/bin → 三档等权 → 完整 seed 等权`，
+   当前最长的 71 步 focus episode 不再获得 71 倍权重；
+5. **泄漏分解**：同时报告 uniform-field、中心距离、绝对坐标、field-relative geometry、
+   duration-conditioned coordinate 五类先验；
+6. **统计**：10,000 次确定性 seed-level paired bootstrap 已接入，正向 advantage 统一表示
+   第一模型更好；
+7. **模型无关难度选择**：按预声明条件扫描五个候选，0.35 是第一个通过者；完整 artifact
+   为 `experiments/V2_P1_PERMANENCE_TURN_PROBABILITY_DEVELOPMENT_SCAN.json`，scan digest
+   为 `b30b41cdff80bd949e5f593e1120bf108318f98e4c810a5b05c023063e8cb42e`；
+8. **D.5/D.6 已按新口径重生成**：完整摘要见
+   `experiments/V2_P1_PERMANENCE_DEVELOPMENT_AUDIT.json`。
+
+仍然阻止正式冻结的事项：
+
+1. 成败门的最小实质效应量、绝对阈值与多指标决策规则仍未冻结；
+2. 尚无正式协议 JSON、sidecar、transitive source/dependency lock 或 clean reviewed commit；
+3. validation/holdout secret custody、承诺与一次性 runner 尚未建立；
+4. 新一代 I1 候选尚未开发；当前 D.6 只诊断旧 I1 的 OOD 表现。
+
+**可复现 development 审计（2026-07-28，非门控）：** registry 的 16/16 evaluation seeds
+均有样本且三档齐全；共 1367 个事件，其中 1162 个单隐藏事件进入 411 个 episode-bin 组。
+等权 chance top-1 为 **0.03702**。position-prior 分解为：center 0.04308、global coordinate
+0.04405、field geometry 0.04195、duration-conditioned coordinate 0.02292。相对 uniform，最高的
+global-coordinate lift 在 registry 与 episode 等权后为绝对 **+0.00702**。这些已测试先验
+远低于旧 I1 的 0.25960，但没有为“先验相对 chance”预注册配对 CI 或成败门，因此这里只能
+说未发现足以复现模型分数的已测试位置捷径，不能据此证明不存在其它泄漏。
 
 ---
 
@@ -297,6 +347,11 @@ A 的正确形态是**新一代候选 + 新协议版本**，不改写任何已�
 - 校准（Brier、可靠性曲线）——尤其遮挡期间的熵变化；
 - 资源（每步 MAC、活动状态、参数计数）逐条对预算。
 
+以上是正式协议目标。当前 D.5/D.6 development runner 只完成 hidden-field top-1、categorical
+NLL、hidden-field per-cell proper Brier 与并列平均位置误差；尚未实现 IoU、可靠性曲线、
+熵轨迹和资源审计，
+因此不能把当前 audit 当成 D.3 的完整验收。
+
 ### D.4 成功含义
 
 > 正式实体图前向模型在再现位置误差上**同时优于几何外推与两个神经基线**，
@@ -304,119 +359,89 @@ A 的正确形态是**新一代候选 + 新协议版本**，不改写任何已�
 > 潜空间"和"平凡外推"有必要增益（对应 V2 §12 决策规则：解析结构通过后，神经网络
 > 必须证明相对它的必要增益）。
 
-### D.5 第一版实现结果（已运行，未冻结，四基线全上）
+### D.5 development 重生成（已运行、已复跑，未冻结）
 
-模块：`cal/evaluation/permanence_forward_benchmark.py`，基线
-`_permanence_gru_baseline.py`（非对象中心）与 `_permanence_slot_baseline.py`
-（SlotSSM 类对象中心：逐帧空间 slot-attention 绑定 + 跨帧持续的 per-slot 递归 +
-空间广播解码器）。测试 `tests/test_permanence_forward_benchmark.py`（11 项，全过；
-另有 6 项随机遮挡世界测试）。
-占据后验口径，成对（真格 vs 最近隐藏诱饵）评分，随机环境 `turn_probability=0.35`，
-全新种子 train 61000–61039 / eval 61100–61115（934 样本）。已知核滤波器的首个
-入遮挡步为确定性传播，后续才应用隐藏转向核，并在每一步按持续不可见观测做条件化；
-跨遮挡重新出现后不会用不连续位置估计速度。神经模型用全图 BCE 加与评测一致的
-真格/诱饵 BCE，避免约 0.94% 正格率下的全空捷径。复现：
-`uv run python -m cal.evaluation.permanence_forward_benchmark --gru --slot`。
+使用模型无关 registry、`turn_probability=0.35`、hidden-field-conditioned localization，
+以及 `time→episode/bin→seed/bin→三档等权→完整 seed 等权`。16/16 evaluation seeds 三档齐全；
+1162 个单隐藏事件聚合为 411 个 episode-bin 组。精确等权 chance top-1 为 0.0370。
 
-| 预测器 | 排序准确率 | NLL | Brier | argmax 位置误差 | 参数 |
-|---|---:|---:|---:|---:|---:|
-| belief（已知核 Bayes 滤波器，上界） | **1.000** | 0.90 | **0.300** | **1.83** | 0（解析） |
-| geometric（几何外推，下界） | 0.598 | 5.55 | 0.402 | 4.81 | 0 |
-| gru（非对象中心，学习型） | 0.544 | 0.86 | 0.303 | 4.24 | 44,729 |
-| slot（SlotSSM 类对象中心，学习型） | 0.527 | **0.83** | 0.309 | 10.61 | 12,386 |
+runner 原始摘要复现命令：
 
-**按遮挡时长的排序准确率（关键结构）：**
+```bash
+uv run python -m cal.evaluation.permanence_forward_benchmark \
+  --seed-registry experiments/V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY.json \
+  --gru --slot --entity-graph --paired-ci --audit-summary
+```
 
-| 预测器 | 2 步 | 3 步 | 4 步 | 5 步 | 6+ 步 |
-|---|---:|---:|---:|---:|---:|
-| belief | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 |
-| geometric | 0.87 | 0.78 | 0.63 | 0.61 | 0.51 |
-| gru | 0.57 | 0.44 | 0.59 | 0.47 | 0.56 |
-| slot | 0.55 | 0.52 | 0.61 | 0.48 | 0.52 |
+命令向 stdout 输出完整 audit summary；
+`experiments/V2_P1_PERMANENCE_DEVELOPMENT_AUDIT.json` 是对该输出的 reviewed projection，
+不是 runner 直接写入的原始文件。其 `source` 字段声明生成关系与本轮逐字段复核状态。
+GRU/Slot 已按 B.3 使用相同的 field-wide 训练口径；但协议与模型初始化策略尚未冻结，当前
+排名仍只作 development 诊断。
 
-**结论：**
+| 预测器 | episode-bin top-1 | categorical NLL | Brier | 并列平均位置误差 |
+|---|---:|---:|---:|---:|
+| belief（已知核 oracle） | **0.420** | **1.434** | **0.025** | **1.380** |
+| geometric | 0.322 | 9.371 | 0.037 | 7.842 |
+| GRU | 0.042 | 3.625 | 0.037 | 6.061 |
+| Slot | 0.020 | 3.323 | 0.036 | 6.589 |
 
-1. **belief 在所有遮挡时长上均为 1.00** —— 已知核信念持续维持永久性。
-2. **geometric 随遮挡时长从 0.87 衰减到 0.51** —— 恒速外推短遮挡尚可，机动累积后
-   塌到随机。这正是预期的"差距随遮挡时长扩大"。
-3. **两个神经基线的排序仍接近随机，但 NLL/Brier 已显著改善。** 这说明修正后的目标
-   学到了概率基率与一定局部信号，却尚未形成稳定的隐藏对象排序；不能据此断言对应
-   模型族原则上学不会永久性。
+belief 相对 geometric 的 10,000 次 paired-seed bootstrap 全部支持 oracle 更优：top-1
+advantage `+0.0979`（95% CI `[+0.0722,+0.1266]`），categorical-NLL advantage
+`+7.937`（`[+7.312,+8.524]`），Brier advantage `+0.0122`
+（`[+0.0103,+0.0141]`），位置误差 advantage `+6.461`（`[+5.178,+7.868]`）。
 
-**GRU 容量扫描（`--sweep`，欠拟合/优化诊断）：** hidden ∈ {16,64,128,256}
-（9k–326k 参数，达 V2 预算 3 倍）× epochs ∈ {25,80}，排序准确率落在
-**[0.476, 0.593]**；最好点是 hidden=256 / 25 epoch 的 0.593，而同容量 80 epoch
-回落到 0.504。该扫描只说明当前固定优化器、学习率与单个初始化下结果对训练时长敏感，
-**不能排除优化失败或过拟合，也不能推出该模型族学不会永久性**。正式比较前仍需多初始化、
-验证集选参与训练集拟合审计。
-
-**必须诚实标注的局限（写入将来预注册）：**
-
-1. **belief 是"已知精确核"的 Bayes 最优滤波器（上界），不是已部署的 I1 实体图。**
-   真正的科学问题是**在线学习型**信念（真实 I1 智能体，须自学机动核）能否逼近它。
-   belief=1.000 是天花板，不是对部署智能体能力的断言（对应 ROADMAP 的闭环下一步）。
-2. **SlotSSM 类基线当前很小（D=32、K=4、12,386 参数，实际仍在 100k 预算内）**，
-   40 epoch 亦≈随机。这说明"对象中心结构"在此小规模下不足以逼近 belief；一个更大、
-   更充分调优的 SlotSSM 能否缩小差距仍是未决问题——不能据当前结果断言对象中心结构
-   本身无效。若后续放大它超过预算，按 §4.3 单列预算例外。
-3. 当前报排序/NLL/Brier/argmax 位置误差/空图率/遮挡时长分箱六项；接入真实 I1 实体图智能体
-   作为第五个"学习型信念"预测器，是与 belief 上界对照最有信息量的下一步（见 D.6）。
+独立的模型无关 `turn_probability` scan 在 `6+` 分箱给出 chance `0.03704`、geometric
+`0.03767`、belief `0.19985`，支持“长遮挡时几何捷径失败而已知核仍有 headroom”；完整
+条件和全部候选行以 turn-scan artifact 为准，不能由上表总体均值单独推出该结论。
+GRU/Slot 的 top-1 接近 chance，NLL/Brier 也接近 uniform-field 基线；这与较分散、不过度
+集中的预测相容，但不是学到正确动力学的证据。仍只有单一神经初始化，不能推出模型族能力
+上限。
 
 ### D.6 真实 I1 实体图作为"学习型信念"预测器（已运行，未冻结）
 
-把已部署的 **`IntegratedBeliefAgentV2`**（L0 冻结的同一 I1 实体图）作为第五预测器
-在线接入 benchmark：每步 `agent.update(sensed, action)`，在每个查询步读取
-`agent.probability()` 裁剪到 arena 的占据后验。**只运行、不编辑任何锁定文件。**
-复现：`uv run python -m cal.evaluation.permanence_forward_benchmark --entity-graph`。
-（train 40 / eval 16，934 样本，`turn_probability=0.35`。）
+新口径结果：
 
-| 预测器 | 排序准确率 | NLL | Brier | argmax 位置误差 |
+| 预测器 | episode-bin top-1 | categorical NLL | Brier | 并列平均位置误差 |
 |---|---:|---:|---:|---:|
-| belief（已知核上界） | 1.000 | 0.90 | 0.300 | 1.83 |
-| **entity_graph（真实 I1）** | **0.632** | 4.60 | 0.377 | 7.76 |
-| geometric（下界） | 0.598 | 5.55 | 0.402 | 4.81 |
-| gru（非对象中心） | 0.544 | 0.86 | 0.303 | 4.24 |
-| slot（SlotSSM 类） | 0.527 | 0.83 | 0.309 | 10.61 |
+| belief oracle | 0.420 | 1.434 | 0.025 | 1.380 |
+| geometric | 0.322 | 9.371 | 0.037 | 7.842 |
+| **entity_graph（旧 I1）** | **0.260** | **7.583** | **0.077** | **3.207** |
+| GRU | 0.042 | 3.625 | 0.037 | 6.061 |
+| Slot | 0.020 | 3.323 | 0.036 | 6.589 |
 
-**按遮挡时长的排序准确率：**
+paired-seed 结论不是单一“谁赢”：
 
-| 预测器 | 2 步 | 3 步 | 4 步 | 5 步 | 6+ 步 |
-|---|---:|---:|---:|---:|---:|
-| belief | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 |
-| entity_graph | 0.86 | 0.71 | 0.70 | 0.70 | 0.56 |
-| geometric | 0.87 | 0.78 | 0.63 | 0.61 | 0.51 |
+1. 相对 geometric，旧 I1 的 top-1 development 95% bootstrap CI 不含 0：advantage `−0.0621`，CI
+   `[−0.1270,−0.0063]`；但 categorical NLL 和位置误差更好，CI 分别为
+   `[+0.9637,+2.5732]` 与 `[+3.0967,+6.1253]`。它比点质量几何外推更分散、更少灾难性
+   失配，但最高峰更不常落在真格。
+   Brier advantage 为 `−0.0405`，CI `[−0.0527,−0.0289]`，说明它的 per-cell proper
+   Brier 明确差于 geometric。
+2. 相对 GRU/Slot，旧 I1 的定位 top-1 CI 均为正（分别
+   `[+0.1708,+0.2613]`、`[+0.2082,+0.2696]`），但 categorical NLL CI 均为负
+   （CI 分别 `[−4.7901,−3.2070]`、`[−5.0658,−3.5384]`）。神经基线接近 uniform，
+   因而定位差但 categorical NLL 较低；旧 I1 有尖峰定位信号，但该 proper score 较差。
+   Brier advantage 也都为负，分别为 `−0.0406`（CI `[−0.0535,−0.0286]`）和
+   `−0.0418`（CI `[−0.0549,−0.0299]`），说明旧 I1 的 per-cell proper Brier 明确更差。
+3. 旧 I1 相对 exact-kernel oracle 的四项点估计均明显更差；当前 runner 尚未报告这对模型
+   的 paired CI，因此这里只能据此否定“stochastic permanence 已解决”，不能给出冻结门
+   结论。新候选必须同时改善定位和 proper scoring，不能只优化 top-1 或只把分布抹平。
 
-**核心结论（精确定位真实系统在上界/下界之间的位置）：**
-
-1. **真实 I1 实体图确实携带一定永久性信号：** 排序 0.632 高于两个神经基线
-   （0.544/0.527），也高于几何外推（0.598）——显式实体图不是一无所获。
-2. **但在真正不确定的永久性上，它本质≈恒速外推。** entity_graph 的遮挡时长曲线
-   （0.86→0.56）与 geometric（0.87→0.51）**走势接近**：随遮挡加长、机动累积，它的
-   信念退化到随机，和几何外推同步。它**没有表征隐藏机动的不确定性**。
-3. **它离 Bayes 上界（1.000 全程平稳）差距巨大**，且 argmax 位置误差（7.76）比几何
-   外推（4.81）更差、NLL（4.60）偏高——其占据后验峰值常远离真格且偏过度自信。
-
-**诚实的 OOD 说明：** I1 实体图是在**固定几何、确定性动力学**上设计并冻结的；这里把它
-放到随机几何 + 随机机动环境是**分布外**运行。因此"它像几何外推"部分反映它在设计域外
-工作。但这恰恰是想测的问题——**它的永久性机制能否迁移到真正的不确定性**——答案是：
-迁移后表现如同恒速外推，而非一个建模机动的信念。这也回接 V8 原始失败：在固定世界里
-几何是确定的，I1 的永久性信念"看起来没问题"；一旦永久性真正不确定，它的机制就暴露为
-本质上的几何外推。
-
-**这把 item 3 的下一步收敛到一个明确的机制目标：** 让 I1 实体图的隐藏占据信念**表征
-并传播机动不确定性**（向 belief 上界的 1.000-全程-平稳靠拢），而不是坍缩成恒速外推。
-这是从"状态学习器"迈向校准闭环 world model 的关键一跳。
+**诚实的 OOD 说明：** I1 实体图是在固定几何、确定性动力学上设计并冻结的；这里是分布外
+诊断，不改写历史 I1 结论。下一代机制目标是表征并传播机动不确定性，同时改善定位与 proper
+score，而不是坍缩成恒速尖峰或近 uniform 分布。
 
 ---
 
 ## E. 排序与执行（评审修正版）
 
-1. **完成 C**（用 60000+/61000+ 开发种子；**绝不运行 50000–50215**）：实现并审计
-   几何对称负样本、布局有效性（连通/可达/可移动/有效事件均衡）、按模型无关标准扫描
-   `turn_probability`、标签泄漏与边界事件审计、seed-level paired bootstrap/CI，并重生成
-   B 节旧诊断表（见 C.6、C.8）；
-2. **修正草案**：几何对称负样本、布局检查、已删除的错误 no-action 门（见 C.4、C.8）；
-3. **独立评审**环境、runner、门、seed registry 后，**冻结评测契约**：环境、seed、
+1. **已完成当前 development evaluator 实现与确定性复跑**：model-blind cross-`turn_p` registry、layout/
+   leakage/edge 审计、episode/bin/seed 等权、paired bootstrap、模型无关难度扫描和 D.5/D.6
+   重生成；未生成或运行任何 validation/holdout seed；
+2. **冻结前 review gate**：2026-07-28 已完成环境/runner、统计、文档、registry 及生成 artifact
+   的三路独立 review，并修复所有已发现问题；后续如有实质修改必须重新打开相应 review；
+3. 当前 review 清零后，另行决定并**冻结评测契约**：环境、秘密 seed 生成算法、
    指标、阈值、决策规则（这是"B = 先冻契约"，不是提前锁死 A 的实现）；
 4. **再做 A**：新一代 I1 候选，仅用 `*_train`/`*_dev` seed 开发；
 5. 候选确定后，追加**只增加最终候选源码哈希**的 exact-source-lock amendment，运行一次

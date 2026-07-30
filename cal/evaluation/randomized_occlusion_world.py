@@ -50,6 +50,73 @@ _UNIT_VELOCITIES: tuple[tuple[int, int], ...] = (
 )
 
 
+def _arena_neighbors(
+    cell: tuple[int, int], static: frozenset[tuple[int, int]]
+) -> tuple[tuple[int, int], ...]:
+    """Return traversable cardinal neighbours inside the evaluation arena."""
+
+    x, y = cell
+    return tuple(
+        (nx, ny)
+        for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1))
+        if ARENA_LOW <= nx <= ARENA_HIGH
+        and ARENA_LOW <= ny <= ARENA_HIGH
+        and (nx, ny) not in static
+    )
+
+
+def _layout_diagnostics(
+    static: frozenset[tuple[int, int]],
+    shadow: frozenset[tuple[int, int]],
+) -> dict[str, int | bool]:
+    """Audit connectivity and visibility structure without consulting a model."""
+
+    free = {
+        (x, y)
+        for y in range(ARENA_LOW, ARENA_HIGH + 1)
+        for x in range(ARENA_LOW, ARENA_HIGH + 1)
+        if (x, y) not in static
+    }
+    visible = free - set(shadow)
+    reachable: set[tuple[int, int]] = set()
+    if free:
+        frontier = [next(iter(free))]
+        while frontier:
+            cell = frontier.pop()
+            if cell in reachable:
+                continue
+            reachable.add(cell)
+            frontier.extend(
+                neighbour
+                for neighbour in _arena_neighbors(cell, static)
+                if neighbour not in reachable
+            )
+    movable = {cell for cell in free if _arena_neighbors(cell, static)}
+    visibility_boundary_edges = sum(
+        1
+        for cell in shadow
+        for neighbour in _arena_neighbors(cell, static)
+        if neighbour in visible
+    )
+    valid = (
+        CAMERA in free
+        and len(shadow) >= 3
+        and len(visible) >= 3
+        and reachable == free
+        and len(movable) >= 3
+        and visibility_boundary_edges >= 1
+    )
+    return {
+        "valid": valid,
+        "free_cell_count": len(free),
+        "reachable_free_cell_count": len(reachable),
+        "hidden_free_cell_count": len(shadow),
+        "visible_free_cell_count": len(visible),
+        "movable_free_cell_count": len(movable),
+        "visibility_boundary_edge_count": visibility_boundary_edges,
+    }
+
+
 def _bounce_advance(
     position: tuple[int, int],
     velocity: tuple[int, int],
@@ -114,14 +181,15 @@ class RandomizedOcclusionWorld:
         self.static = static
         self.shadow_cells = shadow_cells
 
-        free_cells = [
+        movable_cells = [
             (x, y)
             for y in range(ARENA_LOW, ARENA_HIGH + 1)
             for x in range(ARENA_LOW, ARENA_HIGH + 1)
             if (x, y) not in self.static and (x, y) != CAMERA
+            and _arena_neighbors((x, y), self.static)
         ]
-        placement = self._layout_rng.permutation(len(free_cells))
-        chosen = [free_cells[int(i)] for i in placement[:3]]
+        placement = self._layout_rng.permutation(len(movable_cells))
+        chosen = [movable_cells[int(i)] for i in placement[:3]]
         self.self_position = np.asarray(chosen[0], dtype=np.int64)
         self.distractor_a = np.asarray(chosen[1], dtype=np.int64)
         self.distractor_b = np.asarray(chosen[2], dtype=np.int64)
@@ -159,9 +227,7 @@ class RandomizedOcclusionWorld:
                 continue
             static = frozenset(cells)
             shadow = self._shadow_cells(static)
-            # Require a non-trivial occluded region so permanence events exist,
-            # and keep the camera itself unoccupied.
-            if CAMERA not in static and len(shadow) >= 3:
+            if bool(_layout_diagnostics(static, shadow)["valid"]):
                 return static, shadow
         raise RuntimeError("failed to sample a valid randomized occluder layout")
 
@@ -189,6 +255,11 @@ class RandomizedOcclusionWorld:
                 ):
                     hidden.add((x, y))
         return frozenset(hidden)
+
+    def layout_diagnostics(self) -> dict[str, int | bool]:
+        """Return the model-independent validity audit for this episode layout."""
+
+        return _layout_diagnostics(self.static, self.shadow_cells)
 
     # -- dynamics -------------------------------------------------------------
 

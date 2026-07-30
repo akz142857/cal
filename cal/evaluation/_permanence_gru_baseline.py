@@ -67,28 +67,51 @@ def _occupancy_loss(
     targets: torch.Tensor,
     samples: list["_Sample"],
 ) -> torch.Tensor:
-    """Combine full-map calibration with the benchmark's queried-cell task."""
+    """Symmetric hidden-field objective with no selected-decoy dependence.
 
-    global_loss = F.binary_cross_entropy_with_logits(logits, targets)
-    rows = torch.arange(logits.shape[0], device=logits.device)
-    positive = torch.as_tensor(
-        [_local_index(sample.positive) for sample in samples],
-        dtype=torch.long,
-        device=logits.device,
+    Binary calibration is evaluated over every cell in the sample's hidden
+    field.  The categorical term ranks all hidden positives jointly against
+    every empty hidden cell, matching the benchmark's field-conditioned task.
+    """
+
+    if logits.shape != targets.shape or logits.shape[0] != len(samples):
+        raise ValueError("neural objective input shape mismatch")
+    field_mask = torch.zeros_like(logits, dtype=torch.bool)
+    positive_mask = torch.zeros_like(logits, dtype=torch.bool)
+    for row, sample in enumerate(samples):
+        field_indices = torch.as_tensor(
+            [_local_index(cell) for cell in sample.candidate_cells],
+            dtype=torch.long,
+            device=logits.device,
+        )
+        positive_indices = torch.as_tensor(
+            [_local_index(cell) for cell in sample.positives],
+            dtype=torch.long,
+            device=logits.device,
+        )
+        field_mask[row, field_indices] = True
+        positive_mask[row, positive_indices] = True
+    field_binary_loss = F.binary_cross_entropy_with_logits(
+        logits[field_mask], targets[field_mask]
     )
-    negative = torch.as_tensor(
-        [_local_index(sample.negative) for sample in samples],
-        dtype=torch.long,
-        device=logits.device,
+    negative_infinity = torch.tensor(
+        float("-inf"), dtype=logits.dtype, device=logits.device
     )
-    pair_logits = torch.stack(
-        (logits[rows, positive], logits[rows, negative]), dim=1
+    # The evaluator normalizes sigmoid occupancy mass over the hidden field,
+    # rather than applying a softmax to raw logits. Work in log-probability
+    # space so this term exactly matches the evaluator's categorical NLL.
+    log_occupancy = F.logsigmoid(logits)
+    field_log_occupancy = log_occupancy.masked_fill(
+        ~field_mask, negative_infinity
     )
-    pair_targets = torch.tensor(
-        (1.0, 0.0), dtype=logits.dtype, device=logits.device
-    ).expand_as(pair_logits)
-    query_loss = F.binary_cross_entropy_with_logits(pair_logits, pair_targets)
-    return global_loss + query_loss
+    positive_log_occupancy = log_occupancy.masked_fill(
+        ~positive_mask, negative_infinity
+    )
+    categorical_loss = (
+        torch.logsumexp(field_log_occupancy, dim=1)
+        - torch.logsumexp(positive_log_occupancy, dim=1)
+    ).mean()
+    return field_binary_loss + categorical_loss
 
 
 def gru_predictor_maps(

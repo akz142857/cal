@@ -1,0 +1,125 @@
+{
+  "artifact_version": 1,
+  "artifact_kind": "reviewed_projection_of_runner_audit_summary",
+  "status": "development_only_non_gated",
+  "decision": "development_audit_reproduced_protocol_not_frozen",
+  "source": {
+    "generator": "cal.evaluation.permanence_forward_benchmark",
+    "runner_command": "uv run python -m cal.evaluation.permanence_forward_benchmark --seed-registry experiments/V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY.json --gru --slot --entity-graph --paired-ci --audit-summary",
+    "runner_output": "complete audit summary on stdout",
+    "projection_policy": "This artifact records selected reviewed fields from runner stdout; it is not byte-identical runner output.",
+    "review_reproduced_date": "2026-07-28",
+    "recorded_fields_match_reproduced_stdout": true
+  },
+  "seed_registry_selection_digest_sha256": "e31929f7563ded1163979abaa353c2c26771912328e319175615dbb90ae4d9e4",
+  "turn_probability_selection_artifact": "experiments/V2_P1_PERMANENCE_TURN_PROBABILITY_DEVELOPMENT_SCAN.json",
+  "turn_probability_scan_digest_sha256": "b30b41cdff80bd949e5f593e1120bf108318f98e4c810a5b05c023063e8cb42e",
+  "turn_probability": 0.35,
+  "aggregation_policy": "single-hidden samples; time->episode/bin->seed/bin->equal bins->equal complete seeds; length curves use the same complete-seed population",
+  "coverage": {
+    "evaluation_seed_count": 16,
+    "complete_primary_seed_count": 16,
+    "evaluation_sample_count": 1367,
+    "single_hidden_primary_sample_count": 1162,
+    "multi_hidden_excluded_from_primary_sample_count": 205,
+    "episode_bin_group_count": 411,
+    "minimum_samples_per_seed": 43,
+    "maximum_samples_per_seed": 120
+  },
+  "edge_case_audit": {
+    "accepted_unique_focus_occlusions": 247,
+    "maximum_samples_per_focus_occlusion_before_episode_weighting": 71,
+    "skipped_unknown_focus_track": 104,
+    "skipped_incomplete_hidden_tracks": 10,
+    "skipped_duplicate_hidden_positive": 5,
+    "skipped_actor_collision": 22,
+    "maximum_hidden_steps": 72
+  },
+  "sample_level_any_positive_chance_top1_all_accepted_events": 0.04108017938076848,
+  "exact_episode_binned_chance_top1": 0.03702291451276962,
+  "exact_episode_binned_chance_population": "single-hidden primary events under declared equal weighting",
+  "episode_binned_primary": {
+    "belief": {
+      "top1_accuracy": 0.4195976000300544,
+      "categorical_nll": 1.4343159360769706,
+      "brier": 0.024868630943669947,
+      "argmax_position_error": 1.380373135554096
+    },
+    "geometric": {
+      "top1_accuracy": 0.32168177706358814,
+      "categorical_nll": 9.371312570637564,
+      "brier": 0.03702640492751632,
+      "argmax_position_error": 7.8417121135433305
+    },
+    "entity_graph": {
+      "top1_accuracy": 0.25959771979780477,
+      "categorical_nll": 7.582966758484962,
+      "brier": 0.07748728842881898,
+      "argmax_position_error": 3.207024163332628
+    },
+    "gru": {
+      "top1_accuracy": 0.04235631477377108,
+      "categorical_nll": 3.6248213544638945,
+      "brier": 0.03689468172261612,
+      "argmax_position_error": 6.061084763835375
+    },
+    "slot": {
+      "top1_accuracy": 0.01997749068061568,
+      "categorical_nll": 3.3225663057957884,
+      "brier": 0.03565424781217984,
+      "argmax_position_error": 6.588574718210373
+    }
+  },
+  "position_prior_decomposition_top1": {
+    "uniform_field": 0.03702291451276962,
+    "center_distance": 0.0430845699172662,
+    "global_coordinate": 0.04404645701520701,
+    "field_geometry": 0.04195040730982347,
+    "duration_conditioned_coordinate": 0.02292316768879269
+  },
+  "paired_seed_bootstrap": {
+    "semantics": "10,000 deterministic resamples of 16 paired complete-seed scores; positive advantage always means the first predictor is better; these are development intervals, not frozen pass/fail tests.",
+    "belief_vs_geometric": {
+      "top1_accuracy": {"advantage": 0.09791582296646623, "ci95": [0.0722025483899011, 0.126552304215147], "probability_advantage_positive": 1.0},
+      "categorical_nll": {"advantage": 7.936996634560591, "ci95": [7.3115995818223505, 8.524225883040973], "probability_advantage_positive": 1.0},
+      "brier": {"advantage": 0.01215777398384637, "ci95": [0.010267825620693442, 0.014054629060700454], "probability_advantage_positive": 1.0},
+      "argmax_position_error": {"advantage": 6.461338977989236, "ci95": [5.178449338690833, 7.868006731428389], "probability_advantage_positive": 1.0}
+    },
+    "entity_graph_vs_geometric": {
+      "top1_accuracy": {"advantage": -0.06208405726578337, "ci95": [-0.12702260430029635, -0.0063271817626137745], "probability_advantage_positive": 0.0146},
+      "categorical_nll": {"advantage": 1.7883458121526, "ci95": [0.963716012348989, 2.5731913871037984], "probability_advantage_positive": 1.0},
+      "brier": {"advantage": -0.040460883501302655, "ci95": [-0.05270883593687035, -0.028949639812653243], "probability_advantage_positive": 0.0},
+      "argmax_position_error": {"advantage": 4.634687950210703, "ci95": [3.0967127403719075, 6.1252560579301925], "probability_advantage_positive": 1.0}
+    },
+    "entity_graph_vs_gru": {
+      "top1_accuracy": {"advantage": 0.2172414050240337, "ci95": [0.1707951597014097, 0.26125413274769893], "probability_advantage_positive": 1.0},
+      "categorical_nll": {"advantage": -3.9581454040210677, "ci95": [-4.7901142868588344, -3.2070493774075968], "probability_advantage_positive": 0.0},
+      "brier": {"advantage": -0.04059260670620286, "ci95": [-0.053500330744066765, -0.028635637793845783], "probability_advantage_positive": 0.0},
+      "argmax_position_error": {"advantage": 2.854060600502747, "ci95": [1.4742322609944376, 4.500092563808661], "probability_advantage_positive": 1.0}
+    },
+    "entity_graph_vs_slot": {
+      "top1_accuracy": {"advantage": 0.2396202291171891, "ci95": [0.20823192770961638, 0.2696442877672242], "probability_advantage_positive": 1.0},
+      "categorical_nll": {"advantage": -4.260400452689174, "ci95": [-5.065788958890762, -3.538412128090509], "probability_advantage_positive": 0.0},
+      "brier": {"advantage": -0.04183304061663914, "ci95": [-0.054909059083177315, -0.02989790004697793], "probability_advantage_positive": 0.0},
+      "argmax_position_error": {"advantage": 3.3815505548777454, "ci95": [2.5903133523305955, 4.228789155434077], "probability_advantage_positive": 1.0}
+    }
+  },
+  "interpretation": {
+    "coverage": "All 16 evaluation seeds contribute all three duration bins under equal seed/bin/episode weighting.",
+    "position_prior": "The largest tested prior lift is global-coordinate top1 minus uniform chance = 0.00702. All tested priors are far below entity_graph top1, but no prior-vs-chance inference gate is registered and this does not prove absence of untested leakage.",
+    "oracle": "The exact-kernel belief is better than geometric on all four recorded metrics, with every development paired-bootstrap interval above zero.",
+    "deployed_i1": "The old entity graph has lower top1 and worse Brier than geometric but better categorical NLL and distance, with all corresponding development intervals excluding zero. Against the field-wide-objective GRU and Slot it has better top1 and distance but worse categorical NLL and Brier, with every recorded development interval excluding zero.",
+    "neural_baselines": "GRU and Slot top1 are near the episode-binned chance scale and categorical NLL is lower than entity_graph; one initialization per neural baseline is insufficient for a model-family conclusion."
+  },
+  "constraints": {
+    "validation_or_holdout_consumed": false,
+    "protocol_frozen": false,
+    "source_or_dependency_lock_present": false,
+    "single_neural_initialization": true,
+    "neural_auxiliary_nearest_decoy_loss_still_present": false,
+    "neural_training_objective": "hidden-field binary BCE plus evaluator-matched sigmoid-occupancy all-positive-vs-field categorical NLL",
+    "neural_baseline_fairness_frozen": false,
+    "turn_probability_selected_without_candidate_metrics": true,
+    "pass_fail_thresholds_defined": false
+  }
+}
