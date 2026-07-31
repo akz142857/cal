@@ -20,13 +20,14 @@ from typing import Any, Iterable, Mapping
 ARTIFACT_SCHEMA_VERSION = 2
 CAPACITY_ARTIFACT_SCHEMA_VERSION = 2
 POWER_SIMULATION_DESIGN_VERSION = (
-    "outer_reference_bootstrap_variance_envelope_physical_null_v8"
+    "outer_reference_bootstrap_variance_envelope_physical_null_v10"
 )
 POWER_CANDIDATE_GENERATOR = (
     "bounded_physical_metric_advantage_with_fixed_variance_envelope_"
-    "and_feasible_covariance_v8"
+    "signed_reference_gap_and_feasible_covariance_v10"
 )
-POWER_GRID_POLICY_VERSION = "bounded_variance_envelope_grid_v5"
+POWER_GRID_POLICY_VERSION = "bounded_variance_envelope_grid_v6"
+POWER_MODEL_INITIALIZATION_POLICY = "fixed_model_seed_17011_no_power_axis_v1"
 POWER_GRID_ENDPOINT_VARIANCE_LIMIT = 0.90
 POWER_GRID_SCENARIOS = (
     {
@@ -44,20 +45,6 @@ POWER_GRID_SCENARIOS = (
         "variance_scale_multiplier": 1.5,
     },
     {
-        "scenario_name": "low_cov_nominal_variance_initialization",
-        "covariance_interval": "full_feasible",
-        "feasible_covariance_fraction": 0.25,
-        "single_initialization_sd_fraction": 0.10,
-        "variance_scale_multiplier": 1.0,
-    },
-    {
-        "scenario_name": "low_cov_high_variance_initialization",
-        "covariance_interval": "full_feasible",
-        "feasible_covariance_fraction": 0.25,
-        "single_initialization_sd_fraction": 0.10,
-        "variance_scale_multiplier": 1.5,
-    },
-    {
         "scenario_name": "high_cov_nominal_variance",
         "covariance_interval": "full_feasible",
         "feasible_covariance_fraction": 0.75,
@@ -69,20 +56,6 @@ POWER_GRID_SCENARIOS = (
         "covariance_interval": "full_feasible",
         "feasible_covariance_fraction": 0.75,
         "single_initialization_sd_fraction": 0.0,
-        "variance_scale_multiplier": 1.5,
-    },
-    {
-        "scenario_name": "high_cov_nominal_variance_initialization",
-        "covariance_interval": "full_feasible",
-        "feasible_covariance_fraction": 0.75,
-        "single_initialization_sd_fraction": 0.10,
-        "variance_scale_multiplier": 1.0,
-    },
-    {
-        "scenario_name": "high_cov_high_variance_initialization",
-        "covariance_interval": "full_feasible",
-        "feasible_covariance_fraction": 0.75,
-        "single_initialization_sd_fraction": 0.10,
         "variance_scale_multiplier": 1.5,
     },
 )
@@ -134,9 +107,10 @@ POWER_SIMULATION_GATE_NAMES = frozenset(
 )
 POWER_GRID_SELECTION_BASIS = (
     "fixed Cartesian product of feasible-covariance interval fractions "
-    "{0.25,0.75}, shared initialization SD fractions {0.00,0.10}, and "
-    "reference-relative variance-scale multipliers {1.0,1.5}; no power or coverage "
-    "result participates in grid construction"
+    "{0.25,0.75} and reference-relative variance-scale multipliers {1.0,1.5}; "
+    "power is conditional on preregistered model_seed=17011, so no synthetic "
+    "initialization axis participates; no power or coverage result participates "
+    "in grid construction"
 )
 POWER_LOCKED_SIMULATION_TRIALS = 1_024
 POWER_LOCKED_BOOTSTRAP_SAMPLES_PER_TRIAL = 2_000
@@ -144,6 +118,7 @@ POWER_LOCKED_SIMULATION_SEED = 20_260_731
 POWER_LOCKED_TYPE1_SIMULATION_SEED = 20_260_732
 POWER_LOCKED_BOOTSTRAP_SEED = 20_260_729
 POWER_LOCKED_FORMAL_BOOTSTRAP_SAMPLES = 10_000
+POWER_LOCKED_DEVELOPMENT_SOURCE_COUNT = 64
 POWER_CONFIRMATORY_ONE_SIDED_ALPHA = 0.01
 POWER_SEED_SAFETY_MULTIPLIER = 2.0
 POWER_FAMILYWISE_ALPHA = 0.05
@@ -151,8 +126,8 @@ POWER_TARGET_MINIMUM = 0.80
 POWER_TYPE1_MAXIMUM = 0.05
 POWER_COVERAGE_POINT_MINIMUM = 0.93
 POWER_COVERAGE_FAMILYWISE_LOWER_MINIMUM = 0.90
-POWER_LOCKED_MINIMUM_POWER_PASSES = 852
-POWER_LOCKED_MINIMUM_COVERED = 955
+POWER_LOCKED_MINIMUM_POWER_PASSES = 848
+POWER_LOCKED_MINIMUM_COVERED = 953
 POWER_LOCKED_MAXIMUM_FALSE_REJECTIONS = 29
 POWER_TYPE1_CONTRAST_NAMES = frozenset(
     {
@@ -855,7 +830,7 @@ def _validate_reference_health_power_artifact(
     complete_seed_ids = payload.get("complete_seed_ids")
     if (
         not isinstance(complete_seed_ids, list)
-        or len(complete_seed_ids) < 2
+        or len(complete_seed_ids) != POWER_LOCKED_DEVELOPMENT_SOURCE_COUNT
         or any(type(seed) is not int or seed < 0 for seed in complete_seed_ids)
         or complete_seed_ids != sorted(set(complete_seed_ids))
     ):
@@ -894,7 +869,7 @@ def _validate_reference_health_power_artifact(
     if simulation.get("candidate_generator") != POWER_CANDIDATE_GENERATOR:
         raise RuntimeError("power artifact candidate generator mismatch")
     if simulation.get("initialization_error_distribution") != (
-        "balanced_shared_rademacher"
+        POWER_MODEL_INITIALIZATION_POLICY
     ):
         raise RuntimeError("power initialization distribution mismatch")
     if simulation.get("simulation_rng") != "numpy.PCG64":
@@ -1042,7 +1017,7 @@ def _validate_reference_health_power_artifact(
         "construction_reads_power_or_coverage": False,
         "parameterization": (
             "fixed_reference_variance_scale_x_feasible_covariance_"
-            "interval_fraction_v2"
+            "interval_fraction_signed_gap_fixed_model_seed_v3"
         ),
         "alternative_grid_is_fixed_cartesian_product": True,
         "null_grid_is_fixed_cartesian_product": True,
@@ -1067,7 +1042,7 @@ def _validate_reference_health_power_artifact(
         f"{scope}/{metric}/init_{sign}"
         for scope in ("2-3", "4-5", "6+")
         for metric in POWER_METRIC_PHYSICAL_BOUNDS
-        for sign in ("-1", "+1")
+        for sign in ("+0",)
     }
     recomputed_power_passes: list[bool] = []
     recomputed_coverage_passes: list[bool] = []
@@ -1327,8 +1302,8 @@ def _validate_reference_health_power_artifact(
             result.get("initialization_sign_counts"),
             name="initialization sign counts",
         )
-        if signs != {"-1": (trials + 1) // 2, "+1": trials // 2}:
-            raise RuntimeError("initialization signs are not balanced")
+        if signs != {"0": trials}:
+            raise RuntimeError("fixed-model-seed initialization audit mismatch")
 
         target = _require_mapping(
             result.get("target_composite"), name="target composite"

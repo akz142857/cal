@@ -13,6 +13,7 @@ import argparse
 from collections import Counter
 import hashlib
 import json
+from pathlib import Path
 import shlex
 from typing import Any
 
@@ -25,6 +26,8 @@ from cal.evaluation.v2_i1_integration import WARMUP
 
 REGISTRY_VERSION = 2
 DEFAULT_STEPS = 200
+LOCKED_DEVELOPMENT_TRAIN_COUNT = 40
+LOCKED_PHASE0_EVALUATION_SOURCE_COUNT = 64
 COVERAGE_TURN_PROBABILITIES = (0.15, 0.25, 0.35, 0.45, 0.55)
 MIN_ACCEPTED_SINGLE_HIDDEN_SAMPLES = 12
 MIN_EPISODE_BIN_GROUPS = 2
@@ -352,11 +355,18 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--candidate-start", type=int, default=62_000)
     parser.add_argument("--candidate-stop", type=int, default=70_000)
-    parser.add_argument("--train-count", type=int, default=40)
-    parser.add_argument("--evaluation-count", type=int, default=16)
+    parser.add_argument(
+        "--train-count", type=int, default=LOCKED_DEVELOPMENT_TRAIN_COUNT
+    )
+    parser.add_argument(
+        "--evaluation-count",
+        type=int,
+        default=LOCKED_PHASE0_EVALUATION_SOURCE_COUNT,
+    )
     parser.add_argument("--summary", action="store_true")
     parser.add_argument("--selected-turn-probability", type=float)
     parser.add_argument("--turn-probability-selection-artifact")
+    parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     registry = generate_registry(
         candidate_start=args.candidate_start,
@@ -374,7 +384,11 @@ def main() -> None:
         )
     else:
         output = registry
-    print(json.dumps(output, indent=2, ensure_ascii=False))
+    rendered = json.dumps(output, indent=2, ensure_ascii=False) + "\n"
+    if args.output is not None:
+        args.output.write_text(rendered, encoding="utf-8")
+    else:
+        print(rendered, end="")
 
 
 if __name__ == "__main__":

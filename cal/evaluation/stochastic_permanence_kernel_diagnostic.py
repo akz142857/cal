@@ -23,10 +23,10 @@ from cal.evaluation.permanence_forward_benchmark import (
     _collect_many,
     _successors,
 )
-from cal.evaluation.stochastic_permanence_artifacts import (
+from cal.evaluation.stochastic_permanence_artifacts import source_lock
+from cal.evaluation.stochastic_permanence_capacity_artifacts import (
     CAPACITY_ARTIFACT_SCHEMA_VERSION,
-    source_lock,
-    write_canonical_artifact,
+    write_capacity_artifact,
 )
 from cal.evaluation.permanence_seed_registry import coverage_contract
 from cal.evaluation.stochastic_permanence_custody import (
@@ -43,12 +43,12 @@ from cal.model.stochastic_motion_filter import (
 
 
 DEFAULT_REGISTRY = Path(
-    "experiments/V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY.json"
+    "experiments/V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY_V2.json"
 )
 DEFAULT_OUTPUT = Path(
-    "experiments/V2_I1_P1_PHASE_R_CAPACITY_CONFORMANCE_DEVELOPMENT.json"
+    "experiments/V2_I1_P1_PHASE_R_CAPACITY_CONFORMANCE_DEVELOPMENT_V3.json"
 )
-DEFAULT_K_MAX = 48
+DEFAULT_K_MAX = 96
 DEFAULT_TURN_PROBABILITY = 0.35
 ACTIVE_STATE_LIMIT = 65_536
 PARAMETER_LIMIT = 100_000
@@ -453,6 +453,7 @@ def run_phase_r_diagnostic(
     )
     source_paths = (
         Path(__file__),
+        root / "cal/evaluation/stochastic_permanence_capacity_artifacts.py",
         root / "cal/model/stochastic_motion_filter.py",
         root / "cal/evaluation/permanence_forward_benchmark.py",
         root / "cal/evaluation/randomized_occlusion_world.py",
@@ -466,6 +467,7 @@ def run_phase_r_diagnostic(
         root / "cal/model/entity_graph.py",
         root / "cal/model/occupancy.py",
         root / "docs/experiments/V2_I1_STOCHASTIC_PERMANENCE_PLAN.md",
+        root / "docs/experiments/V2_I1_PHASE_R_CAPACITY_AMENDMENT_V3.md",
         registry_source,
         root / "pyproject.toml",
         root / "uv.lock",
@@ -608,10 +610,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         k_max=arguments.k_max,
         turn_probability=arguments.turn_probability,
     )
-    digest = write_canonical_artifact(
+    digest = write_capacity_artifact(
         arguments.output,
         artifact,
-        expected_kind="stochastic_permanence_capacity_conformance",
         overwrite=arguments.overwrite,
     )
     print(

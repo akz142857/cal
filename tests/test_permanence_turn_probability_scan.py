@@ -22,12 +22,12 @@ from cal.evaluation.permanence_turn_probability_scan import (
 
 ROOT = Path(__file__).parents[1]
 REGISTRY_PATH = (
-    ROOT / "experiments" / "V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY.json"
+    ROOT / "experiments" / "V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY_V2.json"
 )
 SCAN_PATH = (
     ROOT
     / "experiments"
-    / "V2_P1_PERMANENCE_TURN_PROBABILITY_DEVELOPMENT_SCAN.json"
+    / "V2_P1_PERMANENCE_TURN_PROBABILITY_DEVELOPMENT_SCAN_V2.json"
 )
 
 

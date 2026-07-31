@@ -16,6 +16,10 @@ from cal.evaluation.stochastic_permanence_artifacts import (
     verify_source_lock,
     write_canonical_artifact,
 )
+from cal.evaluation.stochastic_permanence_capacity_artifacts import (
+    load_capacity_artifact,
+    validate_capacity_artifact,
+)
 
 
 def test_exact_binomial_bounds_support_simultaneous_tail_probabilities() -> None:
@@ -31,7 +35,7 @@ def test_exact_binomial_bounds_support_simultaneous_tail_probabilities() -> None
 def test_phase0_schema_recomputes_moments_distribution_and_recommendation() -> None:
     path = (
         Path(__file__).resolve().parents[1]
-        / "experiments/V2_I1_P1_PHASE0_REFERENCE_HEALTH_POWER_DEVELOPMENT.json"
+        / "experiments/V2_I1_P1_PHASE0_REFERENCE_HEALTH_POWER_DEVELOPMENT_V10.json"
     )
     payload, _digest = load_canonical_artifact(
         path,
@@ -75,13 +79,40 @@ def test_phase0_schema_recomputes_moments_distribution_and_recommendation() -> N
             expected_kind="stochastic_permanence_reference_health_power",
         )
 
-    assert simulation["recommended_validation_seed_count"] is None
-    assert simulation["recommended_holdout_seed_count"] is None
+    assert simulation["recommended_validation_seed_count"] == 2630
+    assert simulation["recommended_holdout_seed_count"] == 2630
+
+
+def test_phase_r_v3_schema_locks_factor_local_capacity_evidence() -> None:
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "experiments/V2_I1_P1_PHASE_R_CAPACITY_CONFORMANCE_DEVELOPMENT_V3.json"
+    )
+    payload, _digest = load_capacity_artifact(path)
+
+    assert payload["decision"] == "phase_r_go"
+    assert payload["capacity_contract"]["K_max"] == 96
+    assert payload["capacity_contract"]["atomic_staging_scope"] == "one_factor"
+    assert payload["conformance"]["episode_count"] == 741
+
+    tampered = deepcopy(payload)
+    tampered["capacity_contract"]["persistent_arrays"]["scratch_codes"][
+        "shape"
+    ] = [payload["capacity_contract"]["S_max"]]
+    with pytest.raises(RuntimeError, match="scratch_codes layout"):
+        validate_capacity_artifact(tampered)
+
+    tampered = deepcopy(payload)
+    tampered["conformance"]["maximum_position_tv"] = 0.0
+    with pytest.raises(RuntimeError, match="maxima mismatch"):
+        validate_capacity_artifact(tampered)
 
 
 def _capacity_payload() -> dict[str, object]:
     root = Path(__file__).resolve().parents[1]
-    registry_path = "experiments/V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY.json"
+    registry_path = (
+        "experiments/V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY_V2.json"
+    )
     lock = source_lock(
         (
             root / "cal/model/stochastic_motion_filter.py",

@@ -12,20 +12,44 @@
 > 部分 metric 的方差放大到 reference scale 的数十至数百倍，不能代表可解释的 sensitivity。
 > simulation design v8 因此改用 reference-relative variance envelope、该 envelope 下的
 > feasibility-native covariance 坐标，并把 null 独立为四格 outer-robust grid。
+> v8 的锁定重跑得到有效 `phase0_no_go`：16-source outer population 下 binding power
+> 不足，并有少量 component-null outer recalibration 不可实现。v9 在不读取 candidate 的前提下，
+> 将 development source 扩大为首批 64 个模型盲合格 seeds，允许 reference gap 在逐 seed 上有符号，
+> 并把 power 明确定义为条件于预注册唯一 `model_seed=17011`；任意多初始化主张必须另建协议。
+> v9 的锁定重跑进一步把唯一 blocker 定位为窄可行 covariance 区间中的数值精度：4,096 个
+> outer-null trials 中 10 个 trial 的绝对 cross-moment 误差仅约
+> `2.8e-11–4.1e-11`，但除以约 `1.6e-5–2.6e-5` 的区间宽度后超过 `1e-6` fraction tolerance。
+> v10 在查看任何 candidate 前仅把内层 bounded-mean bisection 从 42 步预注册提高到 56 步；
+> grid、效应、RNG、trial 数、family 和接受门均保持不变。
 > 旧 `Phase0 Go / 774+774` 已撤回，不是 seed commitment；v3 No-Go 也不得被解释为候选模型失败。
 > base lock 与 secret manifest commitment 尚未完成，因此本文仍是非冻结计划，不能生成或消费
 > validation/holdout。
 
 ### 0.1 Phase 0 / Phase R development 实现状态
 
-- Phase 0：`V2_I1_P1_PHASE0_REFERENCE_HEALTH_POWER_DEVELOPMENT.json`；16 个完整 development
-  seeds 的 reference-health 仍只用于设计。simulation design v8 使用 outer seed bootstrap、逐 trial
+- Phase 0 v8：`V2_I1_P1_PHASE0_REFERENCE_HEALTH_POWER_DEVELOPMENT.json`；其 canonical
+  decision 是 `phase0_no_go`，只保留为不可改写的历史 development evidence。
+- Phase 0 v9：使用
+  `V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY_V2.json` 的 64 个完整 development source seeds。
+  registry 从同一连续候选流按原模型盲 coverage contract 选择首批合格 seeds，train 仍为 40；
+  `turn_p=0.35` 由绑定新 registry 的 scan V2 重新选择。simulation design v9 使用 outer seed
+  bootstrap、逐 trial
   feasibility-native moment recalibration、独立四格物理 component-null grid 和 exact simultaneous
   Monte-Carlo bounds；任何 outer population 不可实现、Type-I null 不可实现或 simultaneous evidence
   不足均直接 No-Go。artifact 内的 canonical decision 是当前唯一结果来源；只有全部 gate 通过时
   validation/holdout recommendation 才能非 `null`。旧 774/774 只是在固定经验分布 `F16` 下得到的
   历史 development 数值，已撤销推荐资格；仓库没有生成或保存秘密 seed。canonical digest 只记录在
   同名 `.sha256` sidecar，避免把 digest 写回被 source lock 覆盖的文档形成自引用。
+- Phase 0 v9 锁定结果：canonical digest
+  `eebe8a9770ad6a31e71aca9890fa9046a45a715b09446adec550a912d3e4237a`，decision 为
+  `phase0_no_go`。四个 alternative cells 的 power、108-cell coverage、reference health 和
+  physical-domain gates 均通过；已成功构造的 Type-I cells 也低于门槛。唯一失败是
+  `overall/candidate_vs_old_i1/position_error` 的 10 个 outer-null 数值校准，不能删去失败 trial
+  或用 4,086 个成功 trial 代替预注册分母。
+- Phase 0 v10：保留 v9 全部统计设计，只将 bounded conditional-mean 内层二分固定为 56 步，
+  以使窄可行区间上的实际 achieved covariance fraction 也满足原 `1e-6` tolerance。v9 artifact
+  保留为不可改写证据；v10 必须生成新 artifact/sidecar，重新执行全部 4,096 个 Type-I trials，
+  不得复用 v9 的通过计数。v10 通过前，Phase R/base freeze/validation/holdout 仍暂停。
 - Phase R 本轮只读内存重跑：`H=5`、`E=11`、`K=48`、`S=2640`，221 个完整遮挡
   episode/1602 个 checkpoint 无错误；38,400 个 known-topology transition cases 与真实 environment
   kernel 完全对齐；最大累计裁剪质量约 `2.11e-15`，最大 conditional spatial TV 约 `6.09e-8`，
@@ -541,7 +565,9 @@ Reliability 与 entropy 在第一版只作预注册诊断：
 
 在生成秘密 validation/holdout split 前，必须进行 candidate-independent power simulation：
 
-- 使用当前 baseline/oracle seed 间差异，但 sensitivity grid 的 covariance 轴必须由每个 outer
+- 使用当前 baseline/oracle seed 间差异；reference gap 允许在逐 seed 上为负，只要求用于 closure
+  的 population mean gap 为正。oracle、uniform 或 geometric 不需要在每个 seed 上逐点支配；
+  sensitivity grid 的 covariance 轴必须由每个 outer
   empirical population 在固定 reference-relative variance envelope 下的可行域定义；不能把固定
   correlation 当作所有 population 都必须精确达到的 hard target，也不能用物理 endpoint fraction
   直接定义跨 metric 不可比的方差；
@@ -558,28 +584,29 @@ Reliability 与 entropy 在第一版只作预注册诊断：
   `e_adjusted` 明确包含本 trial 的共享 initialization shift；
   不得用稀有 full-endpoint jump 或无界加性正态后裁剪。前者会造成重尾并使 percentile bootstrap
   欠覆盖，后者会改变目标效应与 coverage truth；
-- 每个 scenario 固定运行 1,024 trials，单一初始化误差按 trial index 严格平衡为 512 个 `-1` 和
-  512 个 `+1` 共享 Rademacher 符号，不能随机产生不平衡 composition；
-- 每个 trial 先从 16 个 development source seeds 有放回抽取 16-row outer empirical population，
+- 每个 binding scenario 固定运行 1,024 trials。正式候选预注册唯一 `model_seed=17011`，因此
+  power 条件于该固定算法实例，不再合成共享初始化 Rademacher 轴。未来若要主张初始化鲁棒性，
+  必须预注册多个独立 model seeds、训练预算和 reducer，不能把 evaluation seeds 当成初始化样本；
+- 每个 trial 先从 64 个 development source seeds 有放回抽取 64-row outer empirical population，
   再在该 population 内重新求全部 bounded moments 并抽取 candidate seeds；coverage truth 使用该
   outer population 上对 seed-level innovation 积分后的条件期望。任何 outer draw 不可实现或
-  endpoint variance fraction 超过 0.90 均记为该 scenario No-Go，不能只重复 `F16` 行到 N=774；
+  endpoint variance fraction 超过 0.90 均记为该 scenario No-Go，不能只重复经验行到推荐 N；
 - 所有 requested feasibility-native coordinates 必须保存 requested/achieved/feasible interval/
   tolerance；任何 metric/bin/init-sign 的 endpoint variance fraction 必须 `≤0.90`。covariance
   区间退化为单点时使用唯一物理解并把 correlation 标为不可识别诊断；目标均值不可行、完整可行区间
   为空或坐标误差超限均令该场景 No-Go，不得静默替换为较有利的 achieved moments；
 - 以第 9 节的联合 closure contrast、superiority 和非劣 margin 为目标；
-- superiority 和 non-inferiority power 的通过量不是 point estimate：对八个 scenario 使用
+- superiority 和 non-inferiority power 的通过量不是 point estimate：对四个 binding scenario 使用
   Bonferroni family-wise alpha 0.05 的 one-sided exact Clopper–Pearson lower bound，每个 scenario
   的 lower bound 都必须 `≥0.80`；
 - 对 20 个 binding contrasts 分别生成真实物理 metric score：conditional mean 位于该 component
   精确边界，covariance/endpoint variance 使用独立的四格 null grid，最终 score 仍在物理域内。
   component boundary 以绝对 mean advantage 直接校准，不得除以可能为零的 outer reference gap；
-  每个 null trial 也必须先 outer-resample 16 个 development seeds，再在该 outer population 上重新
+  每个 null trial 也必须先 outer-resample 64 个 development seeds，再在该 outer population 上重新
   校准全部 component boundaries；不得把 alternative contrast vector 事后平移到边界。四场景共
   80 cells，每个 cell 的 Bonferroni family-wise exact Type-I upper bound 必须 `≤0.05`；任一物理
   null 或 outer recalibration 不可实现即 No-Go；
-- one-sided CI coverage 的 family 同时覆盖八场景的全部 27 contrasts，共 216 cells。每个 cell
+- one-sided CI coverage 的 family 同时覆盖四场景的全部 27 contrasts，共 108 cells。每个 cell
   必须同时满足 observed coverage `≥0.93` 且 Bonferroni family-wise exact lower bound `≥0.90`；
   “区间包含 0.95”不再作为通过条件；
 - analytic maximum 使用单侧 `alpha=0.01`，再按固定 2.0× safety multiplier 得到唯一 candidate
@@ -592,15 +619,17 @@ Reliability 与 entropy 在第一版只作预注册诊断：
 power artifact 必须 canonical-hash 后进入 base protocol lock；冻结后不得替换 variance/covariance
 假设或只重算有利场景。
 
-simulation design v8 固定：power RNG `PCG64(20260731)`、component-null RNG
+simulation design v10 固定：bounded conditional-mean calibration 使用 56 步二分；power RNG
+`PCG64(20260731)`、component-null RNG
 `PCG64(20260732)`、每场景 1,024 trials、每 trial 2,000 次 power bootstrap；正式 decision runner
-使用单侧 99% lower bound 和 10,000 次 common bootstrap `PCG64(20260729)`。1,024 trials 下，
-八格 power family 至少需要 852/1,024 次通过，216-cell coverage family 至少需要
-955/1,024 次覆盖；80-cell Type-I family 最多允许 29/1,024 次 false rejection，以上阈值均由
+使用单侧 99% lower bound 和 10,000 次 common bootstrap `PCG64(20260729)`。64-source reference
+table 给出的 analytic maximum 是 1,315，固定 2.0× 后唯一 candidate seed count 为 2,630。
+1,024 trials 下，四格 power family 至少需要 848/1,024 次通过，108-cell coverage family至少需要
+953/1,024 次覆盖；80-cell Type-I family 最多允许 29/1,024 次 false rejection，以上阈值均由
 Bonferroni-adjusted exact Clopper–Pearson bounds 直接重算。任何较小 smoke-test artifact 只能是
 No-Go。
 
-### 8.2 预注册 outer-robust moment/null sensitivity grid v5
+### 8.2 预注册 outer-robust moment/null sensitivity grid v6
 
 令 `R` 为当前 outer empirical population 中逐 seed 的正向 reference gap，`A` 为合成 candidate
 advantage。在固定 target mean 和真实 metric bounds 后，runner 先要求
@@ -610,18 +639,14 @@ cross-moment 范围，并换算为 covariance 区间 `[C_low,C_high]`。预注�
 `feasible_covariance_fraction=q` 定义 `C=C_low+q(C_high-C_low)`；若区间退化为单点，任意 q
 映射到同一唯一物理解。achieved endpoint fraction、correlation 和 variance scale 都是审计字段。
 
-Alternative 的八个场景是完全固定的 Cartesian product：
+Alternative 的四个 binding 场景是完全固定的 Cartesian product：
 
-| scenario | covariance interval | feasible fraction q | initialization SD fraction | variance scale κ |
-|---|---|---:|---:|---:|
-| `low_cov_nominal_variance` | full feasible | 0.25 | 0.00 | 1.0 |
-| `low_cov_high_variance` | full feasible | 0.25 | 0.00 | 1.5 |
-| `low_cov_nominal_variance_initialization` | full feasible | 0.25 | 0.10 | 1.0 |
-| `low_cov_high_variance_initialization` | full feasible | 0.25 | 0.10 | 1.5 |
-| `high_cov_nominal_variance` | full feasible | 0.75 | 0.00 | 1.0 |
-| `high_cov_high_variance` | full feasible | 0.75 | 0.00 | 1.5 |
-| `high_cov_nominal_variance_initialization` | full feasible | 0.75 | 0.10 | 1.0 |
-| `high_cov_high_variance_initialization` | full feasible | 0.75 | 0.10 | 1.5 |
+| scenario | covariance interval | feasible fraction q | variance scale κ |
+|---|---|---:|---:|
+| `low_cov_nominal_variance` | full feasible | 0.25 | 1.0 |
+| `low_cov_high_variance` | full feasible | 0.25 | 1.5 |
+| `high_cov_nominal_variance` | full feasible | 0.75 | 1.0 |
+| `high_cov_high_variance` | full feasible | 0.75 | 1.5 |
 
 Null 不含没有统计意义的 initialization 符号重复，只使用四个唯一 Cartesian cells：
 
@@ -856,7 +881,7 @@ existence 或 posterior approximation。
 
 - 只用 40 个 train seeds 的完整 sensor/action streams fit；
 - 加载 immutable frozen kernel artifact；
-- 在 16 个 development evaluation seeds 上比较；
+- 在 64 个 development evaluation seeds 上比较；
 - 不重新选择 seed、turn_probability 或 evaluator；
 - 记录候选/超参数尝试预算和选择日志；
 - learned candidate 必须同时通过全部 confirmatory gates。
@@ -902,11 +927,11 @@ existence 或 posterior approximation。
 - birth/death、stale retirement、point merge/collision；
 - branch-local categorical self/action joint mixture、null class 与跨 hypothesis 隔离；
 - candidate runner determinism；
-- feasibility-native q/f Cartesian grid 的 exact rows、构造与 power/coverage 隔离；
-- outer development-seed bootstrap、逐 outer population q/f recalibration 与不可实现 fail-closed；
+- feasibility-native q/κ Cartesian grid 的 exact rows、构造与 power/coverage 隔离；
+- outer development-seed bootstrap、逐 outer population q/κ recalibration 与不可实现 fail-closed；
 - 物理 component-null 边界均值、metric bounds、四格 null outer recalibration 和 80-cell exact Type-I
   simultaneous upper bound；
-- 216-cell coverage point/lower-bound 门与八场景 simultaneous power lower bound；
+- 108-cell coverage point/lower-bound 门与四场景 simultaneous power lower bound；
 - policy/result 协调篡改、truthy 非布尔 gate、空 provenance、伪造 moment/physical evidence、seed
   recommendation 漂移均必须被 artifact validator 拒绝；
 - 总体/逐 bin common-resample paired CI、1% lower bound、joint closure contrast、reference-health
@@ -948,6 +973,6 @@ existence 或 posterior approximation。
 4. existence/identity/spatial posterior 的一致概率更新；
 5. evaluator、power 与一次性 evidence governance。
 
-Phase R development gate 已通过；Phase 0 必须以本节固定的 outer-robust grid v5 重新生成并通过
+Phase R development gate 已通过；Phase 0 必须以本节固定的 outer-robust grid v6 重新生成并通过
 strict artifact validation，才能形成 seed-count recommendation 和进入 base-lock review。无论
 development 决定为何，本计划仍不授权生成或消费 validation/holdout。

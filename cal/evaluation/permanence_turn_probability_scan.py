@@ -266,12 +266,19 @@ def main() -> None:
     parser.add_argument(
         "--seed-registry",
         type=Path,
-        default=Path("experiments/V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY.json"),
+        default=Path(
+            "experiments/V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY_V2.json"
+        ),
     )
+    parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     registry = json.loads(args.seed_registry.read_text(encoding="utf-8"))
     report = build_scan_artifact(registry, registry_path=str(args.seed_registry))
-    print(json.dumps(report, indent=2, ensure_ascii=False))
+    rendered = json.dumps(report, indent=2, ensure_ascii=False) + "\n"
+    if args.output is not None:
+        args.output.write_text(rendered, encoding="utf-8")
+    else:
+        print(rendered, end="")
 
 
 if __name__ == "__main__":

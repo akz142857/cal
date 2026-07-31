@@ -7,6 +7,8 @@ from pathlib import Path
 
 import cal.evaluation.permanence_seed_registry as seed_registry
 from cal.evaluation.permanence_seed_registry import (
+    LOCKED_DEVELOPMENT_TRAIN_COUNT,
+    LOCKED_PHASE0_EVALUATION_SOURCE_COUNT,
     REQUIRED_OCCLUSION_BINS,
     _selection_digest,
     _selection_provenance,
@@ -20,7 +22,7 @@ from cal.evaluation.permanence_seed_registry import (
 REGISTRY_PATH = (
     Path(__file__).parents[1]
     / "experiments"
-    / "V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY.json"
+    / "V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY_V2.json"
 )
 
 
@@ -122,4 +124,8 @@ def test_selection_digest_binds_candidate_range_split_and_audit_evidence():
 
 def test_committed_registry_matches_generator_and_all_accepted_seeds_reaudit():
     committed = json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
+    assert committed["requested_counts"] == {
+        "train": LOCKED_DEVELOPMENT_TRAIN_COUNT,
+        "evaluation": LOCKED_PHASE0_EVALUATION_SOURCE_COUNT,
+    }
     assert committed == reproduce_registry_artifact(committed)

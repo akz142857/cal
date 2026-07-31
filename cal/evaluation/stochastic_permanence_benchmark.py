@@ -40,6 +40,7 @@ from cal.evaluation.stochastic_permanence_artifacts import (
     POWER_LOCKED_SIMULATION_TRIALS,
     POWER_LOCKED_TYPE1_SIMULATION_SEED,
     POWER_METRIC_PHYSICAL_BOUNDS,
+    POWER_MODEL_INITIALIZATION_POLICY,
     POWER_SIMULATION_DESIGN_VERSION,
     POWER_SEED_SAFETY_MULTIPLIER,
     POWER_TARGET_MINIMUM,
@@ -59,6 +60,7 @@ POWER_SIMULATION_SEED = POWER_LOCKED_SIMULATION_SEED
 POWER_TYPE1_SIMULATION_SEED = POWER_LOCKED_TYPE1_SIMULATION_SEED
 POWER_GRID_MAX_ENDPOINT_VARIANCE_FRACTION = POWER_GRID_ENDPOINT_VARIANCE_LIMIT
 POWER_SENSITIVITY_GRID_VERSION = POWER_GRID_POLICY_VERSION
+BOUNDED_MOMENT_BISECTION_ITERATIONS = 56
 MODEL_SEED = 17_011
 MAX_CATEGORICAL_NLL = float(-np.log(1e-6))
 MAX_BRIER = 1.0
@@ -1598,10 +1600,12 @@ def _bounded_advantage_calibration(
 ) -> dict[str, Any]:
     """Calibrate a bounded advantage using feasible-native moment coordinates.
 
-    New preregistered scenarios choose a location inside the *positive
-    feasible covariance interval* and directly choose the fraction of
-    conditional endpoint variance.  Correlation and variance inflation are
-    therefore achieved diagnostics, not potentially impossible targets.
+    Preregistered scenarios choose a location inside the feasible covariance
+    interval at a fixed reference-relative variance scale.  The reference gap
+    may be signed per seed as long as its population mean is positive; an
+    oracle or baseline need not dominate on every individual seed.
+    Correlation and endpoint-variance fraction are therefore achieved
+    diagnostics, not potentially impossible targets.
     The legacy exact-correlation path remains only for focused compatibility
     tests and is not used by the preregistered grid.
     """
@@ -1620,13 +1624,16 @@ def _bounded_advantage_calibration(
     ):
         raise RuntimeError("candidate advantage bounds are invalid")
     tolerance = 1e-11
-    if np.any(vector < -tolerance):
-        raise RuntimeError("bounded power model requires non-negative gaps")
-    vector = np.maximum(vector, 0.0)
     reference_mean = float(vector.mean())
     reference_sd = float(vector.std(ddof=0))
     feasibility_native = "feasible_covariance_fraction" in scenario
-    if reference_mean <= 0.0 and not feasibility_native:
+    if (
+        target_mean_override is None
+        and (
+            reference_mean < -tolerance
+            or (reference_mean <= tolerance and not feasibility_native)
+        )
+    ):
         raise RuntimeError("bounded power model requires a positive mean gap")
     initialization_fraction = float(
         scenario["single_initialization_sd_fraction"]
@@ -1646,8 +1653,15 @@ def _bounded_advantage_calibration(
     )
     if target_mean_override is not None and reference_mean > tolerance:
         adjusted_effect = target_mean / reference_mean
-    if not float(lower.mean()) < target_mean < float(upper.mean()):
+    lower_mean = float(lower.mean())
+    upper_mean = float(upper.mean())
+    mean_scale = max(1.0, abs(lower_mean), abs(upper_mean), abs(target_mean))
+    if (
+        target_mean < lower_mean - tolerance * mean_scale
+        or target_mean > upper_mean + tolerance * mean_scale
+    ):
         raise RuntimeError("requested mean advantage is outside physical bounds")
+    target_mean = min(upper_mean, max(lower_mean, target_mean))
     variance_scale_effect = (
         abs(adjusted_effect)
         if variance_effect is None
@@ -1697,7 +1711,11 @@ def _bounded_advantage_calibration(
         span = max(1.0, float(widths.max()))
         low = float(shifted_lower.min() - span)
         high = float(shifted_upper.max() + span)
-        for _ in range(42):
+        # This inner solve controls the absolute cross-moment error.  A
+        # 42-step solve was accurate in absolute units but could miss the
+        # preregistered covariance-fraction tolerance after division by an
+        # exceptionally narrow feasible interval in an outer resample.
+        for _ in range(BOUNDED_MOMENT_BISECTION_ITERATIONS):
             middle = (low + high) / 2.0
             means = np.clip(middle + beta * standardized, lower, upper)
             current = float(means.mean())
@@ -1934,7 +1952,11 @@ def _bounded_advantage_calibration(
             > moment_tolerance
         ):
             raise RuntimeError(
-                "feasibility-native covariance calibration did not converge"
+                "feasibility-native covariance calibration did not converge: "
+                f"requested={requested_covariance_fraction:.12g}, "
+                f"achieved={achieved_covariance_fraction:.12g}, "
+                f"interval_width={feasible_width:.12g}, "
+                f"cross_error={cross_moment - target_cross_moment:.12g}"
             )
         target_variance_multiplier = (
             None
@@ -2358,7 +2380,7 @@ def _grid_construction_audit() -> dict[str, Any]:
         "construction_reads_power_or_coverage": False,
         "parameterization": (
             "fixed_reference_variance_scale_x_feasible_covariance_"
-            "interval_fraction_v2"
+            "interval_fraction_signed_gap_fixed_model_seed_v3"
         ),
         "alternative_grid_is_fixed_cartesian_product": True,
         "null_grid_is_fixed_cartesian_product": True,
@@ -2708,7 +2730,7 @@ def simulate_composite_power(
     for scenario_index, scenario in enumerate(_POWER_SENSITIVITY_GRID):
         audit: dict[str, dict[str, Any]] = {}
         failures: list[str] = []
-        for initialization_sign in (-1.0, 1.0):
+        for initialization_sign in (0.0,):
             try:
                 _simulated_score_table(
                     reference_table,
@@ -2779,7 +2801,9 @@ def simulate_composite_power(
                 "physical_component_nulls"
             ),
             "candidate_generator": POWER_CANDIDATE_GENERATOR,
-            "initialization_error_distribution": "balanced_shared_rademacher",
+            "initialization_error_distribution": (
+                POWER_MODEL_INITIALIZATION_POLICY
+            ),
             "simulation_rng": "numpy.PCG64",
             "simulation_seed": POWER_SIMULATION_SEED,
             "type1_simulation_seed": POWER_TYPE1_SIMULATION_SEED,
@@ -2829,7 +2853,7 @@ def simulate_composite_power(
         target_gate_counts: dict[str, int] = {}
         target_passes = 0
         coverage_counts: dict[str, int] = {}
-        initialization_sign_counts = {"-1": 0, "+1": 0}
+        initialization_sign_counts = {"0": 0}
         outer_failures: list[str] = []
         outer_moment_audit = {
             "successful_trials": 0,
@@ -2839,10 +2863,8 @@ def simulate_composite_power(
         }
         distribution_audit: dict[str, dict[str, float | int]] = {}
         for trial_index in range(trials):
-            initialization_sign = -1.0 if trial_index % 2 == 0 else 1.0
-            initialization_sign_counts[
-                "-1" if initialization_sign < 0 else "+1"
-            ] += 1
+            initialization_sign = 0.0
+            initialization_sign_counts["0"] += 1
             outer_draw = generator.integers(
                 0,
                 len(source_seed_ids),
@@ -3298,7 +3320,7 @@ def simulate_composite_power(
             "physical_component_nulls"
         ),
         "candidate_generator": POWER_CANDIDATE_GENERATOR,
-        "initialization_error_distribution": "balanced_shared_rademacher",
+        "initialization_error_distribution": POWER_MODEL_INITIALIZATION_POLICY,
         "simulation_rng": "numpy.PCG64",
         "simulation_seed": POWER_SIMULATION_SEED,
         "type1_simulation_seed": POWER_TYPE1_SIMULATION_SEED,

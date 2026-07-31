@@ -17,6 +17,7 @@ import numpy as np
 
 from cal.evaluation.permanence_forward_benchmark import run_benchmark
 from cal.evaluation.permanence_seed_registry import (
+    LOCKED_DEVELOPMENT_TRAIN_COUNT,
     coverage_contract,
     reproduce_registry_artifact,
 )
@@ -24,6 +25,7 @@ from cal.evaluation.permanence_turn_probability_scan import (
     validate_scan_artifact,
 )
 from cal.evaluation.stochastic_permanence_artifacts import (
+    POWER_LOCKED_DEVELOPMENT_SOURCE_COUNT,
     sha256_path,
     source_lock,
     write_canonical_artifact,
@@ -41,10 +43,10 @@ from cal.evaluation.stochastic_permanence_custody import (
 
 
 DEFAULT_REGISTRY = Path(
-    "experiments/V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY.json"
+    "experiments/V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY_V2.json"
 )
 DEFAULT_OUTPUT = Path(
-    "experiments/V2_I1_P1_PHASE0_REFERENCE_HEALTH_POWER_DEVELOPMENT.json"
+    "experiments/V2_I1_P1_PHASE0_REFERENCE_HEALTH_POWER_DEVELOPMENT_V10.json"
 )
 
 
@@ -93,6 +95,13 @@ def _validate_registry_population_and_digest(registry: dict[str, Any]) -> None:
     requested = registry.get("requested_counts")
     if requested != {"train": len(train), "evaluation": len(evaluation)}:
         raise RuntimeError("registry requested counts do not match seed populations")
+    if requested != {
+        "train": LOCKED_DEVELOPMENT_TRAIN_COUNT,
+        "evaluation": POWER_LOCKED_DEVELOPMENT_SOURCE_COUNT,
+    }:
+        raise RuntimeError(
+            "registry does not match locked Phase 0 source counts"
+        )
     candidate_range = registry.get("candidate_range")
     if not isinstance(candidate_range, dict):
         raise RuntimeError("registry candidate range is missing")

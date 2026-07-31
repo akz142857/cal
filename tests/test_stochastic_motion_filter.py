@@ -229,11 +229,14 @@ def test_no_detection_updates_conditional_probability_and_existence_once() -> No
 
 
 def test_full_packed_pool_is_bounded_and_fully_detached() -> None:
-    pool = PackedPosteriorPool(k_max=48)
+    pool = PackedPosteriorPool(k_max=96)
     pool.fill_fully_detached()
 
-    assert pool.s_max == 5 * 11 * 48
+    assert pool.s_max == 5 * 11 * 96
     assert pool.capacity_contract()["fully_detached_safe"] is True
+    assert pool.capacity_contract()["atomic_staging_scope"] == "one_factor"
+    assert pool.scratch_codes.shape == (96,)
+    assert pool.scratch_probability.shape == (96,)
     assert pool.capacity_contract()["direct_index_accumulator"] is True
     assert pool.capacity_contract()["shared_expansion_workspace_size"] == (
         pool.capacity_contract()["shared_expansion_workspace_required"]
@@ -261,6 +264,31 @@ def test_packed_pool_overflow_is_atomic() -> None:
     assert np.array_equal(pool.codes, before[0])
     assert np.array_equal(pool.probability, before[1])
     assert np.array_equal(pool.counts, before[2])
+
+
+def test_packed_pool_factor_local_commit_preserves_other_factors() -> None:
+    pool = PackedPosteriorPool(k_max=96)
+    pool.fill_fully_detached()
+    before_codes = pool.codes.copy()
+    before_probability = pool.probability.copy()
+    codes = before_codes[:3][::-1]
+
+    pool.replace_factor_atomic(0, 1, codes, np.asarray([1.0, 2.0, 1.0]))
+
+    start = pool.k_max
+    stop = 2 * pool.k_max
+    assert np.array_equal(pool.codes[:start], before_codes[:start])
+    assert np.array_equal(pool.codes[stop:], before_codes[stop:])
+    assert np.array_equal(
+        pool.probability[:start], before_probability[:start]
+    )
+    assert np.array_equal(
+        pool.probability[stop:], before_probability[stop:]
+    )
+    assert np.array_equal(pool.codes[start : start + 3], codes)
+    assert np.allclose(pool.probability[start : start + 3], [0.25, 0.5, 0.25])
+    assert np.count_nonzero(pool.probability[start + 3 : stop]) == 0
+    assert pool.counts[0, 1] == 3
 
 
 def test_packed_accumulator_is_direct_index_not_quadratic_scan() -> None:

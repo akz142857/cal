@@ -38,9 +38,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _valid_power_provenance(seed_ids: list[int]) -> dict[str, object]:
-    registry = "experiments/V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY.json"
+    registry = "experiments/V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY_V2.json"
     turn_scan = (
-        "experiments/V2_P1_PERMANENCE_TURN_PROBABILITY_DEVELOPMENT_SCAN.json"
+        "experiments/V2_P1_PERMANENCE_TURN_PROBABILITY_DEVELOPMENT_SCAN_V2.json"
     )
     sources = (
         "cal/evaluation/stochastic_permanence_phase0.py",
@@ -229,6 +229,107 @@ def test_feasibility_native_calibration_hits_constructive_coordinates() -> None:
     )
 
 
+def test_feasibility_native_calibration_accepts_signed_reference_gaps() -> None:
+    reference = np.asarray([-0.04, 0.01, 0.03, 0.08, 0.12, 0.18])
+    calibration = _bounded_advantage_calibration(
+        reference,
+        lower_bounds=np.full(reference.shape, -0.5),
+        upper_bounds=np.full(reference.shape, 0.5),
+        target_effect=0.30,
+        scenario={
+            "covariance_interval": "full_feasible",
+            "feasible_covariance_fraction": 0.25,
+            "single_initialization_sd_fraction": 0.0,
+            "variance_scale_multiplier": 1.0,
+        },
+        initialization_sign=0.0,
+    )
+
+    assert np.mean(calibration["conditional_advantage_means"]) == pytest.approx(
+        0.30 * np.mean(reference)
+    )
+    assert calibration["achieved_feasible_covariance_fraction"] == pytest.approx(
+        0.25
+    )
+
+
+def test_feasibility_native_calibration_resolves_narrow_covariance_interval() -> None:
+    reference = np.asarray(
+        [
+            3.9852576046958217,
+            3.335508067326538,
+            6.795818351374349,
+            9.15696202393178,
+            9.17704708535491,
+            7.355968973309078,
+            4.1523558026142915,
+            2.2590750513815254,
+        ]
+    )
+    baseline = np.asarray(
+        [
+            19.568952906944922,
+            19.739990963459608,
+            8.729379420665607,
+            4.477991511511425,
+            19.67652332073002,
+            10.348202333481751,
+            19.788019259324827,
+            10.68992239652504,
+        ]
+    )
+    target_mean = -5.872111743570096
+    calibration = _bounded_advantage_calibration(
+        reference,
+        lower_bounds=baseline - 20.0,
+        upper_bounds=baseline,
+        target_effect=target_mean / float(reference.mean()),
+        target_mean_override=target_mean,
+        variance_effect=0.765602916986923,
+        scenario={
+            "covariance_interval": "full_feasible",
+            "feasible_covariance_fraction": 0.25,
+            "single_initialization_sd_fraction": 0.0,
+            "variance_scale_multiplier": 1.0,
+        },
+        initialization_sign=0.0,
+    )
+
+    interval_width = (
+        calibration["feasible_covariance_upper"]
+        - calibration["feasible_covariance_lower"]
+    )
+    assert 0.0 < interval_width < 1e-9
+    assert abs(
+        calibration["achieved_feasible_covariance_fraction"] - 0.25
+    ) <= 1e-9
+
+
+def test_feasibility_native_calibration_accepts_physical_mean_boundary() -> None:
+    reference = np.asarray([0.1, 0.2, 0.3, 0.4])
+    lower = np.asarray([0.0, 0.1, 0.2, 0.3])
+    calibration = _bounded_advantage_calibration(
+        reference,
+        lower_bounds=lower,
+        upper_bounds=np.ones(reference.shape),
+        target_effect=0.0,
+        target_mean_override=float(lower.mean()),
+        variance_effect=0.45,
+        scenario={
+            "covariance_interval": "full_feasible",
+            "feasible_covariance_fraction": 0.75,
+            "single_initialization_sd_fraction": 0.0,
+            "variance_scale_multiplier": 1.5,
+        },
+        initialization_sign=0.0,
+    )
+
+    assert calibration["conditional_advantage_means"] == pytest.approx(lower)
+    assert calibration["covariance_interval_degenerate"] is True
+    assert calibration["variance_floor_applied"] is True
+    assert calibration["endpoint_variance_fraction"] == pytest.approx(0.0)
+
+
 def test_feasibility_native_calibration_accepts_degenerate_outer_gap() -> None:
     reference = np.zeros(6)
     calibration = _bounded_advantage_calibration(
@@ -314,12 +415,8 @@ def test_feasibility_native_power_and_null_grids_are_exact_cartesian_products() 
     assert triples == [
         (0.25, 0.0, 1.0),
         (0.25, 0.0, 1.5),
-        (0.25, 0.10, 1.0),
-        (0.25, 0.10, 1.5),
         (0.75, 0.0, 1.0),
         (0.75, 0.0, 1.5),
-        (0.75, 0.10, 1.0),
-        (0.75, 0.10, 1.5),
     ]
     assert [
         (
@@ -466,8 +563,8 @@ def test_reference_floor_and_complete_population_fail_closed() -> None:
 
 
 def test_reference_health_and_power_artifact_never_reads_candidate() -> None:
-    reference = _reference_table(_passing_table())
-    provenance = _valid_power_provenance(list(range(20)))
+    reference = _reference_table(_passing_table(seed_count=64))
+    provenance = _valid_power_provenance(list(range(64)))
     first = build_reference_health_power_artifact(
         reference,
         registry_selection_digest_sha256="c" * 64,
@@ -498,7 +595,7 @@ def test_reference_health_and_power_artifact_never_reads_candidate() -> None:
         in simulation["gates"]
     )
     assert simulation["sensitivity_grid_policy"]["construction_audit"]
-    assert simulation["simulation_design_version"].endswith("_v8")
+    assert simulation["simulation_design_version"].endswith("_v10")
     assert first["power_design"][
         "composite_bootstrap_simulation_required_before_secret_commitment"
     ] is False

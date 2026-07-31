@@ -567,8 +567,12 @@ class PackedPosteriorPool:
         )
         self.codes = np.zeros(self.s_max, dtype=np.uint16)
         self.probability = np.zeros(self.s_max, dtype=np.float32)
-        self.scratch_codes = np.zeros(self.s_max, dtype=np.uint16)
-        self.scratch_probability = np.zeros(self.s_max, dtype=np.float32)
+        # Atomic replacement stages only the factor being committed.  All
+        # validation that can fail completes before the live factor slice is
+        # touched, so duplicating the complete H*E posterior bank is neither
+        # necessary for rollback nor part of active model state.
+        self.scratch_codes = np.zeros(self.k_max, dtype=np.uint16)
+        self.scratch_probability = np.zeros(self.k_max, dtype=np.float32)
         self.expansion_codes = np.zeros(
             MAX_SUCCESSORS_PER_STATE * self.k_max, dtype=np.uint16
         )
@@ -622,8 +626,8 @@ class PackedPosteriorPool:
             valid_codes, self.hypotheses * self.entities
         )
         self.probability[:] = 1.0 / self.k_max
-        self.scratch_codes[:] = self.codes
-        self.scratch_probability[:] = self.probability
+        self.scratch_codes[:] = 0
+        self.scratch_probability[:] = 0.0
         self.counts.fill(self.k_max)
         self.existence.fill(1.0)
         self.self_probability.fill(0.0)
@@ -671,17 +675,12 @@ class PackedPosteriorPool:
 
         start = (hypothesis * self.entities + entity) * self.k_max
         stop = start + self.k_max
-        self.scratch_codes[:] = self.codes
-        self.scratch_probability[:] = self.probability
-        self.scratch_codes[start:stop] = 0
-        self.scratch_probability[start:stop] = 0.0
-        self.scratch_codes[start : start + count] = candidate_codes
-        self.scratch_probability[start : start + count] = normalized
-        self.codes, self.scratch_codes = self.scratch_codes, self.codes
-        self.probability, self.scratch_probability = (
-            self.scratch_probability,
-            self.probability,
-        )
+        self.scratch_codes.fill(0)
+        self.scratch_probability.fill(0.0)
+        self.scratch_codes[:count] = candidate_codes
+        self.scratch_probability[:count] = normalized
+        self.codes[start:stop] = self.scratch_codes
+        self.probability[start:stop] = self.scratch_probability
         self.counts[hypothesis, entity] = count
 
     @property
@@ -734,8 +733,10 @@ class PackedPosteriorPool:
             "probability_dtype": str(self.probability.dtype),
             "overflow_policy": "atomic_fail_without_partial_commit",
             "update_schedule": (
-                "sequential_factor_expansion_into_full_scratch_then_array_swap"
+                "sequential_factor_expansion_into_factor_local_staging_then_"
+                "validated_slice_commit"
             ),
+            "atomic_staging_scope": "one_factor",
             "shared_expansion_workspace_size": int(self.expansion_codes.size),
             "shared_expansion_workspace_required": (
                 self.k_max * MAX_SUCCESSORS_PER_STATE
