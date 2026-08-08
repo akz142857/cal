@@ -541,6 +541,43 @@ def _uniform_field_maps(samples: list[_Sample]) -> np.ndarray:
     return maps
 
 
+def _wasted_field_mass(
+    samples: list[_Sample], maps: dict[str, np.ndarray]
+) -> dict[str, dict[str, float]]:
+    """Per-predictor share of mass placed outside the hidden candidate field.
+
+    Diagnostic only, deliberately **not** a gate.  Cells outside the field are
+    visible or static, so the object provably is not there, and `_rank`
+    discards that mass instead of penalising it -- which is one of the two
+    things the scorer does on the candidate's behalf (2026-08-08 review, F1).
+    Measuring it separates "knows where the object is" from "knows where it is
+    not", but it cannot be a gate: `_Sample` hands the candidate the visibility
+    mask, so zeroing visible cells fakes a perfect score with no belief at all.
+    """
+
+    result: dict[str, dict[str, float]] = {}
+    for name, matrix in maps.items():
+        shares: list[float] = []
+        for row, sample in enumerate(samples):
+            vector = np.clip(matrix[row], 0.0, 1.0)
+            total = float(vector.sum())
+            if total <= 0.0:
+                continue
+            inside = float(
+                vector[[_cell_index(c) for c in sample.candidate_cells]].sum()
+            )
+            shares.append(1.0 - inside / total)
+        result[name] = {
+            "mean": float(np.mean(shares)) if shares else 0.0,
+            "median": float(np.median(shares)) if shares else 0.0,
+            "zero_waste_rate": (
+                float(np.mean([s < 1e-9 for s in shares])) if shares else 0.0
+            ),
+            "scored_sample_count": len(shares),
+        }
+    return result
+
+
 def _rank(occupancy: np.ndarray, sample: _Sample) -> dict[str, float]:
     """Score a map after projection onto the shared hidden candidate field.
 
@@ -966,9 +1003,18 @@ def run_benchmark(
     if not train_samples:
         raise ValueError("training configuration produced no valid hidden-object samples")
 
+    from cal.evaluation._permanence_belief_free_baseline import (
+        belief_free_predictor_maps,
+    )
+
     maps: dict[str, np.ndarray] = {
         "belief": np.stack([_belief_map(s, turn_probability) for s in eval_samples]),
         "geometric": np.stack([_geometric_map(s) for s in eval_samples]),
+        # Calibrated smearing around the same reflecting extrapolation the
+        # geometric baseline uses.  It is the strongest predictor that performs
+        # no belief filtering, so it -- not the point mass -- is the floor a
+        # permanence claim has to clear.
+        "belief_free": belief_free_predictor_maps(train_samples, eval_samples),
     }
     if include_entity_graph:
         maps["entity_graph"] = np.stack(
@@ -1140,6 +1186,7 @@ def run_benchmark(
         "evaluation_collection_audit": dict(sorted(evaluation_audit.items())),
         "training_collection_audit": dict(sorted(training_audit.items())),
         "leakage_audit": leakage_audit,
+        "wasted_field_mass": _wasted_field_mass(eval_samples, maps),
         "edge_case_audit": edge_case_audit,
         "evaluation_seed_coverage": evaluation_seed_coverage,
         "model_rng_policy": "agent_seed_base_plus_episode_index_not_world_seed",

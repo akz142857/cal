@@ -22,7 +22,7 @@ from cal.evaluation.permanence_seed_registry import (
 REGISTRY_PATH = (
     Path(__file__).parents[1]
     / "experiments"
-    / "V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY_V2.json"
+    / "V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY_V4.json"
 )
 
 
@@ -35,8 +35,12 @@ def test_coverage_contract_is_model_blind_and_complete():
 
 
 def test_seed_audit_accepts_and_rejects_by_event_structure():
+    # 62003 qualified before the hidden stream became HMAC-keyed; under the new
+    # trajectories it no longer produces enough 6+ episode groups, so the
+    # accepted example moved to 62002.  Seed identities are not stable across a
+    # world change -- only the audit's structure is.
     rejected = audit_seed(62000)
-    accepted = audit_seed(62003)
+    accepted = audit_seed(62002)
     assert rejected["accepted"] is False
     assert rejected["rejection_reasons"]
     assert accepted["accepted"] is True
@@ -74,7 +78,7 @@ def test_generator_selects_first_qualifying_seeds_deterministically():
         train_count=1,
         evaluation_count=1,
     )
-    assert first["train_seeds"] == [62003]
+    assert first["train_seeds"] == [62002]
     assert first["evaluation_seeds"] == [62006]
     assert first["selection_digest_sha256"] == second["selection_digest_sha256"]
     assert first["model_metrics_read"] is False

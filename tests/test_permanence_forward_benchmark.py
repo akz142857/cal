@@ -364,8 +364,10 @@ def test_paired_bootstrap_uses_complete_seed_scores_and_is_deterministic():
     )
     comparison = first["paired_seed_bootstrap"]["belief_vs_geometric"]
     assert comparison == second["paired_seed_bootstrap"]["belief_vs_geometric"]
-    assert comparison["paired_seed_count"] == 4
-    assert comparison["paired_seed_ids"] == [62077, 62078, 62079, 62080]
+    # 62080 only yields 2-3 events under the HMAC-keyed hidden stream, so the
+    # complete-seed requirement drops it -- which is the behaviour under test.
+    assert comparison["paired_seed_count"] == 3
+    assert comparison["paired_seed_ids"] == [62077, 62078, 62079]
     assert comparison["bootstrap_samples"] == 500
     assert set(comparison["metrics"]) == {
         "top1_accuracy",

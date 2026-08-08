@@ -66,7 +66,33 @@ MAX_CATEGORICAL_NLL = float(-np.log(1e-6))
 MAX_BRIER = 1.0
 MAX_POSITION_ERROR = 20.0
 OCCLUSION_BINS = ("2-3", "4-5", "6+")
-PREDICTORS = ("candidate", "oracle", "geometric", "uniform", "old_i1")
+PREDICTORS = (
+    "candidate",
+    "oracle",
+    "geometric",
+    "belief_free",
+    "uniform",
+    "old_i1",
+)
+
+# The lower reference for top-1 closure.  It used to be `geometric`, a
+# point-mass reflecting extrapolation, but the 2026-08-08 review showed a
+# candidate doing no belief filtering at all -- reflecting extrapolation plus a
+# fitted error profile -- clears every gate defined against it.  `belief_free`
+# is that attacker, kept as a permanent reference so a candidate has to show
+# what it adds over calibrated smearing rather than over a point mass.
+TOP1_CLOSURE_BASELINE = "belief_free"
+
+# The candidate-independent predictors every score table must carry.  Kept as
+# one constant because it was previously spelled out at eight call sites, and
+# adding `belief_free` to some but not all of them fails only at runtime.
+REFERENCE_PREDICTORS = (
+    "oracle",
+    "geometric",
+    "belief_free",
+    "uniform",
+    "old_i1",
+)
 METRICS = (
     "top1_accuracy",
     "categorical_nll",
@@ -580,7 +606,7 @@ def _reference_vector(
             seed_ids=seed_ids,
         ) - _scope_values(
             table,
-            predictor="geometric",
+            predictor=TOP1_CLOSURE_BASELINE,
             metric=metric,
             scope=scope,
             seed_ids=seed_ids,
@@ -605,7 +631,7 @@ def build_reference_health(
 ) -> tuple[dict[str, Any], tuple[str, ...]]:
     seed_ids = _validate_score_table(
         table,
-        required_predictors=("oracle", "geometric", "uniform", "old_i1"),
+        required_predictors=REFERENCE_PREDICTORS,
     )
     indices = common_bootstrap_indices(len(seed_ids))
     result: dict[str, Any] = {}
@@ -624,7 +650,7 @@ def build_reference_health(
                 "floor": float(REFERENCE_FLOOR_FRACTION * summary["mean"]),
                 "floor_fraction": REFERENCE_FLOOR_FRACTION,
                 "reference": (
-                    "oracle_minus_geometric"
+                    "oracle_minus_belief_free"
                     if metric == "top1_accuracy"
                     else "uniform_minus_oracle"
                 ),
@@ -670,7 +696,7 @@ def _closure_contrast(
     threshold: float,
     seed_ids: Sequence[str],
 ) -> np.ndarray:
-    baseline = "geometric" if metric == "top1_accuracy" else "uniform"
+    baseline = TOP1_CLOSURE_BASELINE if metric == "top1_accuracy" else "uniform"
     gain = _advantage(
         table,
         first="candidate",
@@ -702,7 +728,7 @@ def _validate_reference_health_contract(
                 f"invalid reference-health contract for {scope}/{metric}"
             ) from error
         expected_reference = (
-            "oracle_minus_geometric"
+            "oracle_minus_belief_free"
             if metric == "top1_accuracy"
             else "uniform_minus_oracle"
         )
@@ -1491,7 +1517,7 @@ def _planning_target_effects(
     """
 
     seed_ids = _validate_score_table(
-        table, required_predictors=("oracle", "geometric", "uniform", "old_i1")
+        table, required_predictors=REFERENCE_PREDICTORS
     )
     effects = deepcopy(_POWER_TARGET_EFFECTS)
     long_reference = _reference_vector(
@@ -1554,7 +1580,7 @@ def _planning_target_effects(
 
 def _boundary_effects(table: Mapping[str, Any]) -> dict[str, dict[str, float]]:
     seed_ids = _validate_score_table(
-        table, required_predictors=("oracle", "geometric", "uniform", "old_i1")
+        table, required_predictors=REFERENCE_PREDICTORS
     )
     top_means = {
         scope: float(
@@ -2098,7 +2124,7 @@ def _simulated_score_table(
 ) -> dict[str, Any]:
     source_seed_ids = _validate_score_table(
         reference_table,
-        required_predictors=("oracle", "geometric", "uniform", "old_i1"),
+        required_predictors=REFERENCE_PREDICTORS,
     )
     selected = np.asarray(draw, dtype=np.int64)
     if selected.ndim != 1 or selected.size < 2:
@@ -2110,7 +2136,7 @@ def _simulated_score_table(
             str(index): deepcopy(reference_table[predictor][source_seed_ids[source]])
             for index, source in enumerate(selected)
         }
-        for predictor in ("oracle", "geometric", "uniform", "old_i1")
+        for predictor in ("oracle", "geometric", "belief_free", "uniform", "old_i1")
     }
     result["candidate"] = {}
     cache = calibration_cache if calibration_cache is not None else {}
@@ -2128,7 +2154,7 @@ def _simulated_score_table(
     metric_bounds: dict[tuple[str, str], tuple[np.ndarray, np.ndarray]] = {}
     for scope in OCCLUSION_BINS:
         for metric in ("top1_accuracy", "categorical_nll", "brier"):
-            baseline = "geometric" if metric == "top1_accuracy" else "uniform"
+            baseline = TOP1_CLOSURE_BASELINE if metric == "top1_accuracy" else "uniform"
             baseline_values = _scope_values(
                 reference_table,
                 predictor=baseline,
@@ -2258,7 +2284,7 @@ def _simulated_score_table(
                     generator=generator,
                     include_independent_innovation=include_independent_innovation,
                 )
-                baseline = "geometric" if metric == "top1_accuracy" else "uniform"
+                baseline = TOP1_CLOSURE_BASELINE if metric == "top1_accuracy" else "uniform"
                 baseline_value = float(
                     reference_table[baseline][source_seed][scope][metric]
                 )
@@ -2352,7 +2378,7 @@ def _resampled_reference_table(
 
     source_seed_ids = _validate_score_table(
         reference_table,
-        required_predictors=("oracle", "geometric", "uniform", "old_i1"),
+        required_predictors=REFERENCE_PREDICTORS,
     )
     selected = np.asarray(draw, dtype=np.int64)
     if (
@@ -2369,7 +2395,7 @@ def _resampled_reference_table(
             )
             for output_index, source_index in enumerate(selected)
         }
-        for predictor in ("oracle", "geometric", "uniform", "old_i1")
+        for predictor in ("oracle", "geometric", "belief_free", "uniform", "old_i1")
     }
 
 
@@ -2406,7 +2432,7 @@ def _component_boundary_mean_advantage(
     )
     seed_ids = _validate_score_table(
         reference_table,
-        required_predictors=("oracle", "geometric", "uniform", "old_i1"),
+        required_predictors=REFERENCE_PREDICTORS,
     )
     reference = _reference_vector(
         reference_table, metric=metric, scope=scope, seed_ids=seed_ids
@@ -2491,7 +2517,7 @@ def _physical_component_boundary_vector(
     scopes = OCCLUSION_BINS if requested_scope == "overall" else (requested_scope,)
     source_seed_ids = _validate_score_table(
         reference_table,
-        required_predictors=("oracle", "geometric", "uniform", "old_i1"),
+        required_predictors=REFERENCE_PREDICTORS,
     )
     selected = np.asarray(draw, dtype=np.int64)
     contrast_by_scope: list[np.ndarray] = []
@@ -2700,7 +2726,7 @@ def simulate_composite_power(
     )
     source_seed_ids = _validate_score_table(
         reference_table,
-        required_predictors=("oracle", "geometric", "uniform", "old_i1"),
+        required_predictors=REFERENCE_PREDICTORS,
     )
     indices = _power_bootstrap_indices(recommended_seed_count, bootstrap_samples)
     truth_indices = np.arange(len(source_seed_ids), dtype=np.int64).reshape(1, -1)
@@ -3441,11 +3467,15 @@ def build_reference_health_power_artifact(
         position_target_effect=position_target_effect,
     )
     planning["composite_bootstrap_simulation_required_before_secret_commitment"] = False
+    # `mean_at_least_development_floor` used to sit here as well.  It compared
+    # the mean against `0.25 * that same mean`, so it reduced to `mean >= 0`
+    # and a non-positive mean raises earlier during sizing -- the component
+    # could never be False and protected nothing (2026-08-08 review, F5).  The
+    # floor itself is kept in the health artifact because the *confirmatory*
+    # path uses it correctly: there it gates a fresh confirmatory mean against
+    # the frozen development floor, which is a genuine independent check.
     reference_gate_details = {
         f"{scope}/{metric}": {
-            "mean_at_least_development_floor": bool(
-                health[scope][metric]["mean"] >= health[scope][metric]["floor"]
-            ),
             "one_sided_99_lower_positive": bool(
                 health[scope][metric]["one_sided_99_lower"] > 0.0
             ),

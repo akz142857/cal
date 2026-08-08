@@ -13,6 +13,7 @@ from cal.evaluation.stochastic_permanence_artifacts import (
 )
 from cal.evaluation.stochastic_permanence_benchmark import (
     PREDICTORS,
+    REFERENCE_PREDICTORS,
     REQUIRED_RESOURCE_GATES,
     _POWER_NULL_SENSITIVITY_GRID,
     _POWER_SENSITIVITY_GRID,
@@ -38,9 +39,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _valid_power_provenance(seed_ids: list[int]) -> dict[str, object]:
-    registry = "experiments/V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY_V2.json"
+    registry = "experiments/V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY_V4.json"
     turn_scan = (
-        "experiments/V2_P1_PERMANENCE_TURN_PROBABILITY_DEVELOPMENT_SCAN_V2.json"
+        "experiments/V2_P1_PERMANENCE_TURN_PROBABILITY_DEVELOPMENT_SCAN_V4.json"
     )
     sources = (
         "cal/evaluation/stochastic_permanence_phase0.py",
@@ -101,6 +102,7 @@ def _passing_table(seed_count: int = 20) -> dict[str, object]:
             "candidate": _metrics(top1=0.70, nll=1.50, brier=0.025, error=2.5),
             "oracle": _metrics(top1=0.80, nll=1.00, brier=0.020, error=1.0),
             "geometric": _metrics(top1=0.60, nll=4.00, brier=0.040, error=8.0),
+            "belief_free": _metrics(top1=0.65, nll=3.00, brier=0.035, error=6.0),
             "uniform": _metrics(top1=0.10, nll=3.00, brier=0.040, error=6.0),
             "old_i1": _metrics(top1=0.50, nll=4.00, brier=0.080, error=3.0),
         },
@@ -108,6 +110,7 @@ def _passing_table(seed_count: int = 20) -> dict[str, object]:
             "candidate": _metrics(top1=0.55, nll=1.70, brier=0.025, error=2.5),
             "oracle": _metrics(top1=0.70, nll=1.20, brier=0.020, error=1.0),
             "geometric": _metrics(top1=0.30, nll=5.00, brier=0.045, error=8.0),
+            "belief_free": _metrics(top1=0.40, nll=4.00, brier=0.040, error=6.0),
             "uniform": _metrics(top1=0.10, nll=3.20, brier=0.040, error=6.0),
             "old_i1": _metrics(top1=0.40, nll=5.00, brier=0.080, error=3.0),
         },
@@ -115,6 +118,7 @@ def _passing_table(seed_count: int = 20) -> dict[str, object]:
             "candidate": _metrics(top1=0.50, nll=2.00, brier=0.030, error=2.5),
             "oracle": _metrics(top1=0.70, nll=1.50, brier=0.025, error=1.0),
             "geometric": _metrics(top1=0.10, nll=8.00, brier=0.050, error=8.0),
+            "belief_free": _metrics(top1=0.25, nll=6.00, brier=0.045, error=6.0),
             "uniform": _metrics(top1=0.10, nll=3.50, brier=0.040, error=6.0),
             "old_i1": _metrics(top1=0.40, nll=6.00, brier=0.080, error=3.0),
         },
@@ -134,7 +138,7 @@ def _passing_table(seed_count: int = 20) -> dict[str, object]:
 def _reference_table(table: dict[str, object]) -> dict[str, object]:
     return {
         name: deepcopy(table[name])
-        for name in ("oracle", "geometric", "uniform", "old_i1")
+        for name in REFERENCE_PREDICTORS
     }
 
 
@@ -524,9 +528,13 @@ def test_closure_contrasts_have_the_preregistered_signs() -> None:
     top = result["contrasts"]["overall/top1_closure_0.30"]["mean"]
     nll = result["contrasts"]["overall/nll_closure_0.20"]["mean"]
     brier = result["contrasts"]["overall/brier_closure_0.15"]["mean"]
+    # Top-1 closure is measured against `belief_free`, not `geometric`: a
+    # candidate doing no belief filtering clears any bar set against a
+    # point-mass extrapolation (2026-08-08 review, F1).  NLL and Brier keep
+    # `uniform` as their reference.
     assert top == pytest.approx(
-        np.mean([0.70 - 0.60, 0.55 - 0.30, 0.50 - 0.10])
-        - 0.30 * np.mean([0.80 - 0.60, 0.70 - 0.30, 0.70 - 0.10])
+        np.mean([0.70 - 0.65, 0.55 - 0.40, 0.50 - 0.25])
+        - 0.30 * np.mean([0.80 - 0.65, 0.70 - 0.40, 0.70 - 0.25])
     )
     assert nll == pytest.approx(
         np.mean([3.00 - 1.50, 3.20 - 1.70, 3.50 - 2.00])
@@ -557,14 +565,14 @@ def test_reference_floor_and_complete_population_fail_closed() -> None:
     with pytest.raises(RuntimeError, match="complete seed IDs"):
         validate_complete_seed_population(
             reference,
-            required_predictors=("oracle", "geometric", "uniform", "old_i1"),
+            required_predictors=REFERENCE_PREDICTORS,
             expected_seed_ids=(0, 1, 2, 3),
         )
 
 
 def test_reference_health_and_power_artifact_never_reads_candidate() -> None:
-    reference = _reference_table(_passing_table(seed_count=64))
-    provenance = _valid_power_provenance(list(range(64)))
+    reference = _reference_table(_passing_table(seed_count=150))
+    provenance = _valid_power_provenance(list(range(150)))
     first = build_reference_health_power_artifact(
         reference,
         registry_selection_digest_sha256="c" * 64,
