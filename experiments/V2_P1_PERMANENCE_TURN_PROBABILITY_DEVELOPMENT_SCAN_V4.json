@@ -1,0 +1,159 @@
+{
+  "scan_version": 1,
+  "status": "development_only_non_gated",
+  "generator": "cal.evaluation.permanence_turn_probability_scan",
+  "reproduction_command": "uv run python -m cal.evaluation.permanence_turn_probability_scan --seed-registry experiments/V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY_V4.json",
+  "seed_registry_path": "experiments/V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY_V4.json",
+  "seed_registry_selection_digest_sha256": "8bbed3df12c08a2eb269379799c5e811c8a05b30b1e7d1fa72ccea7f43c0da89",
+  "selection_contract": {
+    "candidate_or_learned_model_metrics_must_not_be_read": true,
+    "permitted_selection_sources": [
+      "environment_event_coverage",
+      "runner_any_positive_chance",
+      "exact_kernel_belief_oracle",
+      "geometric_shortcut"
+    ],
+    "candidates_in_ascending_order": [
+      0.15,
+      0.25,
+      0.35,
+      0.45,
+      0.55
+    ],
+    "selection": "first_candidate_passing_all_conditions",
+    "conditions": {
+      "all_evaluation_seeds_have_samples": {
+        "operator": "equals",
+        "threshold": true
+      },
+      "all_evaluation_seeds_have_all_three_bins": {
+        "operator": "equals",
+        "threshold": true
+      },
+      "geometric_6plus_near_chance": {
+        "metric": "geometric_top1_minus_chance_top1",
+        "operator": "less_than_or_equal",
+        "threshold": 0.05
+      },
+      "oracle_6plus_has_headroom": {
+        "metric": "belief_top1_minus_chance_top1",
+        "operator": "greater_than_or_equal",
+        "threshold": 0.15
+      },
+      "oracle_6plus_brier_below_geometric": {
+        "metric": "belief_brier_minus_geometric_brier",
+        "operator": "less_than",
+        "threshold": 0.0
+      }
+    }
+  },
+  "rows": [
+    {
+      "turn_probability": 0.15,
+      "accepted": false,
+      "conditions": {
+        "all_evaluation_seeds_have_samples": true,
+        "all_evaluation_seeds_have_all_three_bins": true,
+        "geometric_6plus_near_chance": false,
+        "oracle_6plus_has_headroom": true,
+        "oracle_6plus_brier_below_geometric": true
+      },
+      "long_6plus": {
+        "chance_top1": 0.037041471600045055,
+        "belief_top1": 0.45169679163825643,
+        "geometric_top1": 0.29536862896725335,
+        "belief_brier": 0.024917775220867182,
+        "geometric_brier": 0.03677731543214674,
+        "geometric_top1_minus_chance_top1": 0.2583271573672083,
+        "belief_top1_minus_chance_top1": 0.4146553200382114,
+        "belief_brier_minus_geometric_brier": -0.011859540211279558
+      }
+    },
+    {
+      "turn_probability": 0.25,
+      "accepted": false,
+      "conditions": {
+        "all_evaluation_seeds_have_samples": true,
+        "all_evaluation_seeds_have_all_three_bins": true,
+        "geometric_6plus_near_chance": false,
+        "oracle_6plus_has_headroom": true,
+        "oracle_6plus_brier_below_geometric": true
+      },
+      "long_6plus": {
+        "chance_top1": 0.03704019766525094,
+        "belief_top1": 0.30203004872187394,
+        "geometric_top1": 0.15536052517858073,
+        "belief_brier": 0.029450580399020834,
+        "geometric_brier": 0.042671653566824,
+        "geometric_top1_minus_chance_top1": 0.1183203275133298,
+        "belief_top1_minus_chance_top1": 0.264989851056623,
+        "belief_brier_minus_geometric_brier": -0.013221073167803167
+      }
+    },
+    {
+      "turn_probability": 0.35,
+      "accepted": false,
+      "conditions": {
+        "all_evaluation_seeds_have_samples": true,
+        "all_evaluation_seeds_have_all_three_bins": true,
+        "geometric_6plus_near_chance": false,
+        "oracle_6plus_has_headroom": true,
+        "oracle_6plus_brier_below_geometric": true
+      },
+      "long_6plus": {
+        "chance_top1": 0.03703148046587636,
+        "belief_top1": 0.24047132637789356,
+        "geometric_top1": 0.08867334496072186,
+        "belief_brier": 0.03026254870337919,
+        "geometric_brier": 0.04503191221535708,
+        "geometric_top1_minus_chance_top1": 0.05164186449484551,
+        "belief_top1_minus_chance_top1": 0.2034398459120172,
+        "belief_brier_minus_geometric_brier": -0.014769363511977891
+      }
+    },
+    {
+      "turn_probability": 0.45,
+      "accepted": true,
+      "conditions": {
+        "all_evaluation_seeds_have_samples": true,
+        "all_evaluation_seeds_have_all_three_bins": true,
+        "geometric_6plus_near_chance": true,
+        "oracle_6plus_has_headroom": true,
+        "oracle_6plus_brier_below_geometric": true
+      },
+      "long_6plus": {
+        "chance_top1": 0.037047145189968746,
+        "belief_top1": 0.2286002555448479,
+        "geometric_top1": 0.06027053279678463,
+        "belief_brier": 0.030715783288111424,
+        "geometric_brier": 0.046681669019741516,
+        "geometric_top1_minus_chance_top1": 0.023223387606815887,
+        "belief_top1_minus_chance_top1": 0.19155311035487915,
+        "belief_brier_minus_geometric_brier": -0.015965885731630092
+      }
+    },
+    {
+      "turn_probability": 0.55,
+      "accepted": true,
+      "conditions": {
+        "all_evaluation_seeds_have_samples": true,
+        "all_evaluation_seeds_have_all_three_bins": true,
+        "geometric_6plus_near_chance": true,
+        "oracle_6plus_has_headroom": true,
+        "oracle_6plus_brier_below_geometric": true
+      },
+      "long_6plus": {
+        "chance_top1": 0.037050568417186486,
+        "belief_top1": 0.2318256898640406,
+        "geometric_top1": 0.03937285369386013,
+        "belief_brier": 0.030760108344499493,
+        "geometric_brier": 0.04737141367575902,
+        "geometric_top1_minus_chance_top1": 0.0023222852766736427,
+        "belief_top1_minus_chance_top1": 0.1947751214468541,
+        "belief_brier_minus_geometric_brier": -0.016611305331259527
+      }
+    }
+  ],
+  "selected_turn_probability": 0.45,
+  "scan_digest_sha256": "eb341b28f96aac10b4563c12ec1f92c0fa0cfee1c24cd95d681d2622690c6ccc"
+}

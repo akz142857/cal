@@ -43,10 +43,10 @@ from cal.evaluation.stochastic_permanence_custody import (
 
 
 DEFAULT_REGISTRY = Path(
-    "experiments/V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY_V2.json"
+    "experiments/V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY_V4.json"
 )
 DEFAULT_OUTPUT = Path(
-    "experiments/V2_I1_P1_PHASE0_REFERENCE_HEALTH_POWER_DEVELOPMENT_V10.json"
+    "experiments/V2_I1_P1_PHASE0_REFERENCE_HEALTH_POWER_DEVELOPMENT_V11.json"
 )
 
 
@@ -171,6 +171,7 @@ def run_phase0(
         {
             "oracle": episode_binned["belief"],
             "geometric": episode_binned["geometric"],
+            "belief_free": episode_binned["belief_free"],
             "uniform": uniform,
             "old_i1": episode_binned["entity_graph"],
         }
@@ -180,7 +181,13 @@ def run_phase0(
     )
     validate_complete_seed_population(
         score_table,
-        required_predictors=("oracle", "geometric", "uniform", "old_i1"),
+        required_predictors=(
+            "oracle",
+            "geometric",
+            "belief_free",
+            "uniform",
+            "old_i1",
+        ),
         expected_seed_ids=complete_seed_ids,
     )
     plan_path = root / "docs/experiments/V2_I1_STOCHASTIC_PERMANENCE_PLAN.md"

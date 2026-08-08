@@ -17,7 +17,10 @@ import tempfile
 from typing import Any, Iterable, Mapping
 
 
-ARTIFACT_SCHEMA_VERSION = 2
+# 3: reference-health gate details dropped the tautological
+#    `mean_at_least_development_floor` component, and the score table carries
+#    the `belief_free` reference (2026-08-08 review, F1/F5).
+ARTIFACT_SCHEMA_VERSION = 3
 CAPACITY_ARTIFACT_SCHEMA_VERSION = 2
 POWER_SIMULATION_DESIGN_VERSION = (
     "outer_reference_bootstrap_variance_envelope_physical_null_v10"
@@ -118,7 +121,10 @@ POWER_LOCKED_SIMULATION_SEED = 20_260_731
 POWER_LOCKED_TYPE1_SIMULATION_SEED = 20_260_732
 POWER_LOCKED_BOOTSTRAP_SEED = 20_260_729
 POWER_LOCKED_FORMAL_BOOTSTRAP_SAMPLES = 10_000
-POWER_LOCKED_DEVELOPMENT_SOURCE_COUNT = 64
+# Amended 2026-08-08 (64 -> 150) together with
+# `LOCKED_PHASE0_EVALUATION_SOURCE_COUNT`; see that constant for the power
+# argument behind the change.
+POWER_LOCKED_DEVELOPMENT_SOURCE_COUNT = 150
 POWER_CONFIRMATORY_ONE_SIDED_ALPHA = 0.01
 POWER_SEED_SAFETY_MULTIPLIER = 2.0
 POWER_FAMILYWISE_ALPHA = 0.05
@@ -839,7 +845,13 @@ def _validate_reference_health_power_artifact(
         payload.get("per_seed_per_bin"), name="Phase 0 score table"
     )
     expected_seed_keys = {str(seed) for seed in complete_seed_ids}
-    if set(score_table) != {"oracle", "geometric", "uniform", "old_i1"}:
+    if set(score_table) != {
+        "oracle",
+        "geometric",
+        "belief_free",
+        "uniform",
+        "old_i1",
+    }:
         raise RuntimeError("Phase 0 reference predictor population mismatch")
     if any(
         not isinstance(rows, Mapping) or set(rows) != expected_seed_keys
@@ -1657,12 +1669,12 @@ def _validate_reference_health_power_artifact(
     )
     if not required_reference or any(
         not isinstance(detail, Mapping)
-        or set(detail)
-        != {"mean_at_least_development_floor", "one_sided_99_lower_positive"}
+        or set(detail) != {"one_sided_99_lower_positive"}
         or any(type(value) is not bool for value in detail.values())
         for detail in required_reference.values()
     ):
         raise RuntimeError("reference-health gate evidence is invalid")
+    _verify_reference_health_recomputation(score_table, required_reference)
     reference_passed = all(
         all(detail.values()) for detail in required_reference.values()
     )
@@ -1950,6 +1962,42 @@ def load_canonical_artifact(
     return payload, digest
 
 
+def _verify_reference_health_recomputation(
+    score_table: Mapping[str, Any],
+    required_reference: Mapping[str, Any],
+) -> None:
+    """Re-derive the reference-health gate booleans from the raw score table.
+
+    Structural agreement between ``passed`` and the recorded booleans is not
+    enough: without this the recorded booleans are unfalsifiable self-reports,
+    so an artifact whose per-seed evidence contradicts its own gates would
+    validate clean.  The recomputation is the same one the builder performs,
+    driven only by ``per_seed_per_bin`` carried inside the artifact.
+    """
+
+    # Imported lazily: the benchmark module imports this one at module scope.
+    from cal.evaluation.stochastic_permanence_benchmark import (
+        REQUIRED_REFERENCE_GATES,
+        build_reference_health,
+    )
+
+    health, _ = build_reference_health(score_table)
+    expected_keys = {f"{scope}/{metric}" for scope, metric in REQUIRED_REFERENCE_GATES}
+    if set(required_reference) != expected_keys:
+        raise RuntimeError("reference-health gate population mismatch")
+    for scope, metric in REQUIRED_REFERENCE_GATES:
+        entry = health[scope][metric]
+        recorded = required_reference[f"{scope}/{metric}"]
+        recomputed = {
+            "one_sided_99_lower_positive": bool(entry["one_sided_99_lower"] > 0.0),
+        }
+        if dict(recorded) != recomputed:
+            raise RuntimeError(
+                "reference-health gate does not match recomputed evidence: "
+                f"{scope}/{metric}"
+            )
+
+
 def source_lock(paths: Iterable[str | Path], *, root: str | Path) -> dict[str, Any]:
     """Hash an explicit transitive source set using portable relative names."""
 
@@ -1974,6 +2022,41 @@ def source_lock(paths: Iterable[str | Path], *, root: str | Path) -> dict[str, A
         "file_count": len(files),
         "files": files,
         "combined_sha256": combined.hexdigest(),
+    }
+
+
+def audit_artifact_source_lock(
+    path: str | Path, *, root: str | Path
+) -> dict[str, Any]:
+    """Report whether an artifact's recorded source lock still matches live files.
+
+    ``verify_source_lock`` raises on any difference, which makes it unusable for
+    surveying committed artifacts: a development artifact's lock is a claim
+    about the past, so drift after a later source fix is expected rather than
+    wrong.  This returns the per-file verdict instead, so callers can require
+    that drift be *acknowledged* rather than merely absent.
+    """
+
+    payload = json.loads(Path(path).read_bytes())
+    provenance = payload.get("provenance")
+    lock = provenance.get("source_lock") if isinstance(provenance, Mapping) else None
+    if not isinstance(lock, Mapping) or not isinstance(lock.get("files"), Mapping):
+        raise RuntimeError(f"artifact has no source lock: {path}")
+    base = Path(root).resolve()
+    drifted: list[str] = []
+    missing: list[str] = []
+    for name, digest in sorted(lock["files"].items()):
+        target = base / name
+        if not target.is_file():
+            missing.append(name)
+        elif sha256_path(target) != digest:
+            drifted.append(name)
+    return {
+        "artifact": Path(path).name,
+        "file_count": int(lock["file_count"]),
+        "matched": not drifted and not missing,
+        "drifted": drifted,
+        "missing": missing,
     }
 
 

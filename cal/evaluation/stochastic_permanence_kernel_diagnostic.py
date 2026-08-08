@@ -43,13 +43,17 @@ from cal.model.stochastic_motion_filter import (
 
 
 DEFAULT_REGISTRY = Path(
-    "experiments/V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY_V2.json"
+    "experiments/V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY_V4.json"
 )
 DEFAULT_OUTPUT = Path(
-    "experiments/V2_I1_P1_PHASE_R_CAPACITY_CONFORMANCE_DEVELOPMENT_V3.json"
+    "experiments/V2_I1_P1_PHASE_R_CAPACITY_CONFORMANCE_DEVELOPMENT_V5.json"
 )
 DEFAULT_K_MAX = 96
-DEFAULT_TURN_PROBABILITY = 0.35
+# Selected by the turn-probability scan on registry V4, and independently
+# re-selected on V3 before it: the scan moved off 0.35 once the HMAC-keyed
+# hidden stream changed which seeds qualify, and 0.45 held at both 64 and 150
+# evaluation seeds.
+DEFAULT_TURN_PROBABILITY = 0.45
 ACTIVE_STATE_LIMIT = 65_536
 PARAMETER_LIMIT = 100_000
 MAC_LIMIT = 5_000_000

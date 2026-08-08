@@ -32,7 +32,35 @@ the episode seed.  This module builds NO frozen protocol and NO gated evidence.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
+
 import numpy as np
+
+
+# Salt for the hidden-maneuver stream.  Development and calibration runs use
+# this published value so their episodes stay reproducible; a custodian holding
+# a one-shot split MUST pass a secret salt instead, otherwise the split can be
+# seed-inverted (see the 2026-08-08 review, finding F9).
+DEFAULT_HIDDEN_STREAM_SALT = b"cal/v2-p1/permanence/hidden-stream/development"
+
+
+def hidden_stream_key(seed: int, *, salt: bytes) -> int:
+    """Derive the hidden-maneuver stream key from the episode seed via HMAC.
+
+    The visible layout is a deterministic function of ``seed``, so any key that
+    is a published function of ``seed`` alone (such as ``seed + 90_000``) lets
+    an observer recover the seed from the layout and replay the hidden
+    trajectory.  Keying through HMAC with a salt breaks that link: without the
+    salt the hidden stream is not derivable from anything observable.
+    """
+
+    if not isinstance(salt, (bytes, bytearray)) or not salt:
+        raise ValueError("hidden-stream salt must be non-empty bytes")
+    digest = hmac.new(
+        bytes(salt), int(seed).to_bytes(16, "big", signed=True), hashlib.sha256
+    ).digest()
+    return int.from_bytes(digest, "big")
 
 from cal.evaluation.v2_i1_integration import (
     ARENA_HIGH,
@@ -161,6 +189,7 @@ class RandomizedOcclusionWorld:
         *,
         hidden_turn_probability: float = 0.35,
         max_layout_attempts: int = 64,
+        hidden_stream_salt: bytes = DEFAULT_HIDDEN_STREAM_SALT,
     ) -> None:
         if grid_size <= ARENA_HIGH:
             raise ValueError(
@@ -174,8 +203,15 @@ class RandomizedOcclusionWorld:
         self.hidden_turn_probability = float(hidden_turn_probability)
         self._layout_rng = np.random.default_rng(int(seed))
         # A separate stream drives hidden maneuvers so they are not observable
-        # (or reconstructable) from pre-occlusion observation.
-        self._hidden_rng = np.random.default_rng(int(seed) + 90_000)
+        # from pre-occlusion observation.  It is keyed through HMAC rather than
+        # `seed + constant`: the visible layout is a deterministic function of
+        # the episode seed, so an offset stream lets an attacker recover the
+        # seed by matching layouts and then replay the hidden trajectory
+        # exactly, which is a permanence oracle with no belief at all.  With a
+        # secret salt, recovering the seed does not reveal the hidden stream.
+        self._hidden_rng = np.random.default_rng(
+            hidden_stream_key(seed, salt=hidden_stream_salt)
+        )
 
         static, shadow_cells = self._sample_layout(max_layout_attempts)
         self.static = static

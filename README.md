@@ -318,6 +318,49 @@ development-validation seeds `33100`–`33103`; it rejects every training,
 unknown, and V8 holdout seed before simulation. See the
 [L0 replay guide](docs/experiments/V2_L0_LANGUAGE_REPLAY_GUIDE.md).
 
+## Randomized-occlusion permanence (development, not frozen)
+
+The V8 failure was diagnosed as an environment problem rather than a model
+problem: the old occlusion screen sat at a fixed column with a fixed door and
+the hidden object's direction followed seed parity, so a hidden position after
+`k` steps was a deterministic function of `(k, seed parity)` and a raw-sensor
+linear probe could beat the formal model without any permanence reasoning. The
+diagnosis and the proposed replacement are in the
+[permanence diagnosis and preregistration draft](docs/experiments/V2_L0_PERMANENCE_DIAGNOSIS_AND_PREREGISTRATION_DRAFT.md),
+which is explicitly **not frozen**, and the implemented program is described in
+the [stochastic permanence plan](docs/experiments/V2_I1_STOCHASTIC_PERMANENCE_PLAN.md)
+and [Phase-R capacity amendment](docs/experiments/V2_I1_PHASE_R_CAPACITY_AMENDMENT_V3.md).
+
+`cal/evaluation/randomized_occlusion_world.py` re-randomizes the occluder
+column, extent, door, and extra blockers per episode. Its development-only,
+non-gated artifacts are rebuilt with:
+
+```bash
+uv run cal-v2-i1-permanence-phase0     # reference health and power design
+uv run cal-v2-i1-permanence-phase-r    # kernel capacity conformance
+```
+
+Both currently record `phase0_go` / `phase_r_go`. **No candidate has been run
+through the confirmatory battery, and nothing here is frozen or gated.**
+
+A preregistered review before freezing returned **`block`** on 2026-08-08. It
+confirmed the randomization works — position and raw-sensor probes collapse
+from V8's 0.875 to about 0.50–0.55, and layouts are unique across all 104
+development seeds — but a red-team candidate that performs **no belief
+filtering at all** (constant-velocity extrapolation plus a 125-entry error
+table) passed all 18 confirmatory gates, so the battery does not yet measure
+the mechanism it is meant to test. Two independent code reviews found no
+P0/P1 code defects. See the
+[review report](docs/review/REVIEW_PERMANENCE_FREEZE_2026_08_08.md) and its
+[follow-up](docs/review/REVIEW_PERMANENCE_FREEZE_FOLLOWUP_2026_08_08.md); the
+review process itself is defined in [`docs/review/`](docs/review/).
+
+The proposed replacement gates, with the measurements behind them, are in the
+[gate redesign draft](docs/experiments/V2_P1_PERMANENCE_GATE_REDESIGN_DRAFT.md).
+It is also not frozen: two thresholds remain open, and the redesign must be
+executed together with the seed-derivation and floor-gate fixes in a single
+regeneration, because all three invalidate the same development artifacts.
+
 The measured evidence, limitations, and M4 decision are documented in the
 [V2 audit report](docs/experiments/V2_AUDIT_REPORT.md) and
 [V2 stage report](docs/experiments/V2_STAGE_REPORT.md). The one-shot reviews

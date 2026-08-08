@@ -27,7 +27,15 @@ from cal.evaluation.v2_i1_integration import WARMUP
 REGISTRY_VERSION = 2
 DEFAULT_STEPS = 200
 LOCKED_DEVELOPMENT_TRAIN_COUNT = 40
-LOCKED_PHASE0_EVALUATION_SOURCE_COUNT = 64
+# Amended 2026-08-08 (64 -> 150).  Replacing the top-1 closure reference with
+# `belief_free` -- calibrated smearing rather than a point-mass extrapolation --
+# shrinks the oracle-versus-reference effect, and the 4-5 occlusion bin has the
+# highest per-seed variance of the three.  At 64 seeds its one-sided 99% lower
+# bound sat at -0.005 with a mean gap of +0.061: an underpowered bin, not an
+# absent effect.  The analytic requirement is ~75 seeds; 150 applies the same
+# 2.0 safety factor this program already uses for the confirmatory stage
+# (1315 analytic -> 2630 recommended).
+LOCKED_PHASE0_EVALUATION_SOURCE_COUNT = 150
 COVERAGE_TURN_PROBABILITIES = (0.15, 0.25, 0.35, 0.45, 0.55)
 MIN_ACCEPTED_SINGLE_HIDDEN_SAMPLES = 12
 MIN_EPISODE_BIN_GROUPS = 2

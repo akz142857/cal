@@ -8,6 +8,7 @@ import pytest
 
 from cal.evaluation.stochastic_permanence_artifacts import (
     CAPACITY_ARTIFACT_SCHEMA_VERSION,
+    audit_artifact_source_lock,
     exact_binomial_lower_bound,
     exact_binomial_upper_bound,
     load_canonical_artifact,
@@ -35,7 +36,7 @@ def test_exact_binomial_bounds_support_simultaneous_tail_probabilities() -> None
 def test_phase0_schema_recomputes_moments_distribution_and_recommendation() -> None:
     path = (
         Path(__file__).resolve().parents[1]
-        / "experiments/V2_I1_P1_PHASE0_REFERENCE_HEALTH_POWER_DEVELOPMENT_V10.json"
+        / "experiments/V2_I1_P1_PHASE0_REFERENCE_HEALTH_POWER_DEVELOPMENT_V11.json"
     )
     payload, _digest = load_canonical_artifact(
         path,
@@ -79,21 +80,21 @@ def test_phase0_schema_recomputes_moments_distribution_and_recommendation() -> N
             expected_kind="stochastic_permanence_reference_health_power",
         )
 
-    assert simulation["recommended_validation_seed_count"] == 2630
-    assert simulation["recommended_holdout_seed_count"] == 2630
+    assert simulation["recommended_validation_seed_count"] == 11078
+    assert simulation["recommended_holdout_seed_count"] == 11078
 
 
 def test_phase_r_v3_schema_locks_factor_local_capacity_evidence() -> None:
     path = (
         Path(__file__).resolve().parents[1]
-        / "experiments/V2_I1_P1_PHASE_R_CAPACITY_CONFORMANCE_DEVELOPMENT_V3.json"
+        / "experiments/V2_I1_P1_PHASE_R_CAPACITY_CONFORMANCE_DEVELOPMENT_V5.json"
     )
     payload, _digest = load_capacity_artifact(path)
 
     assert payload["decision"] == "phase_r_go"
     assert payload["capacity_contract"]["K_max"] == 96
     assert payload["capacity_contract"]["atomic_staging_scope"] == "one_factor"
-    assert payload["conformance"]["episode_count"] == 741
+    assert payload["conformance"]["episode_count"] == 1615
 
     tampered = deepcopy(payload)
     tampered["capacity_contract"]["persistent_arrays"]["scratch_codes"][
@@ -407,3 +408,80 @@ def test_source_lock_is_portable_and_fail_closed(tmp_path: Path) -> None:
     second.write_text("b = 3\n", encoding="utf-8")
     with pytest.raises(RuntimeError, match="mismatch"):
         verify_source_lock(lock, root=tmp_path)
+
+
+# Source files whose drift away from the current-generation development
+# artifacts is acknowledged.  Every entry must name the change that caused it,
+# and the entry must disappear once the artifact is regenerated.
+#
+# 2026-08-08 review finding F4: the Phase 0 validator now recomputes the
+# reference-health gate booleans from `per_seed_per_bin` instead of trusting
+# the recorded ones, so `stochastic_permanence_artifacts.py` no longer matches
+# the code state that produced V10 / Phase-R V3.  Both artifacts still validate
+# and their recomputed gates agree with what they recorded.
+# Add an entry only together with the change that caused it, and clear it again
+# when the artifact is regenerated.
+#
+# 2026-08-08, review finding D1: `_wasted_field_mass` was added to
+# `permanence_forward_benchmark.py` after V11/V5 were generated.  It only adds
+# a reported diagnostic field to `run_benchmark`'s result; Phase 0 reads
+# `episode_binned_predictors` and `leakage_audit` only, and Phase R does not
+# call `run_benchmark` at all, so no gate value in either artifact depends on
+# it.  Regenerating a four-hour artifact to absorb a diagnostic is not worth
+# it; the drift is recorded instead.
+ACKNOWLEDGED_SOURCE_DRIFT = frozenset(
+    {"cal/evaluation/permanence_forward_benchmark.py"}
+)
+
+CURRENT_DEVELOPMENT_ARTIFACTS = (
+    "V2_I1_P1_PHASE0_REFERENCE_HEALTH_POWER_DEVELOPMENT_V11.json",
+    "V2_I1_P1_PHASE_R_CAPACITY_CONFORMANCE_DEVELOPMENT_V5.json",
+)
+
+
+@pytest.mark.parametrize("name", CURRENT_DEVELOPMENT_ARTIFACTS)
+def test_current_development_artifact_source_drift_is_acknowledged(
+    name: str,
+) -> None:
+    """Fail loudly when a locked source changes without acknowledgement.
+
+    The recorded source lock is a claim about which sources produced the
+    artifact, and nothing verified it against live files before this test, so
+    edits to the permanence stack were previously undetectable (review finding
+    F8).  Drift is allowed, but only when it has been written down here.
+    """
+
+    root = Path(__file__).resolve().parents[1]
+    report = audit_artifact_source_lock(root / "experiments" / name, root=root)
+
+    assert report["missing"] == []
+    unacknowledged = set(report["drifted"]) - ACKNOWLEDGED_SOURCE_DRIFT
+    assert not unacknowledged, (
+        f"{name} was produced by a different source state; regenerate the "
+        f"artifact or acknowledge the drift: {sorted(unacknowledged)}"
+    )
+
+
+def test_source_lock_audit_reports_drift_without_raising(tmp_path: Path) -> None:
+    module = tmp_path / "pkg/mod.py"
+    module.parent.mkdir()
+    module.write_text("value = 1\n", encoding="utf-8")
+    artifact = tmp_path / "artifact.json"
+    artifact.write_text(
+        json.dumps(
+            {"provenance": {"source_lock": source_lock((module,), root=tmp_path)}}
+        ),
+        encoding="utf-8",
+    )
+
+    assert audit_artifact_source_lock(artifact, root=tmp_path)["matched"] is True
+
+    module.write_text("value = 2\n", encoding="utf-8")
+    drifted = audit_artifact_source_lock(artifact, root=tmp_path)
+    assert drifted["matched"] is False
+    assert drifted["drifted"] == ["pkg/mod.py"]
+    assert drifted["missing"] == []
+
+    module.unlink()
+    removed = audit_artifact_source_lock(artifact, root=tmp_path)
+    assert removed["missing"] == ["pkg/mod.py"]

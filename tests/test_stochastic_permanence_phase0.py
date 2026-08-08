@@ -7,6 +7,8 @@ from pathlib import Path
 import cal.evaluation.stochastic_permanence_phase0 as phase0
 import pytest
 
+from cal.evaluation.stochastic_permanence_benchmark import REFERENCE_PREDICTORS
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -43,6 +45,10 @@ def test_phase0_runner_wires_only_reference_predictors(
         scope: _metrics(0.3, 5.0, 0.05, 7.0)
         for scope in ("2-3", "4-5", "6+")
     }
+    belief_free = {
+        scope: _metrics(0.45, 4.0, 0.04, 5.0)
+        for scope in ("2-3", "4-5", "6+")
+    }
     uniform = {
         scope: _metrics(0.1, 3.0, 0.04, 6.0)
         for scope in ("2-3", "4-5", "6+")
@@ -55,6 +61,7 @@ def test_phase0_runner_wires_only_reference_predictors(
         "episode_binned_predictors": {
             "belief": _predictor(seeds, oracle),
             "geometric": _predictor(seeds, geometric),
+            "belief_free": _predictor(seeds, belief_free),
             "entity_graph": _predictor(seeds, old_i1),
         },
         "leakage_audit": {
@@ -93,12 +100,7 @@ def test_phase0_runner_wires_only_reference_predictors(
     assert artifact["provenance"]["coverage"]["complete_seed_ids"] == sorted(
         seeds
     )
-    assert set(artifact["per_seed_per_bin"]) == {
-        "oracle",
-        "geometric",
-        "uniform",
-        "old_i1",
-    }
+    assert set(artifact["per_seed_per_bin"]) == set(REFERENCE_PREDICTORS)
 
 
 def test_phase0_rejects_a_common_but_incomplete_seed_population(
@@ -116,6 +118,7 @@ def test_phase0_rejects_a_common_but_incomplete_seed_population(
         "episode_binned_predictors": {
             "belief": _predictor(incomplete, values),
             "geometric": _predictor(incomplete, values),
+            "belief_free": _predictor(incomplete, values),
             "entity_graph": _predictor(incomplete, values),
         },
         "leakage_audit": {
