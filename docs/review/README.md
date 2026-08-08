@@ -10,6 +10,7 @@
 
 | 文档 | 类型 | 说明 |
 | --- | --- | --- |
+| [`OPEN_ITEMS.md`](OPEN_ITEMS.md) | 待办 | 已识别但未处理的项：4 条阻断冻结、7 条影响正确性、4 条架构级缺口、4 条待人类定夺 |
 | [`REVIEW_PLAN.md`](REVIEW_PLAN.md) | 方案 v1.3 | 评审对象、角色、流程、检查清单、严重性分级与放行规则；两条轨道（里程碑深度评审 / 常态 PR 评审） |
 | [`REVIEW_REVIEW_PLAN_2026_08_08.md`](REVIEW_REVIEW_PLAN_2026_08_08.md) | 报告 | 对评审方案自身的评审（`pass_with_conditions`），v1.1 的修订依据 |
 | [`REVIEW_REVIEW_PLAN_SUPPLEMENT_2026_08_08.md`](REVIEW_REVIEW_PLAN_SUPPLEMENT_2026_08_08.md) | 补充 | 复核上述报告八项发现的落地情况：一项漏改（F5 的 §10）、一处章节号笔误；v1.2 的修订依据 |
