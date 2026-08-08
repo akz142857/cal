@@ -87,7 +87,7 @@ deterministic world replay — they are never part of model inputs.
 
 The V2 confirmation stage (`cal/evaluation/v2_m1_m3_confirmation.py`) is
 gated by a preregistered protocol JSON in `experiments/` (currently
-`V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL_V3.json`; V1/V2 are superseded but
+`V2_M1_M3_INTEGRATED_CONFIRMATION_PROTOCOL_V7.json`; V1–V6 are superseded but
 kept as historical amendment-chain links — see their `amendment_record`),
 protected by a sibling
 `.sha256` file **and** by a `locked_source_sha256` map embedded in the

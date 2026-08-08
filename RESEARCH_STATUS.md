@@ -1,6 +1,6 @@
 # Research status
 
-Last updated: 2026-07-28.
+Last updated: 2026-08-08.
 
 Cal is an open research prototype. It studies whether an embodied learner can
 form an explicit, persistent entity state from action-conditioned sensory
@@ -19,6 +19,7 @@ state.
 | V2 M4 unprivileged | Passed | Hidden occupancy and motion hypotheses passed without access to the simulator visibility mask. |
 | V2 I1 entity belief graph | Passed | Calibration, validation, and one-shot holdout passed all 13 gates. |
 | V2 L0 language readout V8 | **Did not pass** | The unique one-shot holdout was consumed on 2026-07-28 and ended with `stop_and_report`: 21 of 24 gates passed and 3 failed. |
+| V2 P1 randomized-occlusion permanence | Development only; **freeze blocked** | The randomized world removes the V8 geometric shortcut, but a review on 2026-08-08 showed the confirmatory gates do not yet test belief maintenance. Nothing is frozen and no holdout exists. |
 
 ## V8 L0 holdout result
 
@@ -54,6 +55,38 @@ state in this synthetic environment. It does **not** independently verify the
 full L0 language-readability claim, and it does not establish that
 hidden-object permanence depends on the formal entity graph.
 
+## Randomized-occlusion permanence status
+
+The V8 permanence failure was diagnosed as a property of the environment: the
+old occlusion geometry was constant across seeds, so hidden positions were a
+deterministic function of occlusion length and seed parity. A replacement world
+(`cal/evaluation/randomized_occlusion_world.py`) re-randomizes the occluder and
+its door per episode.
+
+Measured on development seeds, the randomization achieves what it was built
+for: raw-sensor and query-position probes fall from V8's 0.875 to roughly
+0.50–0.55, layouts are unique across all 104 development seeds, and a trained
+GRU control stays at chance.
+
+The program is nevertheless **not frozen and not passing**. A preregistered
+review on 2026-08-08 returned `block`:
+
+- a candidate that performs **no belief filtering** — constant-velocity
+  extrapolation plus a 125-entry error table — passed all 18 confirmatory
+  gates, so those gates do not yet distinguish object permanence from
+  calibrated smearing;
+- the preregistration draft and the implemented gate set share no gate names,
+  so the draft cannot be frozen as written;
+- the raw-sensor control that V8 failed on is present only as a non-gated
+  diagnostic.
+
+Two independent code reviews found no P0/P1 defects in the implementation
+itself. The blocking items are protocol-level. Phase-0 and Phase-R
+development artifacts record `phase0_go` / `phase_r_go`, which are
+capacity and statistical-power checks — **not** evidence that a permanence
+mechanism was learned. No candidate has been evaluated against a holdout, and
+no holdout has been created.
+
 ## Claims this repository does not make
 
 Cal is not currently:
@@ -63,7 +96,10 @@ Cal is not currently:
 - a production or safety-critical system;
 - evidence of open-ended language understanding;
 - proof that the learned mechanisms generalize beyond the documented
-  simulator and seed distributions.
+  simulator and seed distributions;
+- a demonstration of object permanence: the randomized-occlusion program is
+  development-stage, its gates are known not to separate belief maintenance
+  from constant-velocity extrapolation, and it has no holdout.
 
 Historical holdouts are consumed evidence and must not be reused as fresh
 evaluation sets. New claims require a newly preregistered split whose contents

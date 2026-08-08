@@ -5,12 +5,19 @@
 > 第三方评审）后再由 runner 生成冻结 `*.json` + `.sha256` + `locked_source_sha256`。
 > 在冻结之前，本文档中的一切阈值、seed 段和门都可修改。
 
-日期：2026-07-28
+日期：2026-07-28（A/B 节诊断）；**C 节于 2026-08-08 整体重写**
 上游证据：`results/V2-L0-language-readout-holdout-v8.json`
 （`decision=stop_and_report`，SHA-256
-`ae5ad9d4ef457d22680dc30048bf8e0421f5e708c724351b8751f8061a2d9d04`）
+`ae5ad9d4ef457d22680dc30048bf8e0421f5e708c724351b8751f8061a2d9d04`），
+终局证据 tag `calmodel-l0-v8-holdout-terminal-evidence`，
+干净 commit `e26c613e4648528f38f7125b662c6daf89448983`
 关联：[research status](../../RESEARCH_STATUS.md)、
-[L0 报告](V2_L0_LANGUAGE_READOUT.md)、[里程碑评估 1.1.0](../MilestoneSummary-1.1.0.md)
+[L0 报告](V2_L0_LANGUAGE_READOUT.md)、[里程碑评估 1.1.0](../MilestoneSummary-1.1.0.md)、
+[2026-08-08 评审报告](../review/REVIEW_PERMANENCE_FREEZE_2026_08_08.md)（判定 `block`）、
+[门重设计草案](V2_P1_PERMANENCE_GATE_REDESIGN_DRAFT.md)
+
+> **A/B 节（根因诊断）经 2026-08-08 评审逐条核实无误**，包括代码引用、
+> 八条件表与全部 digest；C 节则因门名与实现零重合等四条阻断项被整体重写。
 
 ---
 
@@ -169,156 +176,181 @@ uv run python -m cal.evaluation.permanence_geometry_diagnostic
 
 ---
 
-## C. 永久性新留出预注册（草案）
+## C. 永久性预注册（2026-08-08 重写版）
 
-### C.1 假设
+> **本节已整体重写。** 2026-08-08 评审（判定 `block`）发现旧 C 节的门表与实际
+> 实现的门系统**交集为空集**——照旧稿冻结等于预注册一个从未实现的实验，而真正
+> 实现的管线反而没有被任何文档预注册（评审 F2）；且旧稿不含任何数值阈值与决策
+> 规则（F3）、承诺保留的 raw-sensor 对照在门控管线中不存在（F6）、绑定的是已被
+> 取代的 V1 注册表（F7）。旧稿备份于评审报告的修订链引用中，不再作为预注册依据。
+>
+> 本节的每一条都与 `cal/evaluation/stochastic_permanence_benchmark.py` 的实现
+> 逐一对应。**仍为非冻结草案**：待 Phase-0 V11 产出后补齐 C.9 的实测前提，再送评审。
 
-> 在随机几何 + 随机隐藏动力学环境下，正式实体图的永久性信念**优于纯几何外推
-> 基线**，且 `assume_all_visible` 对照在 permanence 上坍缩到接近
-> 随机——即永久性能力来自维持的信念，而非固定几何。
+### C.1 假设与失败语义
 
-### C.2 模型无关 development seed registry
+**假设**：在随机化遮挡几何 + HMAC 密钥化随机隐藏动力学的环境中，一个维持
+显式信念的候选，其被遮挡物体的位置预测**优于任何不做信念滤波的方案**。
 
-不再把公开连续整数段称为“密封 holdout”。development registry 由
-`cal.evaluation.permanence_seed_registry` 按固定规则生成：从 62000 开始升序扫描，
-**不读取任何模型输出**，仅检查 layout 与事件覆盖；选择前 56 个合格 seed，前 40 个用于
-train、后 16 个用于 evaluation，不允许人工替换。
+**判定为失败的情形**（写明失败，而不只写成功）：
 
-紧凑、可重生成的 registry artifact：
-`experiments/V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY.json`。artifact 内的 selection
-digest 绑定 coverage contract、扫描范围、split、accepted audit 与 rejected prefix；不得只把
-seed 列表当成完整选择证据。以 artifact 自带的 `reproduction_command` 重生成并逐字段比较。
-接受条件在五个候选 `turn_probability={0.15,0.25,0.35,0.45,0.55}` 上同时成立：
+- 候选未能在 6+ 遮挡区间闭合 `oracle` 与 `belief_free` 之间差距的 40%；
+- 候选在任一资源门上越界；
+- 参照健康门不通过——此时不是候选失败，而是**该数据规模不足以测量任何东西**，
+  必须停止并扩充规模，不得据此宣称任何结论；
+- 一次性留出消费后任一冻结门失败 → `stop_and_report`，且**不得重试**。
 
-- 单隐藏对象合格样本至少 12；
-- `2–3`、`4–5`、`6+` 每档至少 2 个不同 focus-episode 组；
-- focus 与所有隐藏正格都有已知 track；
-- 碰撞和重复正格事件过滤；
-- layout 连通、可达、actor 初始可移动且存在 visible-hidden boundary。
+### C.2 权威注册表与切分
 
-共扫描到 62193，拒绝 138 个不满足条件的候选后得到 40+16 registry。validation/holdout
-seed **尚未生成，也不得公开写入本文**；未来必须由独立 custodian 保管秘密 seed stream，
-在候选定稿前公布该 stream/manifest 的密码学承诺，并以已锁定算法生成 split。只有候选源码
-锁定且执行获授权后，custodian 才可运行相应 split；公开承诺不等于公开 seed。
+**权威文件唯一**：`experiments/V2_P1_PERMANENCE_DEVELOPMENT_SEED_REGISTRY_V4.json`
+（`selection_digest_sha256` = `8bbed3df12c08a2e…`）。任何引用无版本号路径的
+表述作废。
 
-### C.3 对照条件
+| 项 | 值 |
+| --- | --- |
+| train | 40 seed |
+| development evaluation | **150 seed**（由 64 修订，见 C.8） |
+| 候选扫描区间 | 62000–70000，实际扫至 62722 |
+| 拒绝数 | 533 |
+| 转向概率 | **0.45**，由 `permanence_turn_probability_scan` 按契约自动选出 |
+| 转向概率扫描产物 | `..._TURN_PROBABILITY_DEVELOPMENT_SCAN_V4.json` |
 
-沿用 V8 的负对照体系，**新增 `geometric_extrapolation`**：
+转向概率 0.45 在 64-seed（V3）与 150-seed（V4）两个独立注册表上**复现同一
+选择**，故非小样本噪声。p=0.15/0.25/0.35 均因 `geometric_6plus_near_chance`
+失败而被拒——即在那些转向概率下，无信念外推没有被压到随机线附近。
 
-- `formal_entity_graph`：正式模型；
-- `raw_sensor`：裸传感器（保留，但降级为次要下限）；
-- `geometric_extrapolation`（**新，主要下限**）：只含遮挡布局 + 末见位置 + 速度 +
-  hidden_steps 的确定性外推特征，无任何信念；
-- `assume_all_visible`、`time_shuffled`、`random_labels`、
-  `referent_swapped`、`identity_scramble`：语义同 V8。
+validation / holdout seed **不在本仓库出现**，由保管人按 `holdout_policy` 用
+密盐生成并承诺（见 C.5）。
 
-`no_action` 只作为非门控耦合诊断保留，不进入 permanence 成败判定。
+### C.3 对照条件（实现中的预测器集合）
 
-### C.4 门（相对 V8 的关键重设计）
+`PREDICTORS = ("candidate", "oracle", "geometric", "belief_free", "uniform", "old_i1")`
 
-> **评审更正（重要）：相机固定、干扰物动力学与隐藏转向都与智能体动作无关**，
-> 因此任何"删动作必降低 permanence"的门都**没有因果依据**——原
-> `no_action_permanence_degrades` 已删除。动作类门只用于 self / 身份归因任务，
-> **不用于 permanence**。若删动作反而降低了 permanence，那是模型发生了不该有的
-> 动作耦合，属于需要排查的信号，而非通过条件。
+| 名称 | 含义 | 角色 |
+| --- | --- | --- |
+| `oracle` | 精确信念滤波，读真值静态拓扑 | **上限**，闭合门的分母 |
+| `belief_free` | 反射外推 + 拟合误差表，**不做任何信念滤波** | **下限**，top1 闭合门的分子基准 |
+| `geometric` | 反射外推点质量 | 参考，不再作为 top1 闭合下限 |
+| `uniform` | 场内均匀 | NLL / Brier 的下限 |
+| `old_i1` | 既有 I1 实体图 | 非劣性对照 |
 
-| 门 | 判据 | 相对 V8 |
-|---|---|---|
-| `formal_beats_geometric_extrapolation_permanence` | formal permanence 显著 > geometric_extrapolation，**seed-level 配对**，报告效应量与置信区间 | 新增主门，取代过弱的 raw 基线 |
-| `formal_beats_raw_permanence` | formal > raw（配对 + CI） | 保留 |
-| `all_visible_permanence_fails` | assume_all_visible 在遮挡长度 ≥K 的 hidden-field-conditioned 指标上落入 runner 逐事件计算的 chance+ε 容差 | 保留，但不再假定 chance=0.5 |
-| `shortcuts_fail_by_occlusion_length` | geometric / 位置先验 / all-visible 在 ≥K 分箱上均落入 runner 报告的 exact chance+ε | **新增，取代笼统的 `geometry_near_chance`** |
-| `formal_permanence_pass` | formal permanence ≥ 阈值（评审定数） | 保留 |
-| 其余身份/自我/结构/资源门 | 同 V8 | 保留 |
+**关于 raw_sensor 等 V8 对照的去向（评审 F6）**：V8 的
+`raw_sensor` / `assume_all_visible` / `time_shuffled` / `identity_scrambled` /
+`random_labels` 属于**线性读出探针**范式，而本阶段已转为**前向预测评分**范式，
+两者的样本与指标不可通约。`raw_sensor` 对照保留在**非门控诊断**
+`permanence_geometry_diagnostic.py` 中。**这是一次范式变更，不是静默删除**；
+其代价是本阶段不再直接检验"正式模型是否跑赢裸传感器"，该检验须在恢复读出
+范式时另行预注册。
 
-**关键定义（评审前必须敲定，草案不写死具体数）：**
+**为什么必须有 `belief_free`**：V8 的教训是"跑赢点质量外推"不构成永久性证据。
+2026-08-08 红队构造了一个仅靠反射外推 + 125 条目误差表的候选，通过了当时全部
+18 个门。把它固化为参照下限，候选就必须显示**它在平滑之上多做了什么**。
 
-- **最小遮挡长度 K**：短遮挡下恒速外推本就可能有效，笼统说"几何已接近随机"是错的。
-  permanence 门只在遮挡长度 **≥K** 的分箱上评估。
-- **精确 chance 与容差 ε**：any-positive top-1 chance 由 runner 按事件计算
-  `mean(|positives| / |field|)`；候选数和正格数变化时不得写死 0.5 或 0.026。
-  ε 仍须在冻结前给出具体数值。
-- **配对统计**：所有"A 优于 B"的门一律用 **seed-level paired bootstrap / 置信区间**，
-  不用汇总均值直接比较。
-- **每 seed 有效事件的数量与覆盖**：门需保证各 seed 在 ≥K 分箱内有足够的独立
-  episode-bin 组，并报告 field 大小与正格数分布；这里不是旧二元正/负 query 任务。
+### C.4 门（与实现逐一对应）
 
-### C.5 托管（评审冻结后才实施）
+#### C.4.1 参照健康门（前置条件，候选无关）
 
-沿用 I1/L0 既有模式：实现前冻结协议 JSON + `.sha256` sidecar +
-`locked_source_sha256`（覆盖新环境与新探针源码）；holdout 用带 nonce 的
-`--force-with-lease` CAS 一次性消费 tag + immutable Git blob evidence。
-**本草案阶段不创建任何一次性 tag，不消费任何 seed。**
+7 对 `(scope, metric)`，每对要求 `oracle` 与其参照之间差距的**单侧 99% 下界为正**：
 
-validation 也不是可反复调参的 development split：候选与契约锁定后只执行一次；若任何
-模型、阈值、指标或 evaluator 发生实质修改，该候选/协议版本的 validation 结论即终止，必须
-建立新版本及新的预承诺 validation stream，原 holdout 保持未消费。正式协议还必须预先定义
-基础设施失败与部分输出的重跑规则，避免观察结果后决定是否把一次运行算作“有效消费”。
+| scope | metric | 参照 |
+| --- | --- | --- |
+| overall | top1_accuracy | `oracle − belief_free` |
+| overall | categorical_nll | `uniform − oracle` |
+| overall | brier | `uniform − oracle` |
+| **4-5** | top1_accuracy | `oracle − belief_free` |
+| 6+ | top1_accuracy | `oracle − belief_free` |
+| 6+ | categorical_nll | `uniform − oracle` |
+| 6+ | brier | `uniform − oracle` |
 
-### C.6 环境标定必须模型无关（评审更正）
+它是**设门的前置条件**：若某对没有可测差距，则针对它的门无意义。
+恒真的 `mean_at_least_development_floor` 分量已删除（评审 F5）。
 
-标定 `turn_probability` 及其它难度参数时，**不得**采用"geometric / entity_graph 明显
-高于神经基线"这类**依赖当前模型表现**的标准——那是把当前模型表现反向用于调环境，
-构成另一种测试设计过拟合。标定采用**模型无关**判据：
+#### C.4.2 确认门（12 项）
 
-1. 已知核 oracle（belief）在规定遮挡长度上稳定有效（提供可达上界）；
-2. 恒速外推、位置先验、all-visible 等捷径在遮挡长度 ≥K 上**失败**（落入 runner
-   报告的 exact chance+ε）；
-3. 每 seed 在三档中有足够的独立 episode-bin 覆盖，并报告 field/positive-count 分布；
-4. 难度随参数**平滑**变化（无突变/退化区）；
-5. **不**根据当前 entity graph 是否占优来选参数。
+`reference_health`、`overall_top1_superiority`、`overall_nll`、`overall_brier`、
+`short_top1_protection`、`medium_top1`、`long_top1`、`long_nll`、`long_brier`、
+`position_error_superiority`、`position_error_noninferiority`、`coverage_stability`
 
-### C.7 两阶段冻结（评审更正）
+闭合阈值（先验固定，沿用既有预注册值，本轮未新造）：
 
-A（改进 I1）与 B（冻结契约）的正确关系是**两阶段冻结**，而非提前锁死 A 的实现：
+| 闭合门 | 阈值 | 下限参照 |
+| --- | ---: | --- |
+| overall/top1 | 0.30 | **belief_free** |
+| overall/nll | 0.20 | uniform |
+| overall/brier | 0.15 | uniform |
+| 4-5/top1 | 0.20 | **belief_free** |
+| 6+/top1 | **0.40** | **belief_free** |
+| 6+/nll | 0.20 | uniform |
+| 6+/brier | 0.15 | uniform |
 
-1. **A 之前**：冻结**评测契约**——环境、seed 段、指标、阈值、决策规则；
-2. **A 之后**（仅在 train/dev seed 上开发完成）：追加**只增加最终候选源码哈希**的
-   exact-source-lock amendment，然后运行 validation；**amendment 不得借机改门槛**；
-3. validation 全门通过 + 另行授权后，才一次性消费 holdout。
+非劣性边界：`-0.03`（top1）、`-0.02`（old_i1 对比）、`-0.25`（位置误差）。
 
-A 的正确形态是**新一代候选 + 新协议版本**，不改写任何已消费协议；修改锁定文件
-**不会**使历史结果失效（旧结果由旧 commit/hash 永久绑定）。
+#### C.4.3 资源门（6 项）
 
-### C.8 冻结前阻塞项（评审，未解决即不可冻结）
+`parameters_within_budget`、`persistent_active_state_within_budget`、
+`mac_per_step_within_budget`、`step_budget_respected`、`replay_budget_respected`、
+`runtime_budget_respected`。限额：100 000 参数、65 536 活跃字节、
+5 000 000 MAC/步（沿用 Phase-R 容量修订 V3）。
 
-下列 development 层问题已实现、确定性复跑，并经三路独立 review；review 发现的 Brier、
-分箱、artifact provenance 与 neural objective 问题均已修复：
+#### C.4.4 诊断（**不是门**）
 
-1. **field 口径**：所有图先投影到 hidden field；field 外无质量时明确记 miss；top-1 chance
-   逐事件计算 `|positives|/|field|`；最大分数并列时距离取并列集合平均，不受 candidate
-   顺序影响；
-2. **事件资格**：缺失 hidden track、actor collision、重复正格显式报告并过滤；时长统计
-   只使用单隐藏对象事件；
-3. **模型无关 registry**：相同 seeds 在全部五个候选难度上覆盖三档时长，每档至少两个
-   episode-bin 组；不读取模型分数，不允许人工替换；当前 selection digest 为
-   `e31929f7563ded1163979abaa353c2c26771912328e319175615dbb90ae4d9e4`；
-4. **统计单位**：主指标固定为 `time → episode/bin → seed/bin → 三档等权 → 完整 seed 等权`，
-   当前最长的 71 步 focus episode 不再获得 71 倍权重；
-5. **泄漏分解**：同时报告 uniform-field、中心距离、绝对坐标、field-relative geometry、
-   duration-conditioned coordinate 五类先验；
-6. **统计**：10,000 次确定性 seed-level paired bootstrap 已接入，正向 advantage 统一表示
-   第一模型更好；
-7. **模型无关难度选择**：按预声明条件扫描五个候选，0.35 是第一个通过者；完整 artifact
-   为 `experiments/V2_P1_PERMANENCE_TURN_PROBABILITY_DEVELOPMENT_SCAN.json`，scan digest
-   为 `b30b41cdff80bd949e5f593e1120bf108318f98e4c810a5b05c023063e8cb42e`；
-8. **D.5/D.6 已按新口径重生成**：完整摘要见
-   `experiments/V2_P1_PERMANENCE_DEVELOPMENT_AUDIT.json`。
+`wasted_field_mass`（放在候选场之外的质量占比）作为诊断记录。**刻意不设为门**：
+候选可读到 `visible` 掩码，把可见格清零即可把该指标伪造成 0 而无需任何信念，
+设为门会给出虚假的保障感。
 
-仍然阻止正式冻结的事项：
+### C.5 托管与一次性语义
 
-1. 成败门的最小实质效应量、绝对阈值与多指标决策规则仍未冻结；
-2. 尚无正式协议 JSON、sidecar、transitive source/dependency lock 或 clean reviewed commit；
-3. validation/holdout secret custody、承诺与一次性 runner 尚未建立；
-4. 新一代 I1 候选尚未开发；当前 D.6 只诊断旧 I1 的 OOD 表现。
+隐藏机动流由 `HMAC(custodian_salt, seed)` 派生
+（`randomized_occlusion_world.hidden_stream_key`）。开发使用已公布的默认盐；
+**保管人持有一次性切分的密盐**。
 
-**可复现 development 审计（2026-07-28，非门控）：** registry 的 16/16 evaluation seeds
-均有样本且三档齐全；共 1367 个事件，其中 1162 个单隐藏事件进入 411 个 episode-bin 组。
-等权 chance top-1 为 **0.03702**。position-prior 分解为：center 0.04308、global coordinate
-0.04405、field geometry 0.04195、duration-conditioned coordinate 0.02292。相对 uniform，最高的
-global-coordinate lift 在 registry 与 episode 等权后为绝对 **+0.00702**。这些已测试先验
-远低于旧 I1 的 0.25960，但没有为“先验相对 chance”预注册配对 CI 或成败门，因此这里只能
-说未发现足以复现模型分数的已测试位置捷径，不能据此证明不存在其它泄漏。
+这一条是必要的：可见布局是 episode seed 的确定函数，若隐藏流由 `seed + 常数`
+派生，观察者可由布局反推 seed 并精确重放隐藏轨迹——一个零信念的永久性 oracle。
+2026-08-08 评审实测：首观测指纹在 380 个候选 seed 中**完全唯一**，重放 200 步
+精确复现。密盐切断了这条链路。
+
+**硬顺序约束：密盐机制必须在生成任何留出 seed 之前就位**，事后更换代码无法
+补救已生成的留出。
+
+其余一次性语义（CAS 消费、终态不可重试、基础设施失败与部分输出的处理）由
+`stochastic_permanence_custody.py` 的状态机实现，`VALIDATION_CONSUMED_FAIL` /
+`NO_DECISION` 为终态。
+
+### C.6 环境标定必须模型无关
+
+转向概率选择、seed 合格性审计均只读世界与解析基线，不读任何候选模型指标
+（注册表 `model_metrics_read: false`，Phase-0 `candidate_maps_read: false`）。
+
+### C.7 两阶段冻结
+
+第一阶段冻结环境与注册表（已完成：V4 + 扫描 V4）；第二阶段在候选实现完成后
+冻结门与 `locked_source_sha256`。评审报告的 commit 必须早于冻结 commit。
+
+### C.8 相对旧稿的实质变更（全部为修订，须随本稿一并评审）
+
+| # | 变更 | 动因 |
+| --- | --- | --- |
+| 1 | top1 闭合下限 `geometric` → `belief_free` | 无信念候选通过了全部旧门（评审 F1） |
+| 2 | 删除恒真门 `mean_at_least_development_floor` | 它恒等于 `mean ≥ 0.25·mean`（F5） |
+| 3 | 隐藏流改 HMAC 派生 | 种子反演可得零信念 oracle（F9） |
+| 4 | 开发 evaluation seed **64 → 150** | 换强参照后效应量变小；4-5 区间解析需求 ~75，取 2.0 安全系数 |
+| 5 | 转向概率 0.35 → **0.45** | 选择契约在新世界自动改选，两个规模复现 |
+| 6 | 注册表 V2 → **V4**，扫描 → **V4** | 上述 3 与 4 的连带 |
+| 7 | 产物 schema 2 → **3** | 变更 2 改变了门结构 |
+| 8 | 拓扑分层门（曾提议）**不采纳** | 纠正径向中心后分层失去区分力，详见门重设计草案 D4′ |
+
+第 4 项修改了预注册的**锁定常量**，第 1、2 项修改了预注册的**门定义**。按
+`docs/review/REVIEW_PLAN.md` §8，这些须经评审 `pass` 且由人类 Gatekeeper 签署
+后方可冻结。
+
+### C.9 冻结前仍未解决（待补）
+
+- [ ] **Phase-0 V11 尚未产出**：150 seed 下 7 项参照健康门的实测结果未知，
+      尤其 4-5/top1 在 64 seed 时下界为 −0.0048（均值 +0.0605，为功效不足而非
+      效应缺失）。**V11 通过前，本稿不得冻结。**
+- [ ] 尚无候选实现，故 12 项确认门从未在真实候选上运行过。
+- [ ] `docs/experiments/V2_I1_STOCHASTIC_PERMANENCE_PLAN.md` 与本稿的
+      关系需明确：二者对同一门系统的描述必须合并或声明其一取代另一。
 
 ---
 
